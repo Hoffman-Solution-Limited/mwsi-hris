@@ -3,11 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Building2, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import logo from '@/assets/logo.png';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -28,7 +35,7 @@ export const LoginPage: React.FC = () => {
         description: 'Successfully logged in to MWSI HRIS.',
       });
       navigate('/');
-    } catch (err) {
+    } catch {
       setError('Invalid email or password');
     }
   };
@@ -39,13 +46,16 @@ export const LoginPage: React.FC = () => {
     { email: 'employee@mwsi.com', role: 'Employee', password: 'demo123' },
   ];
 
+  const showForgotPassword = ['hr@mwsi.com', 'employee@mwsi.com'].includes(email);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-light via-background to-secondary flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
+        {/* Logo Header */}
         <div className="text-center">
           <div className="flex justify-center mb-4">
             <div className="flex items-center gap-2 px-4 py-2 bg-card rounded-lg shadow-md">
-              <Building2 className="w-8 h-8 text-primary" />
+              <img src={logo} alt="MWSI Logo" className="h-8 w-auto object-contain" />
               <div>
                 <h1 className="text-xl font-bold">MWSI HRIS</h1>
                 <p className="text-xs text-muted-foreground">HR Management System</p>
@@ -54,12 +64,11 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Login Form */}
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
-            <CardDescription>
-              Enter your credentials to access the HR system
-            </CardDescription>
+            <CardDescription>Enter your credentials to access the HR system</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -85,7 +94,19 @@ export const LoginPage: React.FC = () => {
                   required
                 />
               </div>
-              
+
+              {showForgotPassword && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/forgot-password')}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+              )}
+
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
@@ -106,6 +127,7 @@ export const LoginPage: React.FC = () => {
           </CardContent>
         </Card>
 
+        {/* Demo Accounts */}
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="text-sm">Demo Accounts</CardTitle>
