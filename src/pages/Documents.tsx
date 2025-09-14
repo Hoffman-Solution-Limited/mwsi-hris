@@ -5,11 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockDocuments } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const Documents: React.FC = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredDocuments = mockDocuments.filter(doc =>
+  // Filter documents based on user role
+  const baseDocuments = user?.role === 'employee' 
+    ? mockDocuments.filter(doc => doc.uploadedBy === user.name)
+    : mockDocuments;
+    
+  const filteredDocuments = baseDocuments.filter(doc =>
     doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -18,9 +25,14 @@ export const Documents: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Document Registry</h1>
+          <h1 className="text-3xl font-bold mb-2">
+            {user?.role === 'employee' ? 'My Documents' : 'Document Registry'}
+          </h1>
           <p className="text-muted-foreground">
-            Centralized document management and file storage
+            {user?.role === 'employee' 
+              ? 'View and manage your personal documents' 
+              : 'Centralized document management and file storage'
+            }
           </p>
         </div>
         <Button>
