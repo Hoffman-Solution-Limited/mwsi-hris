@@ -21,6 +21,7 @@ import { Admin } from "@/pages/Admin";
 import { DesignationPage } from "@/pages/Designation";
 import { EmployeeByCounty } from "@/pages/EmployeeByCounty";
 import { DisciplinaryCases } from "@/pages/DisciplinaryCases";
+import { ForgotPasswordPage } from "@/components/auth/ForgotPasswordPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
         <BrowserRouter>
   <Routes>
   <Route path="/login" element={<LoginPage />} />
+  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
   <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
   <Route path="/search" element={<ProtectedRoute><Layout><GlobalSearch /></Layout></ProtectedRoute>} />
   <Route path="/employees" element={<ProtectedRoute><Layout><EmployeeDirectory /></Layout></ProtectedRoute>} />
@@ -56,6 +58,7 @@ const App = () => (
   <Route path="/documents" element={<ProtectedRoute><Layout><Documents /></Layout></ProtectedRoute>} />
   <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
   <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />
+  
 
   {/* ✅ Wrap Designations same way */}
   <Route
