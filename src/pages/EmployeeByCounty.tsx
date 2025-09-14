@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { mockEmployees } from "@/data/mockEmployees"; // adjust to your data source
+import { mockEmployees } from "../data/mockEmployees"; // adjust to your data source
 
 // Pick some chart colors
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A020F0", "#FF4444"];
