@@ -1,5 +1,7 @@
 import React from 'react';
-import { Bell, Search, Settings, LogOut, User } from 'lucide-react';
+import {
+  Bell, Search, Settings, LogOut, User
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -15,7 +17,11 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onToggleSidebar?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -29,8 +35,18 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
+    <header className="sticky top-0 z-10 h-16 bg-card border-b border-border flex items-center justify-between px-6">
+      {/* Left: Mobile Sidebar Toggle + Search */}
       <div className="flex items-center gap-4 flex-1">
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className="md:hidden text-blue-900 hover:text-blue-700"
+            aria-label="Open sidebar"
+          >
+            ☰
+          </button>
+        )}
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -40,14 +56,15 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
+      {/* Right: Notifications and User */}
       <div className="flex items-center gap-4">
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="relative">
               <Bell className="w-5 h-5" />
-              <Badge 
-                variant="destructive" 
+              <Badge
+                variant="destructive"
                 className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 text-xs"
               >
                 3
@@ -89,7 +106,7 @@ export const Header: React.FC = () => {
                 <AvatarImage src={user?.avatar} />
                 <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
               </Avatar>
-              <div className="text-left">
+              <div className="text-left hidden md:block">
                 <p className="text-sm font-medium">{user?.name}</p>
                 <p className="text-xs text-muted-foreground capitalize">{user?.role?.replace('_', ' ')}</p>
               </div>
