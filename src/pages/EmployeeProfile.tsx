@@ -29,6 +29,8 @@ import {
   mockLeaveRequests 
 } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { EditProfileForm } from "@/components/EditProfileForm"
 
 export const EmployeeProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -143,10 +145,33 @@ export const EmployeeProfile: React.FC = () => {
             </div>
             {(isMyProfile || ['admin', 'hr_manager', 'hr_staff'].includes(user?.role || '')) && (
               <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </Button>
+               <Dialog>
+  <DialogTrigger asChild>
+    <Button variant="outline" size="sm">
+      <Edit className="w-4 h-4 mr-2" />
+      Edit Profile
+    </Button>
+  </DialogTrigger>
+  <DialogContent className="sm:max-w-lg">
+    <DialogHeader>
+      <DialogTitle>Edit Employee Profile</DialogTitle>
+    </DialogHeader>
+    <EditProfileForm 
+      defaultValues={{
+        name: employee.name,
+        email: employee.email,
+        phone: employee.phone,
+        position: employee.position,
+        department: employee.department
+      }}
+      onSave={(data) => {
+        console.log("Updated profile:", data)
+        // TODO: connect to API with fetch/axios
+      }}
+    />
+  </DialogContent>
+</Dialog>
+
                 <Button variant="outline" size="sm">
                   <Download className="w-4 h-4 mr-2" />
                   Export

@@ -25,16 +25,18 @@ export interface Document {
   category: string;
 }
 
-export interface Position {
-  id: string;
-  title: string;
-  department: string;
-  status: 'open' | 'closed' | 'filled';
-  applicants: number;
-  priority: 'low' | 'medium' | 'high';
-  postedDate: string;
-  closingDate: string;
+export type Position = {
+  id: string
+  title: string
+  department: string
+  status: "open" | "filled" | "closed"
+  priority: "high" | "medium" | "low"
+  applicants: number
+  postedDate: string
+  closingDate: string
+  description: string 
 }
+
 
 export interface TrainingRecord {
   id: string;
@@ -189,36 +191,40 @@ export const mockDocuments: Document[] = [
 
 export const mockPositions: Position[] = [
   {
-    id: '1',
-    title: 'Senior Software Engineer',
-    department: 'Engineering',
-    status: 'open',
-    applicants: 12,
-    priority: 'high',
-    postedDate: '2024-03-01',
-    closingDate: '2024-03-31'
+    id: "1",
+    title: "Senior Software Engineer",
+    department: "Engineering",
+    status: "open",
+    priority: "high",
+    applicants: 24,
+    postedDate: "2024-03-01",
+    closingDate: "2024-03-30",
+    description: "We are looking for a Senior Software Engineer with experience in full-stack development, React, and Node.js. You will lead a team of developers and collaborate with product managers to deliver scalable applications."
   },
   {
-    id: '2',
-    title: 'HR Assistant',
-    department: 'Human Resources',
-    status: 'open',
-    applicants: 8,
-    priority: 'medium',
-    postedDate: '2024-03-15',
-    closingDate: '2024-04-15'
+    id: "2",
+    title: "HR Assistant",
+    department: "Human Resources",
+    status: "open",
+    priority: "medium",
+    applicants: 10,
+    postedDate: "2024-03-10",
+    closingDate: "2024-04-10",
+    description: "The HR Assistant will support recruitment, onboarding, and employee engagement activities. Strong organizational and communication skills are required."
   },
   {
-    id: '3',
-    title: 'Marketing Manager',
-    department: 'Marketing',
-    status: 'filled',
+    id: "3",
+    title: "Marketing Manager",
+    department: "Marketing",
+    status: "filled",
+    priority: "low",
     applicants: 15,
-    priority: 'high',
-    postedDate: '2024-02-01',
-    closingDate: '2024-02-28'
+    postedDate: "2024-02-15",
+    closingDate: "2024-03-15",
+    description: "We are seeking a Marketing Manager to develop and execute campaigns, manage digital channels, and lead a small team. Experience in B2B marketing is a plus."
   }
-];
+]
+
 
 export const mockTrainingRecords: TrainingRecord[] = [
   {

@@ -12,10 +12,15 @@ import {
   Settings,
   Search,
   Building2,
-  User
+  User,
+  Briefcase,
+  MapPin,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+
+
 
 interface NavItem {
   path: string;
@@ -42,6 +47,19 @@ const navItems: NavItem[] = [
     roles: ['admin', 'hr_manager', 'hr_staff', 'manager']
   },
   {
+  path: '/employees-by-county',
+  label: 'Employees by County',
+  icon: <MapPin className="w-5 h-5" />, // import { MapPin } from "lucide-react"
+  roles: ['admin', 'hr_manager', 'hr_staff', 'manager']
+  },
+
+  {
+    path: '/designation',
+    label: 'Designations',
+    icon: <Briefcase className="w-5 h-5" />,
+    roles: ['admin', 'hr_manager', 'hr_staff'] // adjust roles as needed
+  },
+  {
     path: '/profile',
     label: 'My Profile',
     icon: <User className="w-5 h-5" />,
@@ -53,6 +71,13 @@ const navItems: NavItem[] = [
     icon: <UserPlus className="w-5 h-5" />,
     roles: ['admin', 'hr_manager', 'hr_staff']
   },
+  {
+  path: '/disciplinary',
+  label: 'Disciplinary Cases',
+  icon: <AlertTriangle className="w-5 h-5" />, // import { AlertTriangle } from "lucide-react"
+  roles: ['admin', 'hr_manager', 'hr_staff'] 
+ },
+
   {
     path: '/training',
     label: 'Training & CPD',
