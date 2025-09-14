@@ -1,18 +1,33 @@
 import React, { useState } from 'react';
-import { Plus, Calendar, Clock, CheckCircle, XCircle, Filter, Download } from 'lucide-react';
+import { Plus, Calendar, Clock, CheckCircle, XCircle, Filter, Download, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { mockLeaveRequests, mockEmployees } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const LeaveManagement: React.FC = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Filter leave requests based on user role
+  const baseLeaves = user?.role === 'employee' 
+    ? mockLeaveRequests.filter(leave => leave.employeeId === user.id)
+    : mockLeaveRequests;
+    
+  // Calculate leave statistics for employees
+  const myApprovedLeaves = user?.role === 'employee' 
+    ? mockLeaveRequests.filter(leave => leave.employeeId === user.id && leave.status === 'approved')
+    : [];
+  const usedLeaveDays = myApprovedLeaves.reduce((sum, leave) => sum + leave.days, 0);
+  const leaveBalance = 25 - usedLeaveDays; // Assuming 25 days annual leave
 
   const pendingRequests = mockLeaveRequests.filter(req => req.status === 'pending');
   const approvedRequests = mockLeaveRequests.filter(req => req.status === 'approved');
@@ -64,9 +79,14 @@ export const LeaveManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Leave Management</h1>
+          <h1 className="text-3xl font-bold mb-2">
+            {user?.role === 'employee' ? 'My Leave Requests' : 'Leave Management'}
+          </h1>
           <p className="text-muted-foreground">
-            Manage employee leave requests, balances, and calendar
+            {user?.role === 'employee' 
+              ? `${leaveBalance} leave days remaining out of 25` 
+              : 'Manage employee leave requests, balances, and calendar'
+            }
           </p>
         </div>
         <div className="flex gap-2">
@@ -76,69 +96,118 @@ export const LeaveManagement: React.FC = () => {
           </Button>
           <Button>
             <Plus className="w-4 h-4 mr-2" />
-            New Leave Request
+            {user?.role === 'employee' ? 'Apply for Leave' : 'New Leave Request'}
           </Button>
         </div>
       </div>
 
       {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-warning/10 p-3 rounded-lg">
-                <Clock className="w-6 h-6 text-warning" />
+      {user?.role === 'employee' ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="bg-primary/10 p-3 rounded-lg">
+                  <Calendar className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Leave Balance</p>
+                  <p className="text-2xl font-bold">{leaveBalance}</p>
+                  <Progress value={(leaveBalance / 25) * 100} className="mt-2" />
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending Requests</p>
-                <p className="text-2xl font-bold">{pendingRequests.length}</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="bg-warning/10 p-3 rounded-lg">
+                  <Clock className="w-6 h-6 text-warning" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Pending Requests</p>
+                  <p className="text-2xl font-bold">
+                    {baseLeaves.filter(req => req.status === 'pending').length}
+                  </p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="bg-success/10 p-3 rounded-lg">
+                  <TrendingUp className="w-6 h-6 text-success" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Used This Year</p>
+                  <p className="text-2xl font-bold">{usedLeaveDays}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="bg-warning/10 p-3 rounded-lg">
+                  <Clock className="w-6 h-6 text-warning" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Pending Requests</p>
+                  <p className="text-2xl font-bold">{mockLeaveRequests.filter(req => req.status === 'pending').length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-success/10 p-3 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-success" />
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="bg-success/10 p-3 rounded-lg">
+                  <CheckCircle className="w-6 h-6 text-success" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Approved This Month</p>
+                  <p className="text-2xl font-bold">{mockLeaveRequests.filter(req => req.status === 'approved').length}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Approved This Month</p>
-                <p className="text-2xl font-bold">{approvedRequests.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-destructive/10 p-3 rounded-lg">
-                <XCircle className="w-6 h-6 text-destructive" />
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="bg-destructive/10 p-3 rounded-lg">
+                  <XCircle className="w-6 h-6 text-destructive" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Rejected This Month</p>
+                  <p className="text-2xl font-bold">{mockLeaveRequests.filter(req => req.status === 'rejected').length}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Rejected This Month</p>
-                <p className="text-2xl font-bold">{rejectedRequests.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-lg">
-                <Calendar className="w-6 h-6 text-primary" />
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="bg-primary/10 p-3 rounded-lg">
+                  <Calendar className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Days Off Today</p>
+                  <p className="text-2xl font-bold">3</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Days Off Today</p>
-                <p className="text-2xl font-bold">3</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>

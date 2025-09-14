@@ -11,7 +11,8 @@ import {
   BarChart3, 
   Settings,
   Search,
-  Building2
+  Building2,
+  User
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,13 @@ const navItems: NavItem[] = [
     path: '/employees',
     label: 'Employee Directory',
     icon: <Users className="w-5 h-5" />,
+    roles: ['admin', 'hr_manager', 'hr_staff', 'manager']
+  },
+  {
+    path: '/profile',
+    label: 'My Profile',
+    icon: <User className="w-5 h-5" />,
+    roles: ['employee']
   },
   {
     path: '/recruitment',

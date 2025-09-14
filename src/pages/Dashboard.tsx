@@ -12,7 +12,8 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  BarChart3
+  BarChart3,
+  User
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -26,8 +27,143 @@ import {
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  
+  // Calculate metrics based on user role
+  const isEmployee = user?.role === 'employee';
+  const isManager = user?.role === 'manager';
+  
+  if (isEmployee) {
+    // Employee-specific metrics
+    const myLeaves = mockLeaveRequests.filter(req => req.employeeId === user.id);
+    const myTrainings = mockTrainingRecords.filter(tr => tr.employeeId === user.id);
+    const myReviews = mockPerformanceReviews.filter(rev => rev.employeeId === user.id);
+    const myDocuments = mockDocuments.filter(doc => doc.uploadedBy === user.name);
+    
+    const pendingLeaves = myLeaves.filter(req => req.status === 'pending').length;
+    const approvedLeaves = myLeaves.filter(req => req.status === 'approved').length;
+    const completedTrainings = myTrainings.filter(tr => tr.status === 'completed').length;
+    const pendingTrainings = myTrainings.filter(tr => tr.status !== 'completed').length;
+    const latestReview = myReviews.sort((a, b) => new Date(b.nextReviewDate || '').getTime() - new Date(a.nextReviewDate || '').getTime())[0];
+    
+    // Calculate leave balance (assuming 25 days annual leave)
+    const usedLeaveDays = myLeaves.filter(req => req.status === 'approved').reduce((sum, req) => sum + req.days, 0);
+    const leaveBalance = 25 - usedLeaveDays;
 
-  // Calculate statistics
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Welcome back, {user.name}</h1>
+            <p className="text-muted-foreground">Here's your personal dashboard overview</p>
+          </div>
+        </div>
+
+        {/* Employee Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Leave Balance</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{leaveBalance}</div>
+              <p className="text-xs text-muted-foreground">days remaining</p>
+              <Progress value={(leaveBalance / 25) * 100} className="mt-2" />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Leaves</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{pendingLeaves}</div>
+              <p className="text-xs text-muted-foreground">awaiting approval</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Training Progress</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{completedTrainings}/{myTrainings.length}</div>
+              <p className="text-xs text-muted-foreground">completed courses</p>
+              <Progress value={(completedTrainings / (myTrainings.length || 1)) * 100} className="mt-2" />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">My Documents</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{myDocuments.length}</div>
+              <p className="text-xs text-muted-foreground">uploaded files</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button className="w-full justify-start" variant="outline">
+                <Calendar className="w-4 h-4 mr-2" />
+                Apply for Leave
+              </Button>
+              <Button className="w-full justify-start" variant="outline">
+                <User className="w-4 h-4 mr-2" />
+                View My Profile
+              </Button>
+              <Button className="w-full justify-start" variant="outline">
+                <FileText className="w-4 h-4 mr-2" />
+                Upload Document
+              </Button>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Latest Performance Review</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {latestReview ? (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">{latestReview.reviewPeriod}</span>
+                    <Badge className={`status-${latestReview.status}`}>
+                      {latestReview.status}
+                    </Badge>
+                  </div>
+                  {latestReview.score && (
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Overall Score</span>
+                        <span>{latestReview.score}/5.0</span>
+                      </div>
+                      <Progress value={(latestReview.score / 5) * 100} />
+                    </div>
+                  )}
+                  <p className="text-sm text-muted-foreground">{latestReview.feedback}</p>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">No performance reviews yet</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+  
+  // HR/Admin/Manager view - existing dashboard
   const totalEmployees = mockEmployees.length;
   const activeEmployees = mockEmployees.filter(emp => emp.status === 'active').length;
   const pendingLeaves = mockLeaveRequests.filter(req => req.status === 'pending').length;

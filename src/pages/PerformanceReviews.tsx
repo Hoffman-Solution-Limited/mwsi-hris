@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, TrendingUp, Star, Calendar, Eye } from 'lucide-react';
+import { Plus, Search, Filter, TrendingUp, Star, Calendar, Eye, Clock, CheckCircle, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,11 +9,35 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { mockPerformanceReviews, mockEmployees } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const PerformanceReviews: React.FC = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Filter reviews based on user role
+  const baseReviews = user?.role === 'employee' 
+    ? mockPerformanceReviews.filter(review => review.employeeId === user.id)
+    : user?.role === 'manager'
+    ? mockPerformanceReviews.filter(review => {
+        const employee = mockEmployees.find(emp => emp.id === review.employeeId);
+        return employee?.manager === user.name;
+      })
+    : mockPerformanceReviews;
+    
+  // Calculate manager-specific metrics
+  const reviewsToConduct = user?.role === 'manager' 
+    ? mockPerformanceReviews.filter(review => {
+        const employee = mockEmployees.find(emp => emp.id === review.employeeId);
+        return employee?.manager === user.name && review.status === 'draft';
+      })
+    : [];
+    
+  const myTeamSize = user?.role === 'manager' 
+    ? mockEmployees.filter(emp => emp.manager === user.name).length
+    : 0;
 
   const completedReviews = mockPerformanceReviews.filter(review => review.status === 'completed');
   const inReviewReviews = mockPerformanceReviews.filter(review => review.status === 'in_review');
@@ -85,9 +109,16 @@ export const PerformanceReviews: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Performance Reviews</h1>
+          <h1 className="text-3xl font-bold mb-2">
+            {user?.role === 'employee' ? 'My Performance Reviews' : 'Performance Reviews'}
+          </h1>
           <p className="text-muted-foreground">
-            Manage employee performance evaluations and development plans
+            {user?.role === 'employee' 
+              ? 'View your performance history and feedback'
+              : user?.role === 'manager'
+              ? `Manage reviews for your team of ${myTeamSize} employees`
+              : 'Manage employee performance evaluations and development plans'
+            }
           </p>
         </div>
         <div className="flex gap-2">
@@ -95,10 +126,12 @@ export const PerformanceReviews: React.FC = () => {
             <Calendar className="w-4 h-4 mr-2" />
             Schedule Reviews
           </Button>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            New Review
-          </Button>
+          {user?.role !== 'employee' && (
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              New Review
+            </Button>
+          )}
         </div>
       </div>
 
