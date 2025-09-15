@@ -1,8 +1,38 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Settings, Users, Shield, Database } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const Admin: React.FC = () => {
+  const navigate = useNavigate();
+
+  const cards = [
+      {
+        title: 'User Management',
+        icon: Users,
+        description: 'Manage user accounts and permissions',
+        onClick: () => navigate('/admin/users'),
+      },
+      {
+        title: 'Role Configuration',
+        icon: Shield,
+        description: 'Configure roles and access controls',
+        onClick: () => navigate('/admin/roles'),
+      },
+      {
+        title: 'System Settings',
+        icon: Settings,
+        description: 'General system configuration',
+        onClick: () => navigate('/admin/settings'),
+      },
+      {
+        title: 'Data Management',
+        icon: Database,
+        description: 'Database and data management tools',
+        onClick: () => navigate('/admin/data'),
+      },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -13,13 +43,12 @@ export const Admin: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {[
-          { title: 'User Management', icon: Users, description: 'Manage user accounts and permissions' },
-          { title: 'Role Configuration', icon: Shield, description: 'Configure roles and access controls' },
-          { title: 'System Settings', icon: Settings, description: 'General system configuration' },
-          { title: 'Data Management', icon: Database, description: 'Database and data management tools' }
-        ].map((item, index) => (
-          <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow">
+        {cards.map((item, index) => (
+          <Card
+            key={index}
+            onClick={item.onClick}
+            className="cursor-pointer hover:shadow-md transition-shadow"
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <item.icon className="w-5 h-5" />
