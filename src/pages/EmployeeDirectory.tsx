@@ -77,7 +77,7 @@ export const EmployeeDirectory: React.FC = () => {
                 Add Employee
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-4xl">
               <DialogHeader>
                 <DialogTitle>Add New Employee</DialogTitle>
               </DialogHeader>
@@ -88,6 +88,24 @@ export const EmployeeDirectory: React.FC = () => {
                   phone: "",
                   position: "",
                   department: "",
+                  gender: undefined,
+                  employmentType: "Permanent",
+                  staffNumber: "",
+                  nationalId: "",
+                  kraPin: "",
+                  children: "",
+                  workCounty: "",
+                  homeCounty: "",
+                  postalAddress: "",
+                  postalCode: "",
+                  stationName: "",
+                  skillLevel: "",
+                  company: "Ministry of Water, Sanitation and Irrigation",
+                  dateOfBirth: "",
+                  hireDate: "",
+                  emergencyContact: "",
+                  salary: undefined,
+                  status: "active"
                 }}
                 onSave={(data) => {
                   console.log("Employee submitted (mock):", data)

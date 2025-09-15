@@ -152,18 +152,36 @@ export const EmployeeProfile: React.FC = () => {
       Edit Profile
     </Button>
   </DialogTrigger>
-  <DialogContent className="sm:max-w-lg">
+  <DialogContent className="sm:max-w-4xl">
     <DialogHeader>
       <DialogTitle>Edit Employee Profile</DialogTitle>
     </DialogHeader>
-    <EditProfileForm 
-      defaultValues={{
-        name: employee.name,
-        email: employee.email,
-        phone: employee.phone,
-        position: employee.position,
-        department: employee.department
-      }}
+                    <EditProfileForm 
+                      defaultValues={{
+                        name: employee.name,
+                        email: employee.email,
+                        phone: employee.phone,
+                        position: employee.position,
+                        department: employee.department,
+                        gender: employee.gender,
+                        employmentType: employee.employmentType,
+                        staffNumber: employee.staffNumber,
+                        nationalId: employee.nationalId,
+                        kraPin: employee.kraPin,
+                        children: employee.children,
+                        workCounty: employee.workCounty,
+                        homeCounty: employee.homeCounty,
+                        postalAddress: employee.postalAddress,
+                        postalCode: employee.postalCode,
+                        stationName: employee.stationName,
+                        skillLevel: employee.skillLevel,
+                        company: employee.company,
+                        dateOfBirth: employee.dateOfBirth,
+                        hireDate: employee.hireDate,
+                        emergencyContact: employee.emergencyContact,
+                        salary: employee.salary,
+                        status: employee.status
+                      }}
       onSave={(data) => {
         console.log("Updated profile:", data)
         // TODO: connect to API with fetch/axios
