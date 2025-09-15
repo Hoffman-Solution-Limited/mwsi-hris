@@ -23,6 +23,10 @@ import {SkillsPage} from "@/pages/Skills";
 import { EmployeeByCounty } from "@/pages/EmployeeByCounty";
 import { DisciplinaryCases } from "@/pages/DisciplinaryCases";
 import { ForgotPasswordPage } from "@/components/auth/ForgotPasswordPage";
+import AdminUserManagement from '@/pages/AdminUserManagement';
+import RoleConfiguration from '@/pages/AdminRoleConfiguration';
+import SystemSettings from '@/pages/AdminSystemSettings';
+import DataManagement from '@/pages/AdminDataManagement';
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,8 +66,7 @@ const App = () => (
 
 
   {/* ✅ Wrap Designations same way */}
-  <Route
-    path="/Designation"
+  <Route path="/Designation"
     element={
       <ProtectedRoute>
         <Layout>
@@ -102,6 +105,47 @@ const App = () => (
     </ProtectedRoute>
   }
 />
+<Route
+  path="/admin/users"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <AdminUserManagement />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/roles"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <RoleConfiguration />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/settings"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <SystemSettings />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/data"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <DataManagement />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+
   <Route path="*" element={<NotFound />} />
 </Routes>
 
