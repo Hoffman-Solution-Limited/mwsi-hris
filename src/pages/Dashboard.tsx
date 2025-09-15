@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Users, 
   UserPlus, 
@@ -11,12 +12,16 @@ import {
   TrendingUp, 
   Clock,
   CheckCircle,
+  XCircle,
   AlertCircle,
   BarChart3,
-  User
+  User,
+  Edit
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLeave } from '@/contexts/LeaveContext';
+import { usePerformance } from '@/contexts/PerformanceContext';
+import { useDocuments } from '@/contexts/DocumentContext';
 import {
   mockEmployees,
   mockLeaveRequests,
@@ -29,10 +34,13 @@ import {
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { leaveRequests } = useLeave();
+  const { reviews } = usePerformance();
+  const { documents } = useDocuments();
   
   // Calculate metrics based on user role
   const isEmployee = user?.role === 'employee';
   const isManager = user?.role === 'manager';
+  const isHr = ['hr_manager', 'hr_staff'].includes(user?.role || '');
   
   if (isEmployee) {
     // Employee-specific metrics
@@ -164,15 +172,197 @@ export const Dashboard: React.FC = () => {
       </div>
     );
   }
+
+  if (isManager) {
+    // Manager-specific metrics
+    const myTeam = mockEmployees.filter(emp => emp.manager === user.name);
+    const teamLeaves = leaveRequests.filter(req => {
+      const employee = mockEmployees.find(emp => emp.id === req.employeeId);
+      return employee?.manager === user.name;
+    });
+    const teamReviews = reviews.filter(review => {
+      const employee = mockEmployees.find(emp => emp.id === review.employeeId);
+      return employee?.manager === user.name;
+    });
+    const pendingTeamLeaves = teamLeaves.filter(req => req.status === 'pending');
+    const pendingTeamReviews = teamReviews.filter(review => review.status === 'targets_set');
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Manager Dashboard</h1>
+            <p className="text-muted-foreground">Manage your team of {myTeam.length} employees</p>
+          </div>
+        </div>
+
+        {/* Manager Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Team Size</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{myTeam.length}</div>
+              <p className="text-xs text-muted-foreground">employees</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Leave Requests</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{pendingTeamLeaves.length}</div>
+              <p className="text-xs text-muted-foreground">awaiting approval</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Performance Reviews</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{pendingTeamReviews.length}</div>
+              <p className="text-xs text-muted-foreground">awaiting review</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Team Performance</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {teamReviews.filter(r => r.overallScore).length > 0 
+                  ? (teamReviews.reduce((sum, r) => sum + (r.overallScore || 0), 0) / teamReviews.filter(r => r.overallScore).length).toFixed(1)
+                  : '0.0'
+                }
+              </div>
+              <p className="text-xs text-muted-foreground">average score</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Team Leave Requests</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {pendingTeamLeaves.slice(0, 3).map((leave) => (
+                <div key={leave.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                  <div>
+                    <p className="font-medium text-sm">{leave.employeeName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {leave.type} • {leave.startDate} to {leave.endDate}
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="outline" className="text-success hover:text-success">
+                      <CheckCircle className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
+                      <XCircle className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {pendingTeamLeaves.length === 0 && (
+                <p className="text-muted-foreground text-sm">No pending leave requests</p>
+              )}
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Performance Reviews</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {pendingTeamReviews.slice(0, 3).map((review) => (
+                <div key={review.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                  <div>
+                    <p className="font-medium text-sm">{review.employeeName}</p>
+                    <p className="text-xs text-muted-foreground">{review.reviewPeriod}</p>
+                  </div>
+                  <Button size="sm" variant="outline">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Review
+                  </Button>
+                </div>
+              ))}
+              {pendingTeamReviews.length === 0 && (
+                <p className="text-muted-foreground text-sm">No pending reviews</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Team Overview */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Team Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {myTeam.map((employee) => {
+                const empLeaves = teamLeaves.filter(l => l.employeeId === employee.id);
+                const empReviews = teamReviews.filter(r => r.employeeId === employee.id);
+                const latestReview = empReviews.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                
+                return (
+                  <div key={employee.id} className="p-4 border rounded-lg">
+                    <div className="flex items-center gap-3 mb-3">
+                      <Avatar>
+                        <AvatarImage src={employee.avatar} />
+                        <AvatarFallback>
+                          {employee.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h4 className="font-medium">{employee.name}</h4>
+                        <p className="text-sm text-muted-foreground">{employee.position}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Leave Requests:</span>
+                        <span>{empLeaves.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Performance Score:</span>
+                        <span>{latestReview?.overallScore ? latestReview.overallScore.toFixed(1) : 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Status:</span>
+                        <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
+                          {employee.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   
-  // HR/Admin/Manager view - existing dashboard
+  // HR/Admin view - existing dashboard
   const totalEmployees = mockEmployees.length;
   const activeEmployees = mockEmployees.filter(emp => emp.status === 'active').length;
   const pendingLeaves = leaveRequests.filter(req => req.status === 'pending').length;
-  const pendingDocuments = mockDocuments.filter(doc => doc.status === 'pending').length;
+  const pendingDocuments = documents.filter(doc => doc.status === 'pending').length;
   const openPositions = mockPositions.filter(pos => pos.status === 'open').length;
   const completedTrainings = mockTrainingRecords.filter(tr => tr.status === 'completed').length;
-  const pendingReviews = mockPerformanceReviews.filter(pr => pr.status === 'in_review').length;
+  const pendingReviews = reviews.filter(pr => pr.status === 'hr_review').length;
 
   const quickStats = [
     {

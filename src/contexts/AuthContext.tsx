@@ -49,6 +49,15 @@ const mockUsers: Record<string, User> = {
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=MD',
     department: 'Engineering',
     position: 'Software Developer'
+  },
+  'manager@mwsi.com': {
+    id: '6',
+    name: 'David Manager',
+    email: 'manager@mwsi.com',
+    role: 'manager',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=DM',
+    department: 'Engineering',
+    position: 'Engineering Manager'
   }
 };
 
