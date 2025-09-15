@@ -3,6 +3,8 @@ import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export type EmployeeFormData = {
   name: string
@@ -10,6 +12,24 @@ export type EmployeeFormData = {
   phone?: string
   position: string
   department: string
+  gender?: 'male' | 'female' | 'other'
+  employmentType?: string
+  staffNumber?: string
+  nationalId?: string
+  kraPin?: string
+  children?: string
+  workCounty?: string
+  homeCounty?: string
+  postalAddress?: string
+  postalCode?: string
+  stationName?: string
+  skillLevel?: string
+  company?: string
+  dateOfBirth?: string
+  hireDate?: string
+  emergencyContact?: string
+  salary?: number
+  status?: 'active' | 'inactive' | 'terminated'
 }
 
 export function EmployeeForm({
@@ -26,9 +46,20 @@ export function EmployeeForm({
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
+    watch
   } = useForm<EmployeeFormData>({
-    defaultValues,
+    defaultValues: {
+      company: "Ministry of Water, Sanitation and Irrigation",
+      status: "active",
+      employmentType: "Permanent",
+      ...defaultValues
+    },
   })
+
+  const watchedGender = watch("gender")
+  const watchedEmploymentType = watch("employmentType")
+  const watchedStatus = watch("status")
 
   const handleSave = (data: EmployeeFormData) => {
     onSave(data)
@@ -36,39 +67,180 @@ export function EmployeeForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(handleSave)} className="space-y-4">
-      <div>
-        <Label htmlFor="name">Full Name</Label>
-        <Input id="name" {...register("name", { required: "Name is required" })} />
-        {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
-      </div>
+    <ScrollArea className="h-[600px] pr-4">
+      <form onSubmit={handleSubmit(handleSave)} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Personal Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
+            
+            <div>
+              <Label htmlFor="name">Full Name *</Label>
+              <Input id="name" {...register("name", { required: "Name is required" })} />
+              {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
+            </div>
 
-      <div>
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" {...register("email", { required: "Email is required" })} />
-        {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
-      </div>
+            <div>
+              <Label htmlFor="email">Email *</Label>
+              <Input id="email" type="email" {...register("email", { required: "Email is required" })} />
+              {errors.email && <p className="text-destructive text-sm">{errors.email.message}</p>}
+            </div>
 
-      <div>
-        <Label htmlFor="phone">Phone</Label>
-        <Input id="phone" {...register("phone")} />
-      </div>
+            <div>
+              <Label htmlFor="phone">Phone</Label>
+              <Input id="phone" {...register("phone")} />
+            </div>
 
-      <div>
-        <Label htmlFor="position">Position</Label>
-        <Input id="position" {...register("position", { required: "Position is required" })} />
-        {errors.position && <p className="text-red-500 text-sm">{errors.position.message}</p>}
-      </div>
+            <div>
+              <Label htmlFor="gender">Gender *</Label>
+              <Select value={watchedGender} onValueChange={(value: 'male' | 'female' | 'other') => setValue("gender", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.gender && <p className="text-destructive text-sm">{errors.gender.message}</p>}
+            </div>
 
-      <div>
-        <Label htmlFor="department">Department</Label>
-        <Input id="department" {...register("department", { required: "Department is required" })} />
-        {errors.department && <p className="text-red-500 text-sm">{errors.department.message}</p>}
-      </div>
+            <div>
+              <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+              <Input id="dateOfBirth" type="date" {...register("dateOfBirth", { required: "Date of birth is required" })} />
+              {errors.dateOfBirth && <p className="text-destructive text-sm">{errors.dateOfBirth.message}</p>}
+            </div>
 
-      <Button type="submit" className="w-full">
-        {mode === "add" ? "Save Employee" : "Update Employee"}
-      </Button>
-    </form>
+            <div>
+              <Label htmlFor="nationalId">National ID</Label>
+              <Input id="nationalId" {...register("nationalId")} />
+            </div>
+
+            <div>
+              <Label htmlFor="kraPin">KRA PIN</Label>
+              <Input id="kraPin" {...register("kraPin")} />
+            </div>
+
+            <div>
+              <Label htmlFor="children">Children</Label>
+              <Input id="children" type="number" {...register("children")} />
+            </div>
+
+            <div>
+              <Label htmlFor="emergencyContact">Emergency Contact</Label>
+              <Input id="emergencyContact" {...register("emergencyContact")} />
+            </div>
+          </div>
+
+          {/* Employment Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-4">Employment Information</h3>
+
+            <div>
+              <Label htmlFor="position">Position *</Label>
+              <Input id="position" {...register("position", { required: "Position is required" })} />
+              {errors.position && <p className="text-destructive text-sm">{errors.position.message}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="department">Department *</Label>
+              <Input id="department" {...register("department", { required: "Department is required" })} />
+              {errors.department && <p className="text-destructive text-sm">{errors.department.message}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="employmentType">Employment Type *</Label>
+              <Select value={watchedEmploymentType} onValueChange={(value) => setValue("employmentType", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select employment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Permanent">Permanent</SelectItem>
+                  <SelectItem value="Contract">Contract</SelectItem>
+                  <SelectItem value="Temporary">Temporary</SelectItem>
+                  <SelectItem value="Internship">Internship</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.employmentType && <p className="text-destructive text-sm">{errors.employmentType.message}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="staffNumber">Staff Number</Label>
+              <Input id="staffNumber" {...register("staffNumber")} />
+            </div>
+
+            <div>
+              <Label htmlFor="hireDate">Date of Joining *</Label>
+              <Input id="hireDate" type="date" {...register("hireDate", { required: "Date of joining is required" })} />
+              {errors.hireDate && <p className="text-destructive text-sm">{errors.hireDate.message}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="salary">Salary</Label>
+              <Input id="salary" type="number" {...register("salary")} />
+            </div>
+
+            <div>
+              <Label htmlFor="status">Status *</Label>
+              <Select value={watchedStatus} onValueChange={(value: 'active' | 'inactive' | 'terminated') => setValue("status", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="terminated">Terminated</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.status && <p className="text-destructive text-sm">{errors.status.message}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="company">Company *</Label>
+              <Input id="company" {...register("company", { required: "Company is required" })} />
+              {errors.company && <p className="text-destructive text-sm">{errors.company.message}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="skillLevel">Skill Level</Label>
+              <Input id="skillLevel" {...register("skillLevel")} />
+            </div>
+
+            <div>
+              <Label htmlFor="stationName">Station Name</Label>
+              <Input id="stationName" {...register("stationName")} />
+            </div>
+          </div>
+        </div>
+
+        {/* Address Information */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+          <div>
+            <Label htmlFor="workCounty">Work County</Label>
+            <Input id="workCounty" {...register("workCounty")} />
+          </div>
+
+          <div>
+            <Label htmlFor="homeCounty">Home County</Label>
+            <Input id="homeCounty" {...register("homeCounty")} />
+          </div>
+
+          <div>
+            <Label htmlFor="postalAddress">Postal Address</Label>
+            <Input id="postalAddress" {...register("postalAddress")} />
+          </div>
+
+          <div>
+            <Label htmlFor="postalCode">Postal Code</Label>
+            <Input id="postalCode" {...register("postalCode")} />
+          </div>
+        </div>
+
+        <Button type="submit" className="w-full mt-6">
+          {mode === "add" ? "Save Employee" : "Update Employee"}
+        </Button>
+      </form>
+    </ScrollArea>
   )
 }
