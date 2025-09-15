@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Upload, Search, Filter, FileText, Download, Eye } from 'lucide-react';
+import { Upload, Search, Filter, FileText, Download, Eye, CheckCircle, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 export const Documents: React.FC = () => {
   const { user } = useAuth();
-  const { documents, addDocument, getDocumentUrl } = useDocuments();
+  const { documents, addDocument, getDocumentUrl, approveDocument, rejectDocument } = useDocuments();
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -143,27 +143,37 @@ export const Documents: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={`status-${document.status}`}>
-                    {document.status}
-                  </Badge>
-                  <Button variant="outline" size="sm" onClick={() => {
-                    const url = getDocumentUrl(document.id);
-                    if (url) window.open(url, '_blank');
-                  }} disabled={!getDocumentUrl(document.id)}>
-                    <Eye className="w-4 h-4 mr-2" />
-                    View
-                  </Button>
-                  <a
-                    href={getDocumentUrl(document.id) || '#'}
-                    download={document.name}
-                    onClick={(e) => { if (!getDocumentUrl(document.id)) e.preventDefault(); }}
-                  >
-                    <Button variant="outline" size="sm" disabled={!getDocumentUrl(document.id)}>
-                      <Download className="w-4 h-4" />
-                    </Button>
-                  </a>
-                </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={`status-${document.status}`}>
+                        {document.status}
+                      </Badge>
+                      {document.status === 'pending' && ['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '') && (
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => approveDocument(document.id)}>
+                            <CheckCircle className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => rejectDocument(document.id)}>
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+                      <Button variant="outline" size="sm" onClick={() => {
+                        const url = getDocumentUrl(document.id);
+                        if (url) window.open(url, '_blank');
+                      }} disabled={!getDocumentUrl(document.id)}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        View
+                      </Button>
+                      <a
+                        href={getDocumentUrl(document.id) || '#'}
+                        download={document.name}
+                        onClick={(e) => { if (!getDocumentUrl(document.id)) e.preventDefault(); }}
+                      >
+                        <Button variant="outline" size="sm" disabled={!getDocumentUrl(document.id)}>
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </a>
+                    </div>
               </div>
             </CardContent>
           </Card>

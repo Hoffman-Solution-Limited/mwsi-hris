@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Search, Filter, GraduationCap, Clock, CheckCircle, Calendar } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Plus, Search, Filter, GraduationCap, Clock, CheckCircle, Calendar, Upload } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,14 +7,28 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { mockTrainingRecords, mockEmployees } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useTraining } from '@/contexts/TrainingContext';
 
 export const Training: React.FC = () => {
+  const { user } = useAuth();
+  const { trainings, startTraining, completeTraining } = useTraining();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [selectedTrainingId, setSelectedTrainingId] = useState<string | null>(null);
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
 
-  const completedTrainings = mockTrainingRecords.filter(tr => tr.status === 'completed');
-  const inProgressTrainings = mockTrainingRecords.filter(tr => tr.status === 'in_progress');
-  const notStartedTrainings = mockTrainingRecords.filter(tr => tr.status === 'not_started');
+  const filteredRecords = useMemo(() => {
+    if (!user) return [] as typeof mockTrainingRecords;
+    const source = trainings.length ? trainings : mockTrainingRecords;
+    return user.role === 'employee' ? source.filter(tr => tr.employeeId === user.id) : source;
+  }, [user, trainings]);
+
+  const completedTrainings = filteredRecords.filter(tr => tr.status === 'completed');
+  const inProgressTrainings = filteredRecords.filter(tr => tr.status === 'in_progress');
+  const notStartedTrainings = filteredRecords.filter(tr => tr.status === 'not_started');
 
   // Mock training programs
   const trainingPrograms = [
@@ -91,21 +105,23 @@ export const Training: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Training & CPD Management</h1>
+          <h1 className="text-3xl font-bold mb-2">Training & CPD</h1>
           <p className="text-muted-foreground">
-            Manage employee training programs and continuing professional development
+            {user?.role === 'employee' ? 'Your assigned trainings and completions' : 'Manage training programs and compliance'}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Training Program
-          </Button>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Enroll Employee
-          </Button>
-        </div>
+        {user?.role !== 'employee' && (
+          <div className="flex gap-2">
+            <Button variant="outline">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Training Program
+            </Button>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Enroll Employee
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Overview Stats */}
@@ -169,11 +185,10 @@ export const Training: React.FC = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="programs">Training Programs</TabsTrigger>
-          <TabsTrigger value="records">Employee Records</TabsTrigger>
-          <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          <TabsTrigger value="records">My Trainings</TabsTrigger>
+          {user?.role !== 'employee' && <TabsTrigger value="programs">Programs</TabsTrigger>}
         </TabsList>
 
         {/* Overview */}
@@ -332,11 +347,11 @@ export const Training: React.FC = () => {
         <TabsContent value="records">
           <Card>
             <CardHeader>
-              <CardTitle>Individual Training Records</CardTitle>
+              <CardTitle>{user?.role === 'employee' ? 'My Training Records' : 'Individual Training Records'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockTrainingRecords.map((training) => {
+                {filteredRecords.map((training) => {
                   const employee = mockEmployees.find(emp => emp.id === training.employeeId);
                   return (
                     <div key={training.id} className="flex items-center justify-between p-4 border rounded-lg">
@@ -346,9 +361,11 @@ export const Training: React.FC = () => {
                         </div>
                         <div>
                           <h4 className="font-medium">{training.title}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {employee?.name} • {employee?.department}
-                          </p>
+                          {user?.role !== 'employee' && (
+                            <p className="text-sm text-muted-foreground">
+                              {employee?.name} • {employee?.department}
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">
                             Provider: {training.provider}
                           </p>
@@ -368,6 +385,35 @@ export const Training: React.FC = () => {
                             Expires: {new Date(training.expiryDate).toLocaleDateString()}
                           </p>
                         )}
+                        {user?.role === 'employee' && training.status !== 'completed' && (
+                          <div className="flex justify-end gap-2 mt-2">
+                            {training.status === 'not_started' && (
+                              <Button size="sm" variant="outline" onClick={() => startTraining(training.id)}>Start Training</Button>
+                            )}
+                            {(training.status === 'in_progress' || training.status === 'not_started') && (
+                              <Dialog open={completeOpen && selectedTrainingId === training.id} onOpenChange={(o) => { setCompleteOpen(o); if (!o) { setSelectedTrainingId(null); setCertificateFile(null); } }}>
+                                <DialogTrigger asChild>
+                                  <Button size="sm">
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Complete & Upload Certificate
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Upload Completion Certificate</DialogTitle>
+                                    <DialogDescription>Attach your certificate to mark training as complete.</DialogDescription>
+                                  </DialogHeader>
+                                  <div className="space-y-2">
+                                    <Input type="file" onChange={(e)=> setCertificateFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
+                                  </div>
+                                  <DialogFooter>
+                                    <Button onClick={() => { completeTraining(training.id, certificateFile); setCompleteOpen(false); setSelectedTrainingId(null); setCertificateFile(null); }}>Submit</Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -377,98 +423,7 @@ export const Training: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* Compliance */}
-        <TabsContent value="compliance">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Compliance Dashboard</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {complianceData.map((item, index) => (
-                    <div key={index}>
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-medium">{item.requirement}</h4>
-                        <span className="text-sm font-medium">
-                          {item.compliant}/{item.totalEmployees} compliant
-                        </span>
-                      </div>
-                      <Progress value={(item.compliant / item.totalEmployees) * 100} className="mb-2" />
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>{Math.round((item.compliant / item.totalEmployees) * 100)}% compliance rate</span>
-                        <div className="flex gap-4">
-                          {item.expiringSoon > 0 && (
-                            <span className="text-warning">{item.expiringSoon} expiring soon</span>
-                          )}
-                          {item.overdue > 0 && (
-                            <span className="text-destructive">{item.overdue} overdue</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Upcoming Expiries</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {mockTrainingRecords
-                      .filter(tr => tr.expiryDate)
-                      .slice(0, 5)
-                      .map((training) => {
-                        const employee = mockEmployees.find(emp => emp.id === training.employeeId);
-                        return (
-                          <div key={training.id} className="flex justify-between items-center p-3 bg-warning/10 rounded-lg">
-                            <div>
-                              <p className="font-medium text-sm">{training.title}</p>
-                              <p className="text-xs text-muted-foreground">{employee?.name}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-medium text-warning">
-                                {training.expiryDate && new Date(training.expiryDate).toLocaleDateString()}
-                              </p>
-                              <p className="text-xs text-muted-foreground">30 days</p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Overdue Trainings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-destructive/10 rounded-lg">
-                      <div>
-                        <p className="font-medium text-sm">Cybersecurity Awareness Training</p>
-                        <p className="text-xs text-muted-foreground">John Smith</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-destructive">Overdue</p>
-                        <p className="text-xs text-muted-foreground">15 days</p>
-                      </div>
-                    </div>
-                    <div className="text-center py-8 text-muted-foreground">
-                      <CheckCircle className="w-12 h-12 mx-auto mb-2" />
-                      <p>All other trainings are up to date</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
+        {/* Remove Compliance tab for simplified employee view */}
       </Tabs>
     </div>
   );
