@@ -25,23 +25,22 @@ export const PerformanceReviews: React.FC = () => {
   const [targetDialogOpen, setTargetDialogOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState<PerformanceReview | null>(null);
 
-  // Filter reviews based on user role
-  const baseReviews = useMemo(() => {
-    if (!user) return [];
-    
-    if (user.role === 'employee') {
-      return reviews.filter(review => review.employeeId === user.id);
-    } else if (user.role === 'manager') {
-      return reviews.filter(review => {
-        const employee = mockEmployees.find(emp => emp.id === review.employeeId);
-        return employee?.manager === user.name;
-      });
-    } else {
-      return reviews;
-    }
+  // Manager-specific review filters
+  const myAppraisals = useMemo(() => {
+    if (!user || user.role !== 'manager') return [];
+    return reviews.filter(review => review.employeeId === user.id);
   }, [reviews, user]);
 
-  const filteredReviews = baseReviews.filter(review => {
+  const teamAppraisals = useMemo(() => {
+    if (!user || user.role !== 'manager') return [];
+    return reviews.filter(review => {
+      const employee = mockEmployees.find(emp => emp.id === review.employeeId);
+      return employee?.manager === user.name;
+    });
+  }, [reviews, user]);
+
+  // Use reviews for filtering instead of baseReviews
+  const filteredReviews = reviews.filter(review => {
     const matchesSearch = review.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          review.reviewPeriod.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || review.status === statusFilter;
@@ -406,103 +405,117 @@ export const PerformanceReviews: React.FC = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Review Overview</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="targets">Target Setting</TabsTrigger>
-          <TabsTrigger value="approvals">Approvals</TabsTrigger>
-        </TabsList>
+        {user?.role === 'manager' ? (
+          <TabsList className="grid w-full grid-cols-2 gap-2">
+            <TabsTrigger
+              value="my-appraisals"
+              className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+            >
+              My Appraisals
+            </TabsTrigger>
+            <TabsTrigger
+              value="team-appraisals"
+              className="bg-gray-200 text-gray-800 data-[state=active]:bg-yellow-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+            >
+              Team Appraisals
+            </TabsTrigger>
+          </TabsList>
+        ) : (
+          <TabsList className="grid w-full grid-cols-2 gap-2">
+            <TabsTrigger
+              value="active"
+              className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+            >
+              Active Appraisal
+            </TabsTrigger>
+            <TabsTrigger
+              value="history"
+              className="bg-gray-200 text-gray-800 data-[state=active]:bg-yellow-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+            >
+              Appraisal History
+            </TabsTrigger>
+          </TabsList>
+        )}
 
-        {/* Review Overview */}
-        <TabsContent value="overview">
-          <div className="space-y-4">
-            <div className="flex gap-4">
-              <Input
-                placeholder="Search reviews by employee or period..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1"
-              />
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="targets_set">Targets Set</SelectItem>
-                  <SelectItem value="manager_review">Manager Review</SelectItem>
-                  <SelectItem value="hr_review">HR Review</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
+        {/* Manager: My Appraisals Tab */}
+        {user?.role === 'manager' && (
+          <TabsContent value="my-appraisals">
+            <div className="space-y-4">
+              {myAppraisals.length === 0 ? (
+                <Card><CardContent className="p-6 text-center text-muted-foreground">No appraisals found.</CardContent></Card>
+              ) : (
+                myAppraisals.map((review) => {
+                  const template = templates.find(t => t.id === review.templateId);
+                  return (
+                    <Card key={review.id}>
+                      <CardHeader>
+                        <CardTitle>{review.reviewPeriod} {template ? `- ${template.name}` : ''}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div><span className="font-semibold">Score:</span> {review.overallScore || '-'} / 5</div>
+                          <div><span className="font-semibold">Feedback:</span> {review.managerComments || 'No feedback.'}</div>
+                          <div><span className="font-semibold">Goals:</span> {review.employeeTargets && review.employeeTargets.length > 0 ? review.employeeTargets.map(t => t.target).join(', ') : 'No goals.'}</div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
             </div>
+          </TabsContent>
+        )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Reviews</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredReviews.map((review) => {
-                    const employee = mockEmployees.find(emp => emp.id === review.employeeId);
-                    const template = templates.find(t => t.id === review.templateId);
-                    return (
-                      <div key={review.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-4">
-                          <Avatar>
-                            <AvatarImage src={employee?.avatar} />
-                            <AvatarFallback>
-                              {review.employeeName.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-medium">{review.employeeName}</h4>
-                              <Badge className={`status-${review.status === 'completed' ? 'approved' : review.status === 'targets_set' ? 'pending' : 'draft'}`}>
-                                {review.status.replace('_', ' ')}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground mb-1">
-                              {employee?.department} • {employee?.position}
-                            </p>
-                            <p className="text-sm">
-                              <span className="font-medium">Review Period:</span> {review.reviewPeriod}
-                              {template && (
-                                <span className="text-muted-foreground"> • {template.name}</span>
-                              )}
-                            </p>
-                            {review.overallScore && (
-                              <div className="flex items-center gap-2 mt-2">
-                                <Star className="w-4 h-4 text-warning fill-current" />
-                                <span className="text-sm font-medium">{review.overallScore.toFixed(1)}/5.0</span>
-                                <Progress value={(review.overallScore / 5) * 100} className="w-24 h-2" />
-                              </div>
-                            )}
-                          </div>
+        {/* Manager: Team Appraisals Tab */}
+        {user?.role === 'manager' && (
+          <TabsContent value="team-appraisals">
+            <div className="space-y-4">
+              {teamAppraisals.length === 0 ? (
+                <Card><CardContent className="p-6 text-center text-muted-foreground">No team appraisals found.</CardContent></Card>
+              ) : (
+                teamAppraisals.map((review) => {
+                  const template = templates.find(t => t.id === review.templateId);
+                  return (
+                    <Card key={review.id}>
+                      <CardHeader>
+                        <CardTitle>{review.employeeName} - {review.reviewPeriod} {template ? `- ${template.name}` : ''}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div><span className="font-semibold">Score:</span> {review.overallScore || '-'} / 5</div>
+                          <div><span className="font-semibold">Feedback:</span> {review.managerComments || 'No feedback.'}</div>
+                          <div><span className="font-semibold">Goals:</span> {review.employeeTargets && review.employeeTargets.length > 0 ? review.employeeTargets.map(t => t.target).join(', ') : 'No goals.'}</div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-right text-xs text-muted-foreground">
-                            <p>Next Review:</p>
-                            <p>{new Date(review.nextReviewDate).toLocaleDateString()}</p>
-                          </div>
-                          {user?.role === 'employee' && review.status === 'draft' && (
-                            <Button variant="outline" size="sm" onClick={() => openTargetDialog(review)}>
-                              <Target className="w-4 h-4 mr-2" />
-                              Set Targets
-                            </Button>
-                          )}
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-4 h-4 mr-2" />
-                            View
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </TabsContent>
+  )}
+
+        {/* Appraisal History Tab */}
+        <TabsContent value="history">
+          <div className="space-y-4">
+            {reviews.filter(r => r.status === 'completed').length === 0 ? (
+              <Card><CardContent className="p-6 text-center text-muted-foreground">No appraisal history.</CardContent></Card>
+            ) : (
+              reviews.filter(r => r.status === 'completed').map((review) => (
+                <Card key={review.id}>
+                  <CardHeader>
+                    <CardTitle>{review.reviewPeriod}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div><span className="font-semibold">Score:</span> {review.overallScore || '-'} / 5</div>
+                      <div><span className="font-semibold">Feedback:</span> {review.managerComments || 'No feedback.'}</div>
+                      <div><span className="font-semibold">Goals:</span> {review.employeeTargets && review.employeeTargets.length > 0 ? review.employeeTargets.map(t => t.target).join(', ') : 'No goals.'}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </TabsContent>
 
