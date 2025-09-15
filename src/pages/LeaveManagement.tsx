@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Plus, Calendar, Clock, CheckCircle, XCircle, Filter, Download, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,30 +8,38 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { mockLeaveRequests, mockEmployees } from '@/data/mockData';
+import { mockEmployees } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLeave } from '@/contexts/LeaveContext';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 export const LeaveManagement: React.FC = () => {
   const { user } = useAuth();
+  const { leaveRequests, addLeaveRequest, approveRequest, rejectRequest } = useLeave();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [applyOpen, setApplyOpen] = useState(false);
+  const [form, setForm] = useState({ type: 'annual', startDate: '', endDate: '', days: 1, reason: '' });
 
   // Filter leave requests based on user role
-  const baseLeaves = user?.role === 'employee' 
-    ? mockLeaveRequests.filter(leave => leave.employeeId === user.id)
-    : mockLeaveRequests;
+  const baseLeaves = useMemo(() => {
+    return user?.role === 'employee'
+      ? leaveRequests.filter(leave => leave.employeeId === user.id)
+      : leaveRequests;
+  }, [user, leaveRequests]);
     
   // Calculate leave statistics for employees
   const myApprovedLeaves = user?.role === 'employee' 
-    ? mockLeaveRequests.filter(leave => leave.employeeId === user.id && leave.status === 'approved')
+    ? leaveRequests.filter(leave => leave.employeeId === user.id && leave.status === 'approved')
     : [];
   const usedLeaveDays = myApprovedLeaves.reduce((sum, leave) => sum + leave.days, 0);
   const leaveBalance = 25 - usedLeaveDays; // Assuming 25 days annual leave
 
-  const pendingRequests = mockLeaveRequests.filter(req => req.status === 'pending');
-  const approvedRequests = mockLeaveRequests.filter(req => req.status === 'approved');
-  const rejectedRequests = mockLeaveRequests.filter(req => req.status === 'rejected');
+  const pendingRequests = leaveRequests.filter(req => req.status === 'pending');
+  const approvedRequests = leaveRequests.filter(req => req.status === 'approved');
+  const rejectedRequests = leaveRequests.filter(req => req.status === 'rejected');
 
   // Calculate leave balances (mock data)
   const leaveBalances = mockEmployees.map(emp => ({
@@ -41,22 +49,22 @@ export const LeaveManagement: React.FC = () => {
     annual: {
       allocated: 25,
       used: Math.floor(Math.random() * 15) + 5,
-      pending: mockLeaveRequests.filter(req => req.employeeId === emp.id && req.status === 'pending' && req.type === 'annual').reduce((sum, req) => sum + req.days, 0)
+      pending: leaveRequests.filter(req => req.employeeId === emp.id && req.status === 'pending' && req.type === 'annual').reduce((sum, req) => sum + req.days, 0)
     },
     sick: {
       allocated: 10,
       used: Math.floor(Math.random() * 5),
-      pending: mockLeaveRequests.filter(req => req.employeeId === emp.id && req.status === 'pending' && req.type === 'sick').reduce((sum, req) => sum + req.days, 0)
+      pending: leaveRequests.filter(req => req.employeeId === emp.id && req.status === 'pending' && req.type === 'sick').reduce((sum, req) => sum + req.days, 0)
     },
     emergency: {
       allocated: 5,
       used: Math.floor(Math.random() * 2),
-      pending: mockLeaveRequests.filter(req => req.employeeId === emp.id && req.status === 'pending' && req.type === 'emergency').reduce((sum, req) => sum + req.days, 0)
+      pending: leaveRequests.filter(req => req.employeeId === emp.id && req.status === 'pending' && req.type === 'emergency').reduce((sum, req) => sum + req.days, 0)
     }
   }));
 
   // Filter leave requests
-  const filteredRequests = mockLeaveRequests.filter(request => {
+  const filteredRequests = baseLeaves.filter(request => {
     const matchesSearch = request.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          request.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          request.reason.toLowerCase().includes(searchQuery.toLowerCase());
@@ -65,7 +73,7 @@ export const LeaveManagement: React.FC = () => {
   });
 
   // Calendar data (mock)
-  const calendarEvents = mockLeaveRequests
+  const calendarEvents = leaveRequests
     .filter(req => req.status === 'approved')
     .map(req => ({
       id: req.id,
@@ -74,6 +82,23 @@ export const LeaveManagement: React.FC = () => {
       end: req.endDate,
       type: req.type
     }));
+
+  const canActOnRequests = user && user.role !== 'employee';
+
+  const submitLeave = () => {
+    if (!user) return;
+    if (!form.startDate || !form.endDate || !form.reason) return;
+    addLeaveRequest({
+      employeeId: user.id,
+      type: form.type as any,
+      startDate: form.startDate,
+      endDate: form.endDate,
+      days: Number(form.days) || 1,
+      reason: form.reason
+    });
+    setApplyOpen(false);
+    setForm({ type: 'annual', startDate: '', endDate: '', days: 1, reason: '' });
+  };
 
   return (
     <div className="space-y-6">
@@ -94,10 +119,63 @@ export const LeaveManagement: React.FC = () => {
             <Download className="w-4 h-4 mr-2" />
             Export Report
           </Button>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            {user?.role === 'employee' ? 'Apply for Leave' : 'New Leave Request'}
-          </Button>
+          {user?.role === 'employee' ? (
+            <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Apply for Leave
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Apply for Leave</DialogTitle>
+                  <DialogDescription>Submit your leave request for approval.</DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium">Leave Type</label>
+                    <Select value={form.type} onValueChange={(v) => setForm(s => ({ ...s, type: v }))}>
+                      <SelectTrigger className="w-full mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="annual">Annual</SelectItem>
+                        <SelectItem value="sick">Sick</SelectItem>
+                        <SelectItem value="emergency">Emergency</SelectItem>
+                        <SelectItem value="maternity">Maternity</SelectItem>
+                        <SelectItem value="study">Study</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Start Date</label>
+                    <Input type="date" className="mt-1" value={form.startDate} onChange={(e) => setForm(s => ({ ...s, startDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">End Date</label>
+                    <Input type="date" className="mt-1" value={form.endDate} onChange={(e) => setForm(s => ({ ...s, endDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Total Days</label>
+                    <Input type="number" min={1} className="mt-1" value={form.days} onChange={(e) => setForm(s => ({ ...s, days: Number(e.target.value) }))} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium">Reason</label>
+                    <Textarea className="mt-1" rows={3} value={form.reason} onChange={(e) => setForm(s => ({ ...s, reason: e.target.value }))} />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={submitLeave} disabled={!form.startDate || !form.endDate || !form.reason}>Submit</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              New Leave Request
+            </Button>
+          )}
         </div>
       </div>
 
@@ -159,7 +237,7 @@ export const LeaveManagement: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Pending Requests</p>
-                  <p className="text-2xl font-bold">{mockLeaveRequests.filter(req => req.status === 'pending').length}</p>
+                  <p className="text-2xl font-bold">{leaveRequests.filter(req => req.status === 'pending').length}</p>
                 </div>
               </div>
             </CardContent>
@@ -173,7 +251,7 @@ export const LeaveManagement: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Approved This Month</p>
-                  <p className="text-2xl font-bold">{mockLeaveRequests.filter(req => req.status === 'approved').length}</p>
+                  <p className="text-2xl font-bold">{leaveRequests.filter(req => req.status === 'approved').length}</p>
                 </div>
               </div>
             </CardContent>
@@ -187,7 +265,7 @@ export const LeaveManagement: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Rejected This Month</p>
-                  <p className="text-2xl font-bold">{mockLeaveRequests.filter(req => req.status === 'rejected').length}</p>
+                  <p className="text-2xl font-bold">{leaveRequests.filter(req => req.status === 'rejected').length}</p>
                 </div>
               </div>
             </CardContent>
@@ -290,12 +368,12 @@ export const LeaveManagement: React.FC = () => {
                               Applied: {new Date(request.appliedDate).toLocaleDateString()}
                             </p>
                           </div>
-                          {request.status === 'pending' && (
+                          {request.status === 'pending' && canActOnRequests && (
                             <div className="flex gap-1">
-                              <Button size="sm" variant="outline" className="text-success hover:text-success">
+                              <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => approveRequest(request.id)}>
                                 <CheckCircle className="w-4 h-4" />
                               </Button>
-                              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
+                              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => rejectRequest(request.id)}>
                                 <XCircle className="w-4 h-4" />
                               </Button>
                             </div>
@@ -503,7 +581,7 @@ export const LeaveManagement: React.FC = () => {
                 <div className="space-y-4">
                   {['Engineering', 'Human Resources', 'Marketing', 'Finance'].map(dept => {
                     const deptEmployees = mockEmployees.filter(emp => emp.department === dept);
-                    const deptRequests = mockLeaveRequests.filter(req => {
+                    const deptRequests = leaveRequests.filter(req => {
                       const emp = mockEmployees.find(e => e.id === req.employeeId);
                       return emp?.department === dept;
                     });
