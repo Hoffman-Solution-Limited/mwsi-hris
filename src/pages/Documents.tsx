@@ -1,20 +1,31 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Upload, Search, Filter, FileText, Download, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { mockDocuments } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDocuments } from '@/contexts/DocumentContext';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 export const Documents: React.FC = () => {
   const { user } = useAuth();
+  const { documents, addDocument, getDocumentUrl } = useDocuments();
   const [searchQuery, setSearchQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [type, setType] = useState<'contract' | 'certificate' | 'policy' | 'form' | 'report'>('form');
+  const [category, setCategory] = useState('General');
+  const [file, setFile] = useState<File | null>(null);
 
   // Filter documents based on user role
-  const baseDocuments = user?.role === 'employee' 
-    ? mockDocuments.filter(doc => doc.uploadedBy === user.name)
-    : mockDocuments;
+  const baseDocuments = useMemo(() => {
+    return user?.role === 'employee' 
+      ? documents.filter(doc => doc.uploadedBy === user.name)
+      : documents;
+  }, [documents, user]);
     
   const filteredDocuments = baseDocuments.filter(doc =>
     doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -35,10 +46,66 @@ export const Documents: React.FC = () => {
             }
           </p>
         </div>
-        <Button>
-          <Upload className="w-4 h-4 mr-2" />
-          Upload Document
-        </Button>
+        {user && user.role === 'employee' && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Document
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Upload Document</DialogTitle>
+                <DialogDescription>Provide details for your document.</DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="text-sm font-medium">Document Name</label>
+                  <Input className="mt-1" placeholder="e.g. National ID Scan.pdf" value={name} onChange={(e) => setName(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Document Type</label>
+                  <Select value={type} onValueChange={(v) => setType(v as any)}>
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="contract">Contract</SelectItem>
+                      <SelectItem value="certificate">Certificate</SelectItem>
+                      <SelectItem value="policy">Policy</SelectItem>
+                      <SelectItem value="form">Form</SelectItem>
+                      <SelectItem value="report">Report</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm font-medium">Select File</label>
+                  <Input className="mt-1" type="file" onChange={(e) => setFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Category</label>
+                  <Input className="mt-1" placeholder="e.g. HR Records" value={category} onChange={(e) => setCategory(e.target.value)} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm font-medium">Notes (optional)</label>
+                  <Textarea className="mt-1" rows={3} placeholder="Add any notes..." />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={() => {
+                  if (!name) return;
+                  addDocument({ name, type, category, file });
+                  setName('');
+                  setType('form');
+                  setCategory('General');
+                  setFile(null);
+                  setOpen(false);
+                }}>Submit</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="flex gap-4">
@@ -80,13 +147,22 @@ export const Documents: React.FC = () => {
                   <Badge className={`status-${document.status}`}>
                     {document.status}
                   </Badge>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => {
+                    const url = getDocumentUrl(document.id);
+                    if (url) window.open(url, '_blank');
+                  }} disabled={!getDocumentUrl(document.id)}>
                     <Eye className="w-4 h-4 mr-2" />
                     View
                   </Button>
-                  <Button variant="outline" size="sm">
-                    <Download className="w-4 h-4" />
-                  </Button>
+                  <a
+                    href={getDocumentUrl(document.id) || '#'}
+                    download={document.name}
+                    onClick={(e) => { if (!getDocumentUrl(document.id)) e.preventDefault(); }}
+                  >
+                    <Button variant="outline" size="sm" disabled={!getDocumentUrl(document.id)}>
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  </a>
                 </div>
               </div>
             </CardContent>
