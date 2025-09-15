@@ -23,7 +23,14 @@ export const Training: React.FC = () => {
   const filteredRecords = useMemo(() => {
     if (!user) return [] as typeof mockTrainingRecords;
     const source = trainings.length ? trainings : mockTrainingRecords;
-    return user.role === 'employee' ? source.filter(tr => tr.employeeId === user.id) : source;
+    if (user.role === 'employee') {
+      return source.filter(tr => tr.employeeId === user.id);
+    }
+    if (user.role === 'manager') {
+      const managedIds = mockEmployees.filter(emp => emp.manager === user.name).map(emp => emp.id);
+      return source.filter(tr => managedIds.includes(tr.employeeId));
+    }
+    return source;
   }, [user, trainings]);
 
   const completedTrainings = filteredRecords.filter(tr => tr.status === 'completed');
@@ -110,7 +117,8 @@ export const Training: React.FC = () => {
             {user?.role === 'employee' ? 'Your assigned trainings and completions' : 'Manage training programs and compliance'}
           </p>
         </div>
-        {user?.role !== 'employee' && (
+        {/* Only HR/Admin can add/enroll training programs */}
+        {['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '') && (
           <div className="flex gap-2">
             <Button variant="outline">
               <Plus className="w-4 h-4 mr-2" />
@@ -185,10 +193,19 @@ export const Training: React.FC = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="records">My Trainings</TabsTrigger>
-          {user?.role !== 'employee' && <TabsTrigger value="programs">Programs</TabsTrigger>}
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger
+            value="overview"
+            className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+          >
+            Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="records"
+            className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+          >
+            My Trainings
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview */}
@@ -200,7 +217,7 @@ export const Training: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {mockTrainingRecords.slice(0, 5).map((training) => {
+                  {filteredRecords.slice(0, 5).map((training) => {
                     const employee = mockEmployees.find(emp => emp.id === training.employeeId);
                     return (
                       <div key={training.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
@@ -224,122 +241,6 @@ export const Training: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Training Progress by Department</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {['Engineering', 'Human Resources', 'Marketing', 'Finance'].map(dept => {
-                    const deptEmployees = mockEmployees.filter(emp => emp.department === dept);
-                    const completionRate = Math.floor(Math.random() * 40) + 60;
-                    return (
-                      <div key={dept}>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="font-medium">{dept}</span>
-                          <span>{completionRate}%</span>
-                        </div>
-                        <Progress value={completionRate} className="h-2" />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {deptEmployees.length} employees
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Training Programs */}
-        <TabsContent value="programs">
-          <div className="space-y-4">
-            <div className="flex gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search training programs..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button variant="outline">
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
-            </div>
-
-            <div className="grid gap-4">
-              {trainingPrograms.map((program) => (
-                <Card key={program.id}>
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-xl font-semibold">{program.title}</h3>
-                          <Badge variant={
-                            program.type === 'mandatory' ? 'destructive' : 
-                            program.type === 'compliance' ? 'default' : 'secondary'
-                          }>
-                            {program.type}
-                          </Badge>
-                        </div>
-                        <p className="text-muted-foreground mb-4">{program.description}</p>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
-                          <div>
-                            <p className="font-medium text-muted-foreground">Duration</p>
-                            <p>{program.duration}</p>
-                          </div>
-                          <div>
-                            <p className="font-medium text-muted-foreground">Provider</p>
-                            <p>{program.provider}</p>
-                          </div>
-                          <div>
-                            <p className="font-medium text-muted-foreground">Enrolled</p>
-                            <p className="font-bold text-primary">{program.enrolled}</p>
-                          </div>
-                          <div>
-                            <p className="font-medium text-muted-foreground">Completed</p>
-                            <p className="font-bold text-success">{program.completed}</p>
-                          </div>
-                        </div>
-
-                        <div className="mb-4">
-                          <div className="flex justify-between text-sm mb-2">
-                            <span>Completion Rate</span>
-                            <span>{Math.round((program.completed / program.enrolled) * 100)}%</span>
-                          </div>
-                          <Progress value={(program.completed / program.enrolled) * 100} />
-                        </div>
-
-                        {program.expiryMonths && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="w-4 h-4" />
-                            <span>Certification valid for {program.expiryMonths} months</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex flex-col gap-2">
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          Enroll Users
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          Edit Program
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
           </div>
         </TabsContent>
 
@@ -393,7 +294,7 @@ export const Training: React.FC = () => {
                             {(training.status === 'in_progress' || training.status === 'not_started') && (
                               <Dialog open={completeOpen && selectedTrainingId === training.id} onOpenChange={(o) => { setCompleteOpen(o); if (!o) { setSelectedTrainingId(null); setCertificateFile(null); } }}>
                                 <DialogTrigger asChild>
-                                  <Button size="sm">
+                                  <Button size="sm" onClick={() => { setCompleteOpen(true); setSelectedTrainingId(training.id); }}>
                                     <Upload className="w-4 h-4 mr-2" />
                                     Complete & Upload Certificate
                                   </Button>

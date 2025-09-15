@@ -1,3 +1,67 @@
+export type PerformanceTemplateType = 'quarterly' | 'half-yearly' | 'yearly';
+
+export interface PerformanceTemplate {
+  id: string;
+  name: string;
+  type: PerformanceTemplateType;
+  description: string;
+  criteria: {
+    id: string;
+    name: string;
+    weight: number;
+    description: string;
+  }[];
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface PerformanceReview {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+    templateId?: string;
+  reviewPeriod: string;
+  status: 'draft' | 'targets_set' | 'manager_review' | 'hr_review' | 'completed';
+    employeeTargets?: {
+    criteriaId: string;
+    target: string;
+    description: string;
+  }[];
+    managerScores?: {
+    criteriaId: string;
+    score: number;
+    comments: string;
+  }[];
+    hrScores?: {
+    criteriaId: string;
+    score: number;
+    comments: string;
+  }[];
+  overallScore?: number;
+  managerComments?: string;
+  hrComments?: string;
+  goals?: string[];
+  feedback?: string;
+  nextReviewDate: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export const mockPerformanceTemplates = [
+  {
+    id: 'template-1',
+    name: 'Quarterly Appraisal',
+    type: 'quarterly' as PerformanceTemplateType,
+    description: 'Standard quarterly performance review template.',
+    criteria: [
+      { id: 'c1', name: 'Quality of Work', weight: 40, description: 'Accuracy, thoroughness, and effectiveness.' },
+      { id: 'c2', name: 'Teamwork', weight: 30, description: 'Collaboration and communication.' },
+      { id: 'c3', name: 'Initiative', weight: 30, description: 'Proactiveness and problem-solving.' }
+    ],
+    createdBy: 'Sarah Johnson',
+    createdAt: '2025-09-01'
+  }
+];
 export interface Employee {
   id: string;
   name: string;
@@ -81,18 +145,6 @@ export interface LeaveRequest {
   hrComments?: string;
   approvedBy?: string;
   approvedDate?: string;
-}
-
-export interface PerformanceReview {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  reviewPeriod: string;
-  status: 'draft' | 'in_review' | 'completed';
-  score?: number;
-  goals: string[];
-  feedback: string;
-  nextReviewDate: string;
 }
 
 export const mockEmployees: Employee[] = [
@@ -413,6 +465,30 @@ export const mockLeaveRequests: LeaveRequest[] = [
     appliedDate: '2024-03-10'
   },
   {
+    id: '6',
+    employeeId: '3',
+    employeeName: 'Michael Davis',
+    type: 'sick',
+    startDate: '2025-09-10',
+    endDate: '2025-09-12',
+    days: 3,
+    status: 'pending_hr',
+    reason: 'Medical recovery',
+    appliedDate: '2025-09-09'
+  },
+  {
+    id: '7',
+    employeeId: '3',
+    employeeName: 'Michael Davis',
+    type: 'emergency',
+    startDate: '2025-09-15',
+    endDate: '2025-09-16',
+    days: 2,
+    status: 'pending_manager',
+    reason: 'Family emergency',
+    appliedDate: '2025-09-14'
+  },
+  {
     id: '2',
     employeeId: '4',
     employeeName: 'Emily Chen',
@@ -439,6 +515,30 @@ export const mockLeaveRequests: LeaveRequest[] = [
     appliedDate: '2024-03-01',
     approvedBy: 'Sarah Johnson',
     approvedDate: '2024-03-01'
+  },
+  {
+    id: '4',
+    employeeId: '1',
+    employeeName: 'John Smith',
+    type: 'annual',
+    startDate: '2025-09-20',
+    endDate: '2025-09-25',
+    days: 6,
+    status: 'pending_hr',
+    reason: 'Travel abroad',
+    appliedDate: '2025-09-10'
+  },
+  {
+    id: '5',
+    employeeId: '1',
+    employeeName: 'John Smith',
+    type: 'sick',
+    startDate: '2025-08-10',
+    endDate: '2025-08-12',
+    days: 3,
+    status: 'pending_manager',
+    reason: 'Flu recovery',
+    appliedDate: '2025-08-09'
   }
 ];
 
@@ -447,21 +547,66 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     id: '1',
     employeeId: '3',
     employeeName: 'Michael Davis',
+    templateId: 'template-1',
     reviewPeriod: 'Q1 2024',
     status: 'completed',
-    score: 4.5,
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Complete React migration project', description: 'Focus on migration tasks.' },
+      { criteriaId: 'c2', target: 'Mentor junior developers', description: 'Weekly mentorship sessions.' },
+      { criteriaId: 'c3', target: 'Improve code review process', description: 'Document and share best practices.' }
+    ],
+    managerScores: [],
+    hrScores: [],
+    overallScore: 4.5,
+    managerComments: '',
+    hrComments: '',
+    nextReviewDate: '2024-06-30',
+    createdBy: 'Sarah Johnson',
+    createdAt: '2025-09-01',
     goals: ['Complete React migration project', 'Mentor junior developers', 'Improve code review process'],
-    feedback: 'Excellent performance this quarter. Strong technical skills and great team collaboration.',
-    nextReviewDate: '2024-06-30'
+    feedback: 'Excellent performance this quarter. Strong technical skills and great team collaboration.'
   },
   {
     id: '2',
-    employeeId: '4',
-    employeeName: 'Emily Chen',
-    reviewPeriod: 'Q1 2024',
-    status: 'in_review',
-    goals: ['Launch new marketing campaign', 'Increase social media engagement', 'Develop content strategy'],
-    feedback: 'Good progress on marketing initiatives. Need to focus more on analytics.',
-    nextReviewDate: '2024-06-30'
+    employeeId: '3',
+    employeeName: 'Michael Davis',
+    templateId: 'template-1',
+    reviewPeriod: 'Q3 2024',
+    status: 'manager_review',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Improve system uptime', description: 'Monitor and optimize servers.' },
+      { criteriaId: 'c2', target: 'Document new features', description: 'Write user guides.' }
+    ],
+    managerScores: [],
+    hrScores: [],
+    managerComments: '',
+    hrComments: '',
+    nextReviewDate: '2024-12-31',
+    createdBy: 'Sarah Johnson',
+    createdAt: '2025-09-01',
+    goals: ['Improve system uptime', 'Document new features'],
+    feedback: 'Work in progress.'
+  },
+  {
+    id: '3',
+    employeeId: '3',
+    employeeName: 'Michael Davis',
+    templateId: 'template-1',
+    reviewPeriod: 'Q2 2024',
+    status: 'draft',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Maintain 98% accuracy in deliverables', description: 'Focus on code reviews and testing.' },
+      { criteriaId: 'c2', target: 'Lead 2 team meetings per month', description: 'Encourage open communication.' },
+      { criteriaId: 'c3', target: 'Propose 1 new feature', description: 'Identify and present new ideas.' }
+    ],
+    managerScores: [],
+    hrScores: [],
+    managerComments: '',
+    hrComments: '',
+    nextReviewDate: '2024-09-30',
+    createdBy: 'Sarah Johnson',
+    createdAt: '2025-09-01',
+    goals: [],
+    feedback: ''
   }
 ];

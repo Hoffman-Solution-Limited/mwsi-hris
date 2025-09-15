@@ -258,11 +258,31 @@ export const Recruitment: React.FC = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="positions">Open Positions</TabsTrigger>
-          <TabsTrigger value="candidates">Candidates</TabsTrigger>
-          <TabsTrigger value="interviews">Interviews</TabsTrigger>
-          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 gap-2">
+          <TabsTrigger
+            value="positions"
+            className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+          >
+            Open Positions
+          </TabsTrigger>
+          <TabsTrigger
+            value="candidates"
+            className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+          >
+            Candidates
+          </TabsTrigger>
+          <TabsTrigger
+            value="interviews"
+            className="bg-yellow-200 text-yellow-900 data-[state=active]:bg-yellow-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+          >
+            Interviews
+          </TabsTrigger>
+          <TabsTrigger
+            value="pipeline"
+            className="bg-purple-200 text-purple-900 data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+          >
+            Pipeline
+          </TabsTrigger>
         </TabsList>
 
         {/* Open Positions */}
