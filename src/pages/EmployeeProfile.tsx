@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -23,14 +23,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { 
   mockEmployees, 
-  mockDocuments, 
   mockTrainingRecords,
   mockPerformanceReviews,
   mockLeaveRequests 
 } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { EditProfileForm } from "@/components/EditProfileForm"
+import { useDocuments } from '@/contexts/DocumentContext';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export const EmployeeProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +40,12 @@ export const EmployeeProfile: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('personal');
+  const { documents, addDocument, getDocumentUrl } = useDocuments();
+  const [docOpen, setDocOpen] = useState(false);
+  const [docName, setDocName] = useState('');
+  const [docType, setDocType] = useState<'contract' | 'certificate' | 'policy' | 'form' | 'report'>('form');
+  const [docCategory, setDocCategory] = useState('General');
+  const [docFile, setDocFile] = useState<File | null>(null);
 
   // If on /profile route, show current user's profile
   const isMyProfile = location.pathname === '/profile';
@@ -47,9 +55,10 @@ export const EmployeeProfile: React.FC = () => {
   // Check if current user can access this profile
   const canAccessProfile = isMyProfile || 
     ['admin', 'hr_manager', 'hr_staff', 'manager'].includes(user?.role || '');
-  const employeeDocuments = mockDocuments.filter(doc => 
-    doc.uploadedBy === employee?.name || Math.random() > 0.5
-  );
+  const employeeDocuments = useMemo(() => {
+    if (!employee) return [];
+    return documents.filter(doc => doc.uploadedBy === employee.name);
+  }, [documents, employee]);
   const employeeTrainings = mockTrainingRecords.filter(training => 
     training.employeeId === id
   );
@@ -410,10 +419,62 @@ export const EmployeeProfile: React.FC = () => {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Employee Documents</CardTitle>
-                <Button size="sm">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Document
-                </Button>
+                {(isMyProfile || user?.role === 'employee') && (
+                  <Dialog open={docOpen} onOpenChange={setDocOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm">
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Document
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Upload Document</DialogTitle>
+                        <DialogDescription>Add a document to your profile.</DialogDescription>
+                      </DialogHeader>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                          <label className="text-sm font-medium">Document Name</label>
+                          <Input className="mt-1" placeholder="e.g. National ID Scan.pdf" value={docName} onChange={(e) => setDocName(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Document Type</label>
+                          <Select value={docType} onValueChange={(v) => setDocType(v as any)}>
+                            <SelectTrigger className="w-full mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contract">Contract</SelectItem>
+                              <SelectItem value="certificate">Certificate</SelectItem>
+                              <SelectItem value="policy">Policy</SelectItem>
+                              <SelectItem value="form">Form</SelectItem>
+                              <SelectItem value="report">Report</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Category</label>
+                          <Input className="mt-1" placeholder="e.g. HR Records" value={docCategory} onChange={(e) => setDocCategory(e.target.value)} />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="text-sm font-medium">Select File</label>
+                          <Input className="mt-1" type="file" onChange={(e) => setDocFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={() => {
+                          if (!docName) return;
+                          addDocument({ name: docName, type: docType, category: docCategory, file: docFile });
+                          setDocName('');
+                          setDocType('form');
+                          setDocCategory('General');
+                          setDocFile(null);
+                          setDocOpen(false);
+                        }}>Submit</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -435,9 +496,21 @@ export const EmployeeProfile: React.FC = () => {
                       <Badge className={`status-${document.status}`}>
                         {document.status}
                       </Badge>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        const url = getDocumentUrl(document.id);
+                        if (url) window.open(url, '_blank');
+                      }} disabled={!getDocumentUrl(document.id)}>
                         View
                       </Button>
+                      <a
+                        href={getDocumentUrl(document.id) || '#'}
+                        download={document.name}
+                        onClick={(e) => { if (!getDocumentUrl(document.id)) e.preventDefault(); }}
+                      >
+                        <Button variant="outline" size="sm" disabled={!getDocumentUrl(document.id)}>
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </a>
                     </div>
                   </div>
                 ))}
