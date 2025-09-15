@@ -4,7 +4,7 @@ import logo from '@/assets/logo.png';
 import {
   LayoutDashboard, Users, UserPlus, GraduationCap, Calendar,
   TrendingUp, FileText, BarChart3, Settings, Search,
-  Building2, User, Briefcase, MapPin, AlertTriangle
+  Building2, User, Briefcase, MapPin, AlertTriangle, List
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -39,12 +39,14 @@ const navGroups: NavGroup[] = [
     title: "HR Management",
     items: [
       { path: '/employees', label: 'Employee Directory', icon: <Users className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff','manager'] },
-      { path: '/designation', label: 'Designations', icon: <Briefcase className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff'] },
       { path: '/recruitment', label: 'Recruitment', icon: <UserPlus className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff'] },
       { path: '/disciplinary', label: 'Disciplinary Cases', icon: <AlertTriangle className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff'] },
       { path: '/training', label: 'Training & CPD', icon: <GraduationCap className="w-5 h-5" /> },
       { path: '/leave', label: 'Leave Management', icon: <Calendar className="w-5 h-5" /> },
-      { path: '/performance', label: 'Performance Reviews', icon: <TrendingUp className="w-5 h-5" /> }
+      { path: '/performance', label: 'Performance Reviews', icon: <TrendingUp className="w-5 h-5" /> },
+      { path: '/designation', label: 'Designations', icon: <Briefcase className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff'] },
+      { path: '/Skills', label: 'Skills', icon: <List className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff'] },
+
     ]
   },
   {
