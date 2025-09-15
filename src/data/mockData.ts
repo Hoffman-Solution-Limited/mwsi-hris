@@ -74,9 +74,13 @@ export interface LeaveRequest {
   startDate: string;
   endDate: string;
   days: number;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending_manager' | 'pending_hr' | 'approved' | 'rejected';
   reason: string;
   appliedDate: string;
+  managerComments?: string;
+  hrComments?: string;
+  approvedBy?: string;
+  approvedDate?: string;
 }
 
 export interface PerformanceReview {
@@ -365,6 +369,33 @@ export const mockTrainingRecords: TrainingRecord[] = [
     status: 'completed',
     completionDate: '2024-03-10',
     provider: 'Tech Learning Hub'
+  },
+  // Added non-completed items for testing employee flows
+  {
+    id: 'T100',
+    employeeId: '3',
+    title: 'Data Protection & GDPR',
+    type: 'compliance',
+    status: 'in_progress',
+    provider: 'Legal Compliance Corp',
+    expiryDate: '2025-11-30'
+  },
+  {
+    id: 'T101',
+    employeeId: '3',
+    title: 'Workplace Safety Basics',
+    type: 'mandatory',
+    status: 'not_started',
+    provider: 'SafetyFirst Academy'
+  },
+  {
+    id: 'T102',
+    employeeId: '3',
+    title: 'Advanced React Patterns',
+    type: 'development',
+    status: 'in_progress',
+    provider: 'Tech Learning Hub',
+    expiryDate: '2025-06-30'
   }
 ];
 
@@ -377,7 +408,7 @@ export const mockLeaveRequests: LeaveRequest[] = [
     startDate: '2024-03-25',
     endDate: '2024-03-29',
     days: 5,
-    status: 'pending',
+    status: 'pending_manager',
     reason: 'Family vacation',
     appliedDate: '2024-03-10'
   },
@@ -391,7 +422,9 @@ export const mockLeaveRequests: LeaveRequest[] = [
     days: 2,
     status: 'approved',
     reason: 'Medical appointment',
-    appliedDate: '2024-03-14'
+    appliedDate: '2024-03-14',
+    approvedBy: 'Sarah Johnson',
+    approvedDate: '2024-03-14'
   },
   {
     id: '3',
@@ -403,7 +436,9 @@ export const mockLeaveRequests: LeaveRequest[] = [
     days: 5,
     status: 'approved',
     reason: 'Professional certification exam',
-    appliedDate: '2024-03-01'
+    appliedDate: '2024-03-01',
+    approvedBy: 'Sarah Johnson',
+    approvedDate: '2024-03-01'
   }
 ];
 

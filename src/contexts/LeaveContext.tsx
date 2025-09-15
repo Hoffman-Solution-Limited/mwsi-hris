@@ -5,8 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 type LeaveContextType = {
   leaveRequests: LeaveRequest[];
   addLeaveRequest: (input: Omit<LeaveRequest, 'id' | 'status' | 'appliedDate' | 'employeeName'>) => void;
-  approveRequest: (id: string) => void;
-  rejectRequest: (id: string) => void;
+  approveManagerRequest: (id: string, comments?: string) => void;
+  rejectManagerRequest: (id: string, comments?: string) => void;
+  approveHrRequest: (id: string, comments?: string) => void;
+  rejectHrRequest: (id: string, comments?: string) => void;
 };
 
 const LeaveContext = createContext<LeaveContextType | undefined>(undefined);
@@ -39,22 +41,81 @@ export const LeaveProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       startDate: input.startDate,
       endDate: input.endDate,
       days: input.days,
-      status: 'pending',
+      status: 'pending_manager',
       reason: input.reason,
       appliedDate: new Date().toISOString().slice(0, 10)
     };
     setLeaveRequests(prev => [newRequest, ...prev]);
   };
 
-  const approveRequest = (id: string) => {
-    setLeaveRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
+  const approveManagerRequest = (id: string, comments?: string) => {
+    if (!user) return;
+    setLeaveRequests(prev => prev.map(r => 
+      r.id === id 
+        ? { 
+            ...r, 
+            status: 'pending_hr', 
+            managerComments: comments,
+            approvedBy: user.name,
+            approvedDate: new Date().toISOString().slice(0, 10)
+          } 
+        : r
+    ));
   };
 
-  const rejectRequest = (id: string) => {
-    setLeaveRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+  const rejectManagerRequest = (id: string, comments?: string) => {
+    if (!user) return;
+    setLeaveRequests(prev => prev.map(r => 
+      r.id === id 
+        ? { 
+            ...r, 
+            status: 'rejected', 
+            managerComments: comments,
+            approvedBy: user.name,
+            approvedDate: new Date().toISOString().slice(0, 10)
+          } 
+        : r
+    ));
   };
 
-  const value = useMemo(() => ({ leaveRequests, addLeaveRequest, approveRequest, rejectRequest }), [leaveRequests]);
+  const approveHrRequest = (id: string, comments?: string) => {
+    if (!user) return;
+    setLeaveRequests(prev => prev.map(r => 
+      r.id === id 
+        ? { 
+            ...r, 
+            status: 'approved', 
+            hrComments: comments,
+            approvedBy: user.name,
+            approvedDate: new Date().toISOString().slice(0, 10)
+          } 
+        : r
+    ));
+  };
+
+  const rejectHrRequest = (id: string, comments?: string) => {
+    if (!user) return;
+    setLeaveRequests(prev => prev.map(r => 
+      r.id === id 
+        ? { 
+            ...r, 
+            status: 'rejected', 
+            hrComments: comments,
+            approvedBy: user.name,
+            approvedDate: new Date().toISOString().slice(0, 10)
+          } 
+        : r
+    ));
+  };
+
+  const value = useMemo(() => ({ 
+    leaveRequests, 
+    addLeaveRequest, 
+    approveManagerRequest, 
+    rejectManagerRequest,
+    approveHrRequest,
+    rejectHrRequest
+  }), [leaveRequests]);
 
   return (
     <LeaveContext.Provider value={value}>

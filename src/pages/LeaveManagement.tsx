@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 export const LeaveManagement: React.FC = () => {
   const { user } = useAuth();
-  const { leaveRequests, addLeaveRequest, approveRequest, rejectRequest } = useLeave();
+  const { leaveRequests, addLeaveRequest, approveManagerRequest, rejectManagerRequest, approveHrRequest, rejectHrRequest } = useLeave();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -37,7 +37,8 @@ export const LeaveManagement: React.FC = () => {
   const usedLeaveDays = myApprovedLeaves.reduce((sum, leave) => sum + leave.days, 0);
   const leaveBalance = 25 - usedLeaveDays; // Assuming 25 days annual leave
 
-  const pendingRequests = leaveRequests.filter(req => req.status === 'pending');
+  const pendingManagerRequests = leaveRequests.filter(req => req.status === 'pending_manager');
+  const pendingHrRequests = leaveRequests.filter(req => req.status === 'pending_hr');
   const approvedRequests = leaveRequests.filter(req => req.status === 'approved');
   const rejectedRequests = leaveRequests.filter(req => req.status === 'rejected');
 
@@ -49,17 +50,17 @@ export const LeaveManagement: React.FC = () => {
     annual: {
       allocated: 25,
       used: Math.floor(Math.random() * 15) + 5,
-      pending: leaveRequests.filter(req => req.employeeId === emp.id && req.status === 'pending' && req.type === 'annual').reduce((sum, req) => sum + req.days, 0)
+      pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'annual').reduce((sum, req) => sum + req.days, 0)
     },
     sick: {
       allocated: 10,
       used: Math.floor(Math.random() * 5),
-      pending: leaveRequests.filter(req => req.employeeId === emp.id && req.status === 'pending' && req.type === 'sick').reduce((sum, req) => sum + req.days, 0)
+      pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'sick').reduce((sum, req) => sum + req.days, 0)
     },
     emergency: {
       allocated: 5,
       used: Math.floor(Math.random() * 2),
-      pending: leaveRequests.filter(req => req.employeeId === emp.id && req.status === 'pending' && req.type === 'emergency').reduce((sum, req) => sum + req.days, 0)
+      pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'emergency').reduce((sum, req) => sum + req.days, 0)
     }
   }));
 
@@ -84,6 +85,7 @@ export const LeaveManagement: React.FC = () => {
     }));
 
   const canActOnRequests = user && user.role !== 'employee';
+  const isHr = ['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '');
 
   const submitLeave = () => {
     if (!user) return;
@@ -206,7 +208,7 @@ export const LeaveManagement: React.FC = () => {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Pending Requests</p>
                   <p className="text-2xl font-bold">
-                    {baseLeaves.filter(req => req.status === 'pending').length}
+                    {baseLeaves.filter(req => ['pending_manager', 'pending_hr'].includes(req.status)).length}
                   </p>
                 </div>
               </div>
@@ -237,7 +239,7 @@ export const LeaveManagement: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Pending Requests</p>
-                  <p className="text-2xl font-bold">{leaveRequests.filter(req => req.status === 'pending').length}</p>
+                  <p className="text-2xl font-bold">{pendingManagerRequests.length + pendingHrRequests.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -287,7 +289,79 @@ export const LeaveManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Main Content Tabs */}
+      {/* Employee simplified view */}
+      {user?.role === 'employee' ? (
+        <div className="space-y-6">
+          {/* Category Balances for employee */}
+          <Card>
+            <CardHeader>
+              <CardTitle>My Leave Balances by Category</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {['annual','sick','emergency','maternity','study'].map((type) => {
+                  const myTypeApproved = baseLeaves.filter(l => l.type === type && l.status === 'approved');
+                  const myTypePending = baseLeaves.filter(l => l.type === type && ['pending_manager','pending_hr'].includes(l.status));
+                  const used = myTypeApproved.reduce((s,l)=>s+l.days,0);
+                  const pending = myTypePending.reduce((s,l)=>s+l.days,0);
+                  const allocated = type === 'annual' ? 25 : type === 'sick' ? 10 : type === 'emergency' ? 5 : 0;
+                  const remaining = allocated > 0 ? Math.max(allocated - used - pending, 0) : 0;
+                  return (
+                    <div key={type} className="p-4 border rounded-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium capitalize">{type}</span>
+                        {allocated > 0 && <Badge variant="outline">{allocated} days</Badge>}
+                      </div>
+                      {allocated > 0 ? (
+                        <div className="text-sm text-muted-foreground">
+                          Used: {used} • Pending: {pending} • Remaining: {remaining}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">No fixed allocation</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* My Leave History */}
+          <Card>
+            <CardHeader>
+              <CardTitle>My Leave History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {baseLeaves.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No leave requests yet.</p>
+                )}
+                {filteredRequests.map((request) => {
+                  const employee = mockEmployees.find(emp => emp.id === request.employeeId);
+                  return (
+                    <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium capitalize">{request.type}</h4>
+                          <Badge className={`status-${request.status}`}>{request.status.replace('_',' ')}</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {request.startDate} to {request.endDate} • {request.days} day{request.days>1?'s':''}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">Reason: {request.reason}</p>
+                      </div>
+                      <div className="text-right text-xs text-muted-foreground">
+                        <p>Applied: {new Date(request.appliedDate).toLocaleDateString()}</p>
+                        {request.approvedBy && <p>By: {request.approvedBy}</p>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Requests Overview</TabsTrigger>
@@ -312,7 +386,8 @@ export const LeaveManagement: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="pending_manager">Pending Manager</SelectItem>
+                  <SelectItem value="pending_hr">Pending HR</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
@@ -368,12 +443,22 @@ export const LeaveManagement: React.FC = () => {
                               Applied: {new Date(request.appliedDate).toLocaleDateString()}
                             </p>
                           </div>
-                          {request.status === 'pending' && canActOnRequests && (
+                          {request.status === 'pending_manager' && user?.role === 'manager' && (
                             <div className="flex gap-1">
-                              <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => approveRequest(request.id)}>
+                              <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => approveManagerRequest(request.id)}>
                                 <CheckCircle className="w-4 h-4" />
                               </Button>
-                              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => rejectRequest(request.id)}>
+                              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => rejectManagerRequest(request.id)}>
+                                <XCircle className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                          {request.status === 'pending_hr' && isHr && (
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => approveHrRequest(request.id)}>
+                                <CheckCircle className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => rejectHrRequest(request.id)}>
                                 <XCircle className="w-4 h-4" />
                               </Button>
                             </div>
@@ -609,6 +694,7 @@ export const LeaveManagement: React.FC = () => {
           </div>
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 };
