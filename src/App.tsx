@@ -19,6 +19,7 @@ import { Documents } from "@/pages/Documents";
 import { Reports } from "@/pages/Reports";
 import { Admin } from "@/pages/Admin";
 import { DesignationPage } from "@/pages/Designation";
+import {SkillsPage} from "@/pages/Skills";
 import { EmployeeByCounty } from "@/pages/EmployeeByCounty";
 import { DisciplinaryCases } from "@/pages/DisciplinaryCases";
 import { ForgotPasswordPage } from "@/components/auth/ForgotPasswordPage";
@@ -91,7 +92,16 @@ const App = () => (
     </ProtectedRoute>
   }
 />
-
+<Route
+  path="/skills"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <SkillsPage />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
   <Route path="*" element={<NotFound />} />
 </Routes>
 

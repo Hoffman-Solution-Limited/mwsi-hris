@@ -12,7 +12,9 @@ export interface Employee {
   emergencyContact?: string;
   salary?: number;
   documents?: Document[];
+  skills?: { name: string; level: string }[]; // ✅ Added
 }
+
 
 export interface Document {
   id: string;
@@ -89,6 +91,11 @@ export const mockEmployees: Employee[] = [
     phone: '+1-555-0101',
     emergencyContact: 'Jane Smith (+1-555-0102)',
     salary: 75000,
+    skills: [
+      { name: 'Networking', level: 'Advanced' },
+      { name: 'Linux Administration', level: 'Expert' },
+      { name: 'Cybersecurity', level: 'Intermediate' },
+    ],
   },
   {
     id: '2',
@@ -102,6 +109,11 @@ export const mockEmployees: Employee[] = [
     phone: '+1-555-0201',
     emergencyContact: 'Robert Johnson (+1-555-0202)',
     salary: 85000,
+    skills: [
+      { name: 'Recruitment', level: 'Expert' },
+      { name: 'Employee Relations', level: 'Advanced' },
+      { name: 'Conflict Resolution', level: 'Intermediate' },
+    ],
   },
   {
     id: '3',
@@ -116,6 +128,11 @@ export const mockEmployees: Employee[] = [
     phone: '+1-555-0301',
     emergencyContact: 'Lisa Davis (+1-555-0302)',
     salary: 70000,
+    skills: [
+      { name: 'React', level: 'Advanced' },
+      { name: 'Node.js', level: 'Intermediate' },
+      { name: 'TypeScript', level: 'Intermediate' },
+    ],
   },
   {
     id: '4',
@@ -130,6 +147,11 @@ export const mockEmployees: Employee[] = [
     phone: '+1-555-0401',
     emergencyContact: 'David Chen (+1-555-0402)',
     salary: 55000,
+    skills: [
+      { name: 'Content Marketing', level: 'Intermediate' },
+      { name: 'SEO', level: 'Beginner' },
+      { name: 'Social Media', level: 'Advanced' },
+    ],
   },
   {
     id: '5',
@@ -143,8 +165,14 @@ export const mockEmployees: Employee[] = [
     phone: '+1-555-0501',
     emergencyContact: 'Mary Wilson (+1-555-0502)',
     salary: 95000,
-  }
+    skills: [
+      { name: 'Financial Planning', level: 'Expert' },
+      { name: 'Risk Management', level: 'Advanced' },
+      { name: 'Budgeting', level: 'Advanced' },
+    ],
+  },
 ];
+
 
 export const mockDocuments: Document[] = [
   {
