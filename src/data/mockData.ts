@@ -12,7 +12,22 @@ export interface Employee {
   emergencyContact?: string;
   salary?: number;
   documents?: Document[];
-  skills?: { name: string; level: string }[]; // ✅ Added
+  skills?: { name: string; level: string }[];
+  // Additional fields for government form
+  gender?: 'male' | 'female' | 'other';
+  employmentType?: string;
+  staffNumber?: string;
+  nationalId?: string;
+  kraPin?: string;
+  children?: string;
+  workCounty?: string;
+  homeCounty?: string;
+  postalAddress?: string;
+  postalCode?: string;
+  stationName?: string;
+  skillLevel?: string;
+  company?: string;
+  dateOfBirth?: string;
 }
 
 
@@ -76,7 +91,6 @@ export interface PerformanceReview {
   nextReviewDate: string;
 }
 
-// Mock data
 export const mockEmployees: Employee[] = [
   {
     id: '1',
@@ -88,14 +102,28 @@ export const mockEmployees: Employee[] = [
     hireDate: '2022-01-15',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=JS',
-    phone: '+1-555-0101',
-    emergencyContact: 'Jane Smith (+1-555-0102)',
+    phone: '+254-700-123456',
+    emergencyContact: 'Jane Smith (+254-700-123457)',
     salary: 75000,
     skills: [
       { name: 'Networking', level: 'Advanced' },
       { name: 'Linux Administration', level: 'Expert' },
       { name: 'Cybersecurity', level: 'Intermediate' },
     ],
+    gender: 'male',
+    employmentType: 'Permanent',
+    staffNumber: '20221234567',
+    nationalId: '32456789',
+    kraPin: 'A012345678Z',
+    children: '2',
+    workCounty: 'Nairobi',
+    homeCounty: 'Kiambu',
+    postalAddress: 'P.O. Box 12345',
+    postalCode: '00100',
+    stationName: 'IT Department - Head Office',
+    skillLevel: 'Diploma (Information Technology)',
+    company: 'Ministry of Water, Sanitation and Irrigation',
+    dateOfBirth: '1985-06-15'
   },
   {
     id: '2',
@@ -106,14 +134,28 @@ export const mockEmployees: Employee[] = [
     hireDate: '2021-03-20',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=SJ',
-    phone: '+1-555-0201',
-    emergencyContact: 'Robert Johnson (+1-555-0202)',
+    phone: '+254-700-234567',
+    emergencyContact: 'Robert Johnson (+254-700-234568)',
     salary: 85000,
     skills: [
       { name: 'Recruitment', level: 'Expert' },
       { name: 'Employee Relations', level: 'Advanced' },
       { name: 'Conflict Resolution', level: 'Intermediate' },
     ],
+    gender: 'female',
+    employmentType: 'Permanent',
+    staffNumber: '20211234568',
+    nationalId: '28123456',
+    kraPin: 'A012345679Z',
+    children: '1',
+    workCounty: 'Nairobi',
+    homeCounty: 'Nairobi',
+    postalAddress: 'P.O. Box 54321',
+    postalCode: '00100',
+    stationName: 'Human Resources - Head Office',
+    skillLevel: 'Degree (Human Resource Management)',
+    company: 'Ministry of Water, Sanitation and Irrigation',
+    dateOfBirth: '1982-11-10'
   },
   {
     id: '3',
@@ -125,14 +167,28 @@ export const mockEmployees: Employee[] = [
     hireDate: '2022-07-10',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=MD',
-    phone: '+1-555-0301',
-    emergencyContact: 'Lisa Davis (+1-555-0302)',
+    phone: '+254-700-345678',
+    emergencyContact: 'Lisa Davis (+254-700-345679)',
     salary: 70000,
     skills: [
       { name: 'React', level: 'Advanced' },
       { name: 'Node.js', level: 'Intermediate' },
       { name: 'TypeScript', level: 'Intermediate' },
     ],
+    gender: 'male',
+    employmentType: 'Permanent',
+    staffNumber: '20221234569',
+    nationalId: '29876543',
+    kraPin: 'A012345680Z',
+    children: '0',
+    workCounty: 'Nairobi',
+    homeCounty: 'Machakos',
+    postalAddress: 'P.O. Box 98765',
+    postalCode: '00200',
+    stationName: 'Engineering Department - Head Office',
+    skillLevel: 'Degree (Computer Science)',
+    company: 'Ministry of Water, Sanitation and Irrigation',
+    dateOfBirth: '1990-03-22'
   },
   {
     id: '4',
@@ -144,14 +200,28 @@ export const mockEmployees: Employee[] = [
     hireDate: '2023-02-14',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=EC',
-    phone: '+1-555-0401',
-    emergencyContact: 'David Chen (+1-555-0402)',
+    phone: '+254-700-456789',
+    emergencyContact: 'David Chen (+254-700-456790)',
     salary: 55000,
     skills: [
       { name: 'Content Marketing', level: 'Intermediate' },
       { name: 'SEO', level: 'Beginner' },
       { name: 'Social Media', level: 'Advanced' },
     ],
+    gender: 'female',
+    employmentType: 'Contract',
+    staffNumber: '20231234570',
+    nationalId: '31234567',
+    kraPin: 'A012345681Z',
+    children: '0',
+    workCounty: 'Nairobi',
+    homeCounty: 'Nairobi',
+    postalAddress: 'P.O. Box 13579',
+    postalCode: '00100',
+    stationName: 'Marketing Department - Head Office',
+    skillLevel: 'Degree (Marketing)',
+    company: 'Ministry of Water, Sanitation and Irrigation',
+    dateOfBirth: '1995-08-05'
   },
   {
     id: '5',
@@ -162,14 +232,28 @@ export const mockEmployees: Employee[] = [
     hireDate: '2020-11-30',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=RW',
-    phone: '+1-555-0501',
-    emergencyContact: 'Mary Wilson (+1-555-0502)',
+    phone: '+254-700-567890',
+    emergencyContact: 'Mary Wilson (+254-700-567891)',
     salary: 95000,
     skills: [
       { name: 'Financial Planning', level: 'Expert' },
       { name: 'Risk Management', level: 'Advanced' },
       { name: 'Budgeting', level: 'Advanced' },
     ],
+    gender: 'male',
+    employmentType: 'Permanent',
+    staffNumber: '20201234571',
+    nationalId: '25987654',
+    kraPin: 'A012345682Z',
+    children: '3',
+    workCounty: 'Nairobi',
+    homeCounty: 'Nyeri',
+    postalAddress: 'P.O. Box 24680',
+    postalCode: '00100',
+    stationName: 'Finance Department - Head Office',
+    skillLevel: 'Masters (Finance)',
+    company: 'Ministry of Water, Sanitation and Irrigation',
+    dateOfBirth: '1978-12-18'
   },
 ];
 
