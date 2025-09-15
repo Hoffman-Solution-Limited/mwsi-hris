@@ -326,6 +326,38 @@ export const LeaveManagement: React.FC = () => {
             </CardContent>
           </Card>
 
+          {/* Pending Leave Approvals */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Pending Leave Approvals</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {baseLeaves.filter(req => ['pending_manager', 'pending_hr'].includes(req.status)).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No pending approvals.</p>
+                ) : (
+                  baseLeaves.filter(req => ['pending_manager', 'pending_hr'].includes(req.status)).map((request) => (
+                    <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium capitalize">{request.type}</h4>
+                          <Badge className={`status-${request.status}`}>{request.status.replace('_',' ')}</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {request.startDate} to {request.endDate} • {request.days} day{request.days>1?'s':''}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">Reason: {request.reason}</p>
+                      </div>
+                      <div className="text-right text-xs text-muted-foreground">
+                        <p>Applied: {new Date(request.appliedDate).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* My Leave History */}
           <Card>
             <CardHeader>
@@ -363,11 +395,31 @@ export const LeaveManagement: React.FC = () => {
         </div>
       ) : (
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Requests Overview</TabsTrigger>
-          <TabsTrigger value="calendar">Leave Calendar</TabsTrigger>
-          <TabsTrigger value="balances">Employee Balances</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 gap-2">
+          <TabsTrigger
+            value="overview"
+            className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+          >
+            Requests Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="calendar"
+            className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+          >
+            Leave Calendar
+          </TabsTrigger>
+          <TabsTrigger
+            value="balances"
+            className="bg-yellow-200 text-yellow-900 data-[state=active]:bg-yellow-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+          >
+            Employee Balances
+          </TabsTrigger>
+          <TabsTrigger
+            value="reports"
+            className="bg-purple-200 text-purple-900 data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+          >
+            Reports
+          </TabsTrigger>
         </TabsList>
 
         {/* Requests Overview */}

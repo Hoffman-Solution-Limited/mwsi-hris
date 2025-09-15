@@ -1,3 +1,4 @@
+import { mockPerformanceTemplates, mockPerformanceReviews } from '@/data/mockData';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -20,27 +21,27 @@ export interface PerformanceReview {
   id: string;
   employeeId: string;
   employeeName: string;
-  templateId: string;
+  templateId?: string;
   reviewPeriod: string;
-  status: 'draft' | 'targets_set' | 'manager_review' | 'hr_review' | 'completed';
-  employeeTargets: {
+  status: 'draft' | 'targets_set' | 'manager_review' | 'hr_review' | 'in_review' | 'completed';
+  employeeTargets?: {
     criteriaId: string;
     target: string;
     description: string;
   }[];
-  managerScores: {
+  managerScores?: {
     criteriaId: string;
     score: number; // 1-5
     comments: string;
   }[];
-  hrScores: {
+  hrScores?: {
     criteriaId: string;
     score: number;
     comments: string;
   }[];
   overallScore?: number;
-  managerComments: string;
-  hrComments: string;
+  managerComments?: string;
+  hrComments?: string;
   nextReviewDate: string;
   createdBy: string;
   createdAt: string;
@@ -116,26 +117,8 @@ const defaultTemplates: PerformanceTemplate[] = [
 
 export const PerformanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [templates, setTemplates] = useState<PerformanceTemplate[]>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY_TEMPLATES);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {}
-    }
-    return defaultTemplates;
-  });
-
-  const [reviews, setReviews] = useState<PerformanceReview[]>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY_REVIEWS);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {}
-    }
-    return [];
-  });
-
+  const [templates, setTemplates] = useState<PerformanceTemplate[]>(mockPerformanceTemplates);
+  const [reviews, setReviews] = useState<PerformanceReview[]>(mockPerformanceReviews);
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_TEMPLATES, JSON.stringify(templates));
   }, [templates]);
