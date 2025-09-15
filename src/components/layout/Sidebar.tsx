@@ -60,7 +60,7 @@ const navGroups: NavGroup[] = [
   }
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, bgColor = 'bg-blue-900', className, ...rest }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, bgColor = 'bg-brand', className, ...rest }) => {
   const { user } = useAuth();
 
   return (
