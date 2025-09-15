@@ -23,6 +23,10 @@ import {SkillsPage} from "@/pages/Skills";
 import { EmployeeByCounty } from "@/pages/EmployeeByCounty";
 import { DisciplinaryCases } from "@/pages/DisciplinaryCases";
 import { ForgotPasswordPage } from "@/components/auth/ForgotPasswordPage";
+import UserManagement from "@/pages/admin/user-management"
+import RoleConfiguration from "@/pages/admin/role-configuration"
+import SystemSettings from "@/pages/admin/system-settings"
+import DataManagement from "@/pages/admin/data-management"
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +63,10 @@ const App = () => (
   <Route path="/documents" element={<ProtectedRoute><Layout><Documents /></Layout></ProtectedRoute>} />
   <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
   <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />
+  <Route path="/admin/users" element={<UserManagement />} />
+  <Route path="/admin/roles" element={<RoleConfiguration />} />
+  <Route path="/admin/settings" element={<SystemSettings />} />
+  <Route path="/admin/data" element={<DataManagement />} />
   
 
   {/* ✅ Wrap Designations same way */}
