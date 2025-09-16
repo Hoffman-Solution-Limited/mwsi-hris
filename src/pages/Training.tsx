@@ -23,12 +23,8 @@ export const Training: React.FC = () => {
   const filteredRecords = useMemo(() => {
     if (!user) return [] as typeof mockTrainingRecords;
     const source = trainings.length ? trainings : mockTrainingRecords;
-    if (user.role === 'employee') {
+    if (user.role === 'employee' || user.role === 'manager') {
       return source.filter(tr => tr.employeeId === user.id);
-    }
-    if (user.role === 'manager') {
-      const managedIds = mockEmployees.filter(emp => emp.manager === user.name).map(emp => emp.id);
-      return source.filter(tr => managedIds.includes(tr.employeeId));
     }
     return source;
   }, [user, trainings]);

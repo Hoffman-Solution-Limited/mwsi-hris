@@ -22,9 +22,13 @@ export const Documents: React.FC = () => {
 
   // Filter documents based on user role
   const baseDocuments = useMemo(() => {
-    return user?.role === 'employee' 
-      ? documents.filter(doc => doc.uploadedBy === user.name)
-      : documents;
+    if (!user) return [];
+    // Employees and managers only see their own documents
+    if (user.role === 'employee' || user.role === 'manager') {
+      return documents.filter(doc => doc.uploadedBy === user.name);
+    }
+    // HR/Admin see all
+    return documents;
   }, [documents, user]);
     
   const filteredDocuments = baseDocuments.filter(doc =>
@@ -46,7 +50,7 @@ export const Documents: React.FC = () => {
             }
           </p>
         </div>
-        {user && user.role === 'employee' && (
+        {(user && (user.role === 'employee' || user.role === 'manager')) && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -147,16 +151,7 @@ export const Documents: React.FC = () => {
                       <Badge className={`status-${document.status}`}>
                         {document.status}
                       </Badge>
-                      {document.status === 'pending' && ['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '') && (
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => approveDocument(document.id)}>
-                            <CheckCircle className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => rejectDocument(document.id)}>
-                            <XCircle className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      )}
+                      {/* Only HR/Admin can approve/reject. Managers cannot. */}
                       <Button variant="outline" size="sm" onClick={() => {
                         const url = getDocumentUrl(document.id);
                         if (url) window.open(url, '_blank');

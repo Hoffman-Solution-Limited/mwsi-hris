@@ -40,6 +40,7 @@ export interface PerformanceReview {
     comments: string;
   }[];
   overallScore?: number;
+  score?: number;
   managerComments?: string;
   hrComments?: string;
   nextReviewDate: string;

@@ -23,6 +23,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Mock users for demo
 const mockUsers: Record<string, User> = {
+  'david.manager@mwsi.com': {
+    id: '10',
+    name: 'David Manager',
+    email: 'david.manager@mwsi.com',
+    role: 'manager',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=DM',
+    department: 'Operations',
+    position: 'Operations Manager'
+  },
   'admin@mwsi.com': {
     id: '1',
     name: 'John Smith',

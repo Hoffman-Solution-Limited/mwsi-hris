@@ -25,9 +25,15 @@ export const LeaveManagement: React.FC = () => {
 
   // Filter leave requests based on user role
   const baseLeaves = useMemo(() => {
-    return user?.role === 'employee'
-      ? leaveRequests.filter(leave => leave.employeeId === user.id)
-      : leaveRequests;
+    if (user?.role === 'employee') {
+      return leaveRequests.filter(leave => leave.employeeId === user.id);
+    }
+    if (user?.role === 'manager') {
+      // Only show leave requests for employees reporting to this manager
+      const directReportIds = mockEmployees.filter(emp => emp.manager === user.name).map(emp => emp.id);
+      return leaveRequests.filter(leave => directReportIds.includes(leave.employeeId));
+    }
+    return leaveRequests;
   }, [user, leaveRequests]);
     
   // Calculate leave statistics for employees
@@ -43,26 +49,52 @@ export const LeaveManagement: React.FC = () => {
   const rejectedRequests = leaveRequests.filter(req => req.status === 'rejected');
 
   // Calculate leave balances (mock data)
-  const leaveBalances = mockEmployees.map(emp => ({
-    employeeId: emp.id,
-    employeeName: emp.name,
-    department: emp.department,
-    annual: {
-      allocated: 25,
-      used: Math.floor(Math.random() * 15) + 5,
-      pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'annual').reduce((sum, req) => sum + req.days, 0)
-    },
-    sick: {
-      allocated: 10,
-      used: Math.floor(Math.random() * 5),
-      pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'sick').reduce((sum, req) => sum + req.days, 0)
-    },
-    emergency: {
-      allocated: 5,
-      used: Math.floor(Math.random() * 2),
-      pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'emergency').reduce((sum, req) => sum + req.days, 0)
+  const leaveBalances = useMemo(() => {
+    if (user?.role === 'manager') {
+      // Only show balances for direct reports
+      const directReports = mockEmployees.filter(emp => emp.manager === user.name);
+      return directReports.map(emp => ({
+        employeeId: emp.id,
+        employeeName: emp.name,
+        department: emp.department,
+        annual: {
+          allocated: 25,
+          used: Math.floor(Math.random() * 15) + 5,
+          pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'annual').reduce((sum, req) => sum + req.days, 0)
+        },
+        sick: {
+          allocated: 10,
+          used: Math.floor(Math.random() * 5),
+          pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'sick').reduce((sum, req) => sum + req.days, 0)
+        },
+        emergency: {
+          allocated: 5,
+          used: Math.floor(Math.random() * 2),
+          pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'emergency').reduce((sum, req) => sum + req.days, 0)
+        }
+      }));
     }
-  }));
+    return mockEmployees.map(emp => ({
+      employeeId: emp.id,
+      employeeName: emp.name,
+      department: emp.department,
+      annual: {
+        allocated: 25,
+        used: Math.floor(Math.random() * 15) + 5,
+        pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'annual').reduce((sum, req) => sum + req.days, 0)
+      },
+      sick: {
+        allocated: 10,
+        used: Math.floor(Math.random() * 5),
+        pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'sick').reduce((sum, req) => sum + req.days, 0)
+      },
+      emergency: {
+        allocated: 5,
+        used: Math.floor(Math.random() * 2),
+        pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'emergency').reduce((sum, req) => sum + req.days, 0)
+      }
+    }));
+  }, [user, leaveRequests]);
 
   // Filter leave requests
   const filteredRequests = baseLeaves.filter(request => {
@@ -395,30 +427,18 @@ export const LeaveManagement: React.FC = () => {
         </div>
       ) : (
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 gap-2">
+        <TabsList className="grid w-full grid-cols-2 gap-4">
           <TabsTrigger
             value="overview"
-            className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+            className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow w-full"
           >
             Requests Overview
           </TabsTrigger>
           <TabsTrigger
-            value="calendar"
-            className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-          >
-            Leave Calendar
-          </TabsTrigger>
-          <TabsTrigger
             value="balances"
-            className="bg-yellow-200 text-yellow-900 data-[state=active]:bg-yellow-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+            className="bg-yellow-200 text-yellow-900 data-[state=active]:bg-yellow-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow w-full"
           >
             Employee Balances
-          </TabsTrigger>
-          <TabsTrigger
-            value="reports"
-            className="bg-purple-200 text-purple-900 data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-          >
-            Reports
           </TabsTrigger>
         </TabsList>
 
