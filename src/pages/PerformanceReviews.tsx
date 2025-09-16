@@ -16,7 +16,7 @@ import { usePerformance, PerformanceTemplate, PerformanceReview } from '@/contex
 
 export const PerformanceReviews: React.FC = () => {
   const { user } = useAuth();
-  const { templates, reviews, createTemplate, createReview, setEmployeeTargets, submitManagerReview, submitHrReview } = usePerformance();
+  const { templates, reviews, createTemplate, createReview, setEmployeeTargets, submitManagerReview, submitHrReview, updateReview } = usePerformance();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -24,6 +24,9 @@ export const PerformanceReviews: React.FC = () => {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [targetDialogOpen, setTargetDialogOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState<PerformanceReview | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editComments, setEditComments] = useState('');
+  const [editScore, setEditScore] = useState<number | ''>('');
 
   // Manager-specific review filters
   const myAppraisals = useMemo(() => {
@@ -405,7 +408,7 @@ export const PerformanceReviews: React.FC = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        {user?.role === 'manager' ? (
+  {user?.role === 'manager' ? (
           <TabsList className="grid w-full grid-cols-2 gap-2">
             <TabsTrigger
               value="my-appraisals"
@@ -441,10 +444,106 @@ export const PerformanceReviews: React.FC = () => {
         {user?.role === 'manager' && (
           <TabsContent value="my-appraisals">
             <div className="space-y-4">
-              {myAppraisals.length === 0 ? (
-                <Card><CardContent className="p-6 text-center text-muted-foreground">No appraisals found.</CardContent></Card>
+              <h2 className="text-xl font-bold mb-2">My Active Appraisals</h2>
+              {myAppraisals.filter(r => r.status !== 'completed').length === 0 ? (
+                <Card><CardContent className="p-6 text-center text-muted-foreground">No active appraisals.</CardContent></Card>
               ) : (
-                myAppraisals.map((review) => {
+                myAppraisals.filter(r => r.status !== 'completed').map((review) => {
+                  const template = templates.find(t => t.id === review.templateId);
+                  return (
+                    <Card key={review.id}>
+                      <CardHeader>
+                        <CardTitle>{review.reviewPeriod} {template ? `- ${template.name}` : ''}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div><span className="font-semibold">Status:</span> <Badge>{review.status}</Badge></div>
+                          <div><span className="font-semibold">Score:</span> {review.overallScore || '-'} / 5</div>
+                          <div><span className="font-semibold">Feedback:</span> {review.managerComments || 'No feedback.'}</div>
+                          <div><span className="font-semibold">Goals:</span> {review.employeeTargets && review.employeeTargets.length > 0 ? review.employeeTargets.map(t => t.target).join(', ') : 'No goals.'}</div>
+                          <div className="flex gap-2 mt-2">
+                            <Button variant="default" size="sm" onClick={() => {
+                              setSelectedReview(review);
+                              setEditMode(true);
+                              // Prepare editable targets for modal
+                              const template = templates.find(t => t.id === review.templateId);
+                              if (template) {
+                                setTargets(
+                                  template.criteria.map(criteria => {
+                                    const existing = review.employeeTargets?.find(t => t.criteriaId === criteria.id);
+                                    return {
+                                      criteriaId: criteria.id,
+                                      target: existing?.target || '',
+                                      description: existing?.description || ''
+                                    };
+                                  })
+                                );
+                              }
+                            }}>Edit</Button>
+                            {/* Modal for editing manager's own goals/targets */}
+                            <Dialog open={!!selectedReview && editMode} onOpenChange={(open) => { if (!open) setSelectedReview(null); }}>
+                              <DialogContent className="max-w-xl">
+                                <DialogHeader>
+                                  <DialogTitle>Edit Your Goals</DialogTitle>
+                                  <DialogDescription>Edit your performance targets for this review period.</DialogDescription>
+                                </DialogHeader>
+                                {selectedReview && (
+                                  <div className="space-y-4">
+                                    {targets.map((target, idx) => {
+                                      const criteria = templates.find(t => t.id === selectedReview.templateId)?.criteria.find(c => c.id === target.criteriaId);
+                                      return (
+                                        <div key={target.criteriaId} className="space-y-2">
+                                          <label className="text-sm font-medium">{criteria?.name}</label>
+                                          <p className="text-xs text-muted-foreground">{criteria?.description}</p>
+                                          <Input
+                                            placeholder="Your target for this criteria"
+                                            value={target.target}
+                                            onChange={e => {
+                                              const newTargets = [...targets];
+                                              newTargets[idx].target = e.target.value;
+                                              setTargets(newTargets);
+                                            }}
+                                          />
+                                          <Textarea
+                                            placeholder="Describe how you plan to achieve this target"
+                                            value={target.description}
+                                            onChange={e => {
+                                              const newTargets = [...targets];
+                                              newTargets[idx].description = e.target.value;
+                                              setTargets(newTargets);
+                                            }}
+                                            rows={2}
+                                          />
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                <DialogFooter>
+                                  <div className="flex gap-2">
+                                    <Button variant="outline" onClick={() => setSelectedReview(null)}>Close</Button>
+                                    {selectedReview && (
+                                      <Button variant="default" onClick={() => {
+                                        setEmployeeTargets(selectedReview.id, targets);
+                                        setSelectedReview(null);
+                                      }}>Save</Button>
+                                    )}
+                                  </div>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+              <h2 className="text-xl font-bold mt-8 mb-2">My Appraisal History</h2>
+              {myAppraisals.filter(r => r.status === 'completed').length === 0 ? (
+                <Card><CardContent className="p-6 text-center text-muted-foreground">No appraisal history.</CardContent></Card>
+              ) : (
+                myAppraisals.filter(r => r.status === 'completed').map((review) => {
                   const template = templates.find(t => t.id === review.templateId);
                   return (
                     <Card key={review.id}>
@@ -470,11 +569,13 @@ export const PerformanceReviews: React.FC = () => {
         {user?.role === 'manager' && (
           <TabsContent value="team-appraisals">
             <div className="space-y-4">
+              <h2 className="text-xl font-bold mb-2">Team Appraisals</h2>
               {teamAppraisals.length === 0 ? (
                 <Card><CardContent className="p-6 text-center text-muted-foreground">No team appraisals found.</CardContent></Card>
               ) : (
                 teamAppraisals.map((review) => {
                   const template = templates.find(t => t.id === review.templateId);
+                  const canReview = ['manager_review', 'targets_set'].includes(review.status);
                   return (
                     <Card key={review.id}>
                       <CardHeader>
@@ -485,6 +586,11 @@ export const PerformanceReviews: React.FC = () => {
                           <div><span className="font-semibold">Score:</span> {review.overallScore || '-'} / 5</div>
                           <div><span className="font-semibold">Feedback:</span> {review.managerComments || 'No feedback.'}</div>
                           <div><span className="font-semibold">Goals:</span> {review.employeeTargets && review.employeeTargets.length > 0 ? review.employeeTargets.map(t => t.target).join(', ') : 'No goals.'}</div>
+                          {canReview && (
+                            <Button variant="outline" size="sm" onClick={() => setSelectedReview(review)}>
+                              Review & Submit
+                            </Button>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -492,10 +598,93 @@ export const PerformanceReviews: React.FC = () => {
                 })
               )}
             </div>
+            {/* Review dialog/modal for selectedReview */}
+            <Dialog open={!!selectedReview} onOpenChange={(open) => { if (!open) setSelectedReview(null); }}>
+              <DialogContent className="max-w-xl">
+                <DialogHeader>
+                  <DialogTitle>{editMode ? 'Edit Appraisal' : 'View Appraisal'}</DialogTitle>
+                  <DialogDescription>
+                    {editMode ? 'Edit your feedback and score for this appraisal.' : 'View appraisal details.'}
+                  </DialogDescription>
+                </DialogHeader>
+                {selectedReview && (
+                  <div className="space-y-4">
+                    <div><span className="font-semibold">Employee:</span> {selectedReview.employeeName}</div>
+                    <div><span className="font-semibold">Review Period:</span> {selectedReview.reviewPeriod}</div>
+                    <div><span className="font-semibold">Status:</span> <Badge>{selectedReview.status}</Badge></div>
+                    <div><span className="font-semibold">Goals:</span> {selectedReview.employeeTargets && selectedReview.employeeTargets.length > 0 ? selectedReview.employeeTargets.map(t => t.target).join(', ') : 'No goals.'}</div>
+                    {editMode ? (
+                      <>
+                        <div>
+                          <label className="font-semibold">Score:</label>
+                          <Input type="number" min={1} max={5} value={editScore} onChange={e => setEditScore(Number(e.target.value))} className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="font-semibold">Manager Comments:</label>
+                          <Textarea value={editComments} onChange={e => setEditComments(e.target.value)} rows={3} className="mt-1" />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div><span className="font-semibold">Score:</span> {selectedReview.overallScore || '-'} / 5</div>
+                        <div><span className="font-semibold">Manager Comments:</span> {selectedReview.managerComments || 'No feedback.'}</div>
+                      </>
+                    )}
+                  </div>
+                )}
+                <DialogFooter>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setSelectedReview(null)}>Close</Button>
+                    {editMode && selectedReview && (
+                      <Button variant="default" onClick={() => {
+                        // Save logic: update review with new comments and score
+                        submitManagerReview(
+                          selectedReview.id,
+                          [], // managerScores (criteria-level scores not edited here)
+                          editComments
+                        );
+                        if (typeof editScore === 'number') {
+                          updateReview(selectedReview.id, { overallScore: editScore });
+                        }
+                        setSelectedReview(null);
+                      }}>Save</Button>
+                    )}
+                  </div>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
   )}
 
-        {/* Appraisal History Tab */}
+        {/* Active Appraisal Tab */}
+        <TabsContent value="active">
+          <div className="space-y-4">
+            {reviews.filter(r => r.employeeId === user?.id && r.status !== 'completed').length === 0 ? (
+              <Card><CardContent className="p-6 text-center text-muted-foreground">No active appraisals.</CardContent></Card>
+            ) : (
+              reviews.filter(r => r.employeeId === user?.id && r.status !== 'completed').map((review) => {
+                const template = templates.find(t => t.id === review.templateId);
+                return (
+                  <Card key={review.id}>
+                    <CardHeader>
+                      <CardTitle>{review.reviewPeriod} {template ? `- ${template.name}` : ''}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div><span className="font-semibold">Status:</span> {review.status}</div>
+                        <div><span className="font-semibold">Goals:</span> {review.employeeTargets && review.employeeTargets.length > 0 ? review.employeeTargets.map(t => t.target).join(', ') : 'No goals.'}</div>
+                        <div><span className="font-semibold">Manager Feedback:</span> {review.managerComments || 'No feedback.'}</div>
+                        <div><span className="font-semibold">HR Feedback:</span> {review.hrComments || 'No feedback.'}</div>
+                        <div><span className="font-semibold">Next Review Date:</span> {review.nextReviewDate}</div>
+                        {/* No edit/view buttons for employee active appraisal */}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        </TabsContent>
         <TabsContent value="history">
           <div className="space-y-4">
             {reviews.filter(r => r.status === 'completed').length === 0 ? (
