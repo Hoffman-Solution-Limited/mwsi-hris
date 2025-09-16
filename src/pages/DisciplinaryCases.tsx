@@ -52,11 +52,45 @@ const mockCases: DisciplinaryCase[] = [
 export const DisciplinaryCases: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [cases, setCases] = useState<DisciplinaryCase[]>(mockCases);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedCase, setSelectedCase] = useState<DisciplinaryCase | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [verdictNotes, setVerdictNotes] = useState("");
 
   // Add new case
   const handleAddCase = (newCase: Omit<DisciplinaryCase, "id">) => {
     const caseWithId = { id: cases.length + 1, ...newCase };
     setCases([...cases, caseWithId]);
+  };
+
+  // Complete case handler
+  const handleCompleteCase = (caseItem: DisciplinaryCase) => {
+    setSelectedCase(caseItem);
+    setSelectedStatus(caseItem.status);
+    setVerdictNotes("");
+    setModalOpen(true);
+  };
+
+  const handleModalSubmit = () => {
+    if (!selectedCase) return;
+    setCases((prev) =>
+      prev.map((c) =>
+        c.id === selectedCase.id
+          ? {
+              ...c,
+              status: selectedStatus as "open" | "closed" | "pending",
+              description:
+                selectedStatus === "closed" && verdictNotes
+                  ? c.description + " Verdict: " + verdictNotes
+                  : c.description,
+            }
+          : c
+      )
+    );
+    setModalOpen(false);
+    setSelectedCase(null);
+    setSelectedStatus("");
+    setVerdictNotes("");
   };
 
   const filteredCases = cases.filter(
@@ -181,12 +215,64 @@ export const DisciplinaryCases: React.FC = () => {
                   </td>
                   <td className="p-3">{c.date}</td>
                   <td className="p-3">{c.description}</td>
+                  <td className="p-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCompleteCase(c)}
+                      disabled={c.status === "closed"}
+                    >
+                      Update Case Status
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </CardContent>
       </Card>
+      {/* Complete Case Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Case Status</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block mb-1 font-medium">Status</label>
+              <select
+                className="w-full border rounded p-2"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                <option value="open">Open</option>
+                <option value="pending">Pending</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+            {selectedStatus === "closed" && (
+              <div>
+                <label className="block mb-1 font-medium">Verdict Notes</label>
+                <textarea
+                  className="w-full border rounded p-2"
+                  rows={3}
+                  value={verdictNotes}
+                  onChange={(e) => setVerdictNotes(e.target.value)}
+                  placeholder="Enter verdict notes..."
+                />
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleModalSubmit} disabled={!selectedStatus}>
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
