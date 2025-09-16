@@ -15,7 +15,7 @@ import { Dashboard } from "@/pages/Dashboard";
 import { GlobalSearch } from "@/pages/GlobalSearch";
 import { EmployeeDirectory } from "@/pages/EmployeeDirectory";
 import { EmployeeProfile } from "@/pages/EmployeeProfile";
-import { Recruitment } from "@/pages/Recruitment";
+import Recruitment from "@/pages/Recruitment";
 import { Training } from "@/pages/Training";
 import { LeaveManagement } from "@/pages/LeaveManagement";
 import { PerformanceReviews } from "@/pages/PerformanceReviews";
@@ -24,6 +24,8 @@ import { Reports } from "@/pages/Reports";
 import { Admin } from "@/pages/Admin";
 import { DesignationPage } from "@/pages/Designation";
 import {SkillsPage} from "@/pages/Skills";
+import ApplyLeave from "@/pages/ApplyLeave";
+import ManagerApplyLeave from "@/pages/ManagerApplyLeave";
 import { EmployeeByCounty } from "@/pages/EmployeeByCounty";
 import { DisciplinaryCases } from "@/pages/DisciplinaryCases";
 import { ForgotPasswordPage } from "@/components/auth/ForgotPasswordPage";
@@ -58,6 +60,7 @@ const App = () => (
         <BrowserRouter>
   <Routes>
   <Route path="/login" element={<LoginPage />} />
+  <Route path="/apply-leave" element={<ProtectedRoute><ApplyLeave /></ProtectedRoute>} />
   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
   <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
   <Route path="/search" element={<ProtectedRoute><Layout><GlobalSearch /></Layout></ProtectedRoute>} />
@@ -71,6 +74,8 @@ const App = () => (
   <Route path="/documents" element={<ProtectedRoute><Layout><Documents /></Layout></ProtectedRoute>} />
   <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
   <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />
+  <Route path="/manager-apply-leave" element={<ProtectedRoute><Layout><ManagerApplyLeave /></Layout></ProtectedRoute>} />
+
 
 
   {/* ✅ Wrap Designations same way */}

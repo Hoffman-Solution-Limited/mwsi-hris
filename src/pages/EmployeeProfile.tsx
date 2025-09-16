@@ -47,27 +47,31 @@ export const EmployeeProfile: React.FC = () => {
   const [docCategory, setDocCategory] = useState('General');
   const [docFile, setDocFile] = useState<File | null>(null);
 
-  // If on /profile route, show current user's profile
-  const isMyProfile = location.pathname === '/profile';
-  const targetEmployeeId = isMyProfile ? user?.id : id;
-  const employee = mockEmployees.find(emp => emp.id === targetEmployeeId);
+  // For testing, always use Michael Davis (id: '3') as the target employee
+    // If on /profile route, show current user's profile
+    const isMyProfile = location.pathname === '/profile';
+    // For manager, allow viewing/editing their own profile
+    const targetEmployeeId = isMyProfile ? user?.id : id;
+    const employee = mockEmployees.find(emp => emp.id === targetEmployeeId);
 
   // Check if current user can access this profile
+  // Managers can view/edit their own profile and direct reports
   const canAccessProfile = isMyProfile || 
-    ['admin', 'hr_manager', 'hr_staff', 'manager'].includes(user?.role || '');
+    ['admin', 'hr_manager', 'hr_staff'].includes(user?.role || '') ||
+    (user?.role === 'manager' && (user?.id === targetEmployeeId || (employee && employee.manager === user?.name)));
   const employeeDocuments = useMemo(() => {
     if (!employee) return [];
     return documents.filter(doc => doc.uploadedBy === employee.name);
   }, [documents, employee]);
-  const employeeTrainings = mockTrainingRecords.filter(training => 
-    training.employeeId === id
-  );
-  const employeeReviews = mockPerformanceReviews.filter(review => 
-    review.employeeId === id
-  );
-  const employeeLeaves = mockLeaveRequests.filter(leave => 
-    leave.employeeId === id
-  );
+    const employeeTrainings = mockTrainingRecords.filter(training => 
+      training.employeeId === targetEmployeeId
+    );
+    const employeeReviews = mockPerformanceReviews.filter(review => 
+      review.employeeId === targetEmployeeId
+    );
+    const employeeLeaves = mockLeaveRequests.filter(leave => 
+      leave.employeeId === targetEmployeeId
+    );
 
   if (!canAccessProfile) {
     return (
@@ -152,7 +156,7 @@ export const EmployeeProfile: React.FC = () => {
                 </div>
               </div>
             </div>
-            {(isMyProfile || ['admin', 'hr_manager', 'hr_staff'].includes(user?.role || '')) && (
+            {(isMyProfile || (user?.role === 'manager' && user?.id === employee?.id) || ['admin', 'hr_manager', 'hr_staff'].includes(user?.role || '')) && (
               <div className="flex gap-2">
                <Dialog>
   <DialogTrigger asChild>

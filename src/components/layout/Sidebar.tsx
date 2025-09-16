@@ -32,7 +32,8 @@ const navGroups: NavGroup[] = [
     items: [
       { path: '/', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
       { path: '/search', label: 'Global Search', icon: <Search className="w-5 h-5" /> },
-      { path: '/profile', label: 'My Profile', icon: <User className="w-5 h-5" />, roles: ['employee'] }
+    { path: '/profile', label: 'My Profile', icon: <User className="w-5 h-5" />, roles: ['employee','manager'] },
+  { path: '/manager-apply-leave', label: 'Apply for Leave', icon: (<Calendar className='w-5 h-5' />), roles: ['manager'] },
     ]
   },
   {
@@ -53,7 +54,7 @@ const navGroups: NavGroup[] = [
     title: "Reports & Admin",
     items: [
       { path: '/documents', label: 'Document Registry', icon: <FileText className="w-5 h-5" /> },
-      { path: '/employees-by-county', label: 'Employees by County', icon: <MapPin className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff','manager'] },
+  { path: '/employees-by-county', label: 'Employees by County', icon: <MapPin className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff'] },
       { path: '/reports', label: 'Reports & Analytics', icon: <BarChart3 className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff'] },
       { path: '/admin', label: 'Admin Panel', icon: <Settings className="w-5 h-5" />, roles: ['admin'] }
     ]

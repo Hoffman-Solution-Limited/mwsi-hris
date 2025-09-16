@@ -1,572 +1,366 @@
-import React, { useState } from "react"
-import {
-  Plus,
-  Search,
-  Filter,
-  Users,
-  Calendar,
-  Eye,
-  Edit,
-  Trash2,
-} from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { mockPositions } from "@/data/mockData"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
 
-// Type for position form
-type PositionFormData = {
-  title: string
-  department: string
-  priority: "high" | "medium" | "low"
-  status: "open" | "filled" | "closed"
-  description: string
-}
+import React, { useState } from "react";
+import { mockShortlistedCandidates, mockHiredCandidates, mockPositions } from "@/data/mockData";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
-export const Recruitment: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("positions")
-  const [searchQuery, setSearchQuery] = useState("")
+const Recruitment: React.FC = () => {
+  const [activeTab, setActiveTab] = useState("positions");
+  const [showJobDialog, setShowJobDialog] = useState(false);
+  const [editingJob, setEditingJob] = useState(null);
+    const [jobForm, setJobForm] = useState({
+      title: "",
+      department: "",
+      priority: "medium",
+      status: "open",
+      description: "",
+      postedDate: "",
+      closingDate: "",
+      applicants: 0,
+    });
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [shortlistDialogOpen, setShortlistDialogOpen] = useState(false);
+  const [shortlistJob, setShortlistJob] = useState(null);
+  const [candidateForm, setCandidateForm] = useState({ name: "", cv: null });
+  const [closeJobDialogOpen, setCloseJobDialogOpen] = useState(false);
+  const [jobToClose, setJobToClose] = useState(null);
+  const [confirmCandidate, setConfirmCandidate] = useState(null);
+  const [confirmAction, setConfirmAction] = useState("");
+  const [confirmReason, setConfirmReason] = useState("");
+  const [shortlistedCandidates, setShortlistedCandidates] = useState(
+    Object.values(mockShortlistedCandidates).flat()
+  );
+  const [hiredCandidates, setHiredCandidates] = useState(mockHiredCandidates);
 
-  const filteredPositions = mockPositions.filter(
-    (position) =>
-      position.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      position.department.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
-  const openPositions = mockPositions.filter((pos) => pos.status === "open")
-  const totalApplicants = mockPositions.reduce(
-    (sum, pos) => sum + pos.applicants,
-    0
-  )
-
-  // Mock interview data
-  const interviews = [
-    {
-      id: "1",
-      candidate: "Alice Johnson",
-      position: "Senior Software Engineer",
-      date: "2024-03-25",
-      time: "10:00 AM",
-      interviewer: "John Smith",
-      status: "scheduled",
-    },
-    {
-      id: "2",
-      candidate: "Bob Wilson",
-      position: "HR Assistant",
-      date: "2024-03-25",
-      time: "2:00 PM",
-      interviewer: "Sarah Johnson",
-      status: "completed",
-    },
-    {
-      id: "3",
-      candidate: "Carol Davis",
-      position: "Marketing Manager",
-      date: "2024-03-26",
-      time: "11:00 AM",
-      interviewer: "Emily Chen",
-      status: "scheduled",
-    },
-  ]
-
-  const candidates = [
-    {
-      id: "1",
-      name: "Alice Johnson",
-      position: "Senior Software Engineer",
-      appliedDate: "2024-03-15",
-      stage: "technical_interview",
-      score: 85,
-      experience: "5 years",
-      education: "MS Computer Science",
-    },
-    {
-      id: "2",
-      name: "Bob Wilson",
-      position: "HR Assistant",
-      appliedDate: "2024-03-18",
-      stage: "hr_review",
-      score: 78,
-      experience: "2 years",
-      education: "BA Human Resources",
-    },
-    {
-      id: "3",
-      name: "Carol Davis",
-      position: "Marketing Manager",
-      appliedDate: "2024-03-20",
-      stage: "final_interview",
-      score: 92,
-      experience: "7 years",
-      education: "MBA Marketing",
-    },
-  ]
+  const handleSaveJob = () => {
+    setShowJobDialog(false);
+    setEditingJob(null);
+    setJobForm({
+      title: "",
+      department: "",
+      priority: "medium",
+      status: "open",
+      description: "",
+      postedDate: "",
+      closingDate: "",
+      applicants: 0,
+    });
+  };
+  const handleSelect = (candidate) => {
+    setConfirmCandidate(candidate);
+    setConfirmAction("select");
+    setConfirmDialogOpen(true);
+  };
+  const handleDecline = (candidate) => {
+    setConfirmCandidate(candidate);
+    setConfirmAction("decline");
+    setConfirmDialogOpen(true);
+  };
+  const handleDownloadCV = (cv) => {
+    alert(`Downloading CV: ${cv.name}`);
+  };
+  const handleConfirm = () => {
+    if (confirmAction === "select") {
+      setHiredCandidates([...hiredCandidates, confirmCandidate]);
+      setShortlistedCandidates(shortlistedCandidates.filter(c => c.id !== confirmCandidate.id));
+    } else if (confirmAction === "decline") {
+      setShortlistedCandidates(shortlistedCandidates.filter(c => c.id !== confirmCandidate.id));
+    }
+    setConfirmDialogOpen(false);
+    setConfirmCandidate(null);
+    setConfirmReason("");
+    setConfirmAction("");
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Recruitment & Positions</h1>
           <p className="text-muted-foreground">
-            Manage job openings, candidates, and recruitment processes
+            Add jobs manually, shortlist candidates, and onboard.
           </p>
         </div>
+        <Button
+          className="ml-4"
+          onClick={() => {
+            setEditingJob(null);
+            setJobForm({
+              title: "",
+              department: "",
+              priority: "medium",
+              status: "open",
+              description: "",
+              postedDate: "",
+              closingDate: "",
+              applicants: 0,
+            });
+            setShowJobDialog(true);
+          }}
+        >
+          <Plus className="w-4 h-4 mr-2" /> Add New Job
+        </Button>
+      </div>
 
-        {/* New Position Modal */}
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              New Position
+      <Dialog open={showJobDialog} onOpenChange={setShowJobDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingJob ? "Edit Job" : "Add New Job"}</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveJob();
+            }}
+          >
+            <Input
+              placeholder="Title"
+              value={jobForm.title}
+              onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
+              required
+            />
+            <Input
+              placeholder="Department"
+              value={jobForm.department}
+              onChange={(e) => setJobForm({ ...jobForm, department: e.target.value })}
+              required
+            />
+            <Textarea
+              placeholder="Description"
+              value={jobForm.description}
+              onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
+              required
+            />
+            <Input
+              type="date"
+              placeholder="Posted Date"
+              value={jobForm.postedDate}
+              onChange={(e) => setJobForm({ ...jobForm, postedDate: e.target.value })}
+              required
+            />
+            <Input
+              type="date"
+              placeholder="Closing Date"
+              value={jobForm.closingDate}
+              onChange={(e) => setJobForm({ ...jobForm, closingDate: e.target.value })}
+              required
+            />
+            <Button type="submit" className="w-full">
+              {editingJob ? "Save Changes" : "Add Job"}
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add New Position</DialogTitle>
-            </DialogHeader>
-            <form
-              className="space-y-4"
-              onSubmit={(e) => {
-                e.preventDefault()
-                const form = e.target as HTMLFormElement
-                const data: PositionFormData = {
-                  title: (form.elements.namedItem("title") as HTMLInputElement)
-                    .value,
-                  department: (
-                    form.elements.namedItem("department") as HTMLInputElement
-                  ).value,
-                  priority: "medium", // static for now
-                  status: "open", // static for now
-                  description: (
-                    form.elements.namedItem("description") as HTMLTextAreaElement
-                  ).value,
-                }
-                console.log("New Position:", data)
-                alert(`New Position Added: ${data.title}`)
-              }}
-            >
-              <div>
-                <label className="block text-sm font-medium mb-1">Title</label>
-                <Input name="title" placeholder="e.g. Software Engineer" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Department
-                </label>
-                <Input name="department" placeholder="e.g. Engineering" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Description
-                </label>
-                <Textarea
-                  name="description"
-                  placeholder="Enter job description..."
-                  rows={4}
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                Save Position
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-lg">
-                <Users className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Open Positions
-                </p>
-                <p className="text-2xl font-bold">{openPositions.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-success/10 p-3 rounded-lg">
-                <Users className="w-6 h-6 text-success" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Applicants
-                </p>
-                <p className="text-2xl font-bold">{totalApplicants}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-warning/10 p-3 rounded-lg">
-                <Calendar className="w-6 h-6 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Interviews This Week
-                </p>
-                <p className="text-2xl font-bold">
-                  {interviews.filter((int) => int.status === "scheduled").length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-destructive/10 p-3 rounded-lg">
-                <Users className="w-6 h-6 text-destructive" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Positions to Fill
-                </p>
-                <p className="text-2xl font-bold">
-                  {mockPositions.filter((pos) => pos.status === "filled").length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 gap-2">
+        <TabsList className="mb-4 flex w-full gap-4">
           <TabsTrigger
             value="positions"
-            className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+            className={`flex-1 px-4 py-2 rounded-lg font-semibold text-base transition-all shadow-md
+              ${activeTab === "positions" ? "bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 text-white" : "bg-gray-100 hover:bg-gradient-to-r hover:from-pink-500 hover:via-red-500 hover:to-yellow-500 hover:text-white"}`}
           >
             Open Positions
           </TabsTrigger>
           <TabsTrigger
+            value="shortlist"
+            className={`flex-1 px-4 py-2 rounded-lg font-semibold text-base transition-all shadow-md
+              ${activeTab === "shortlist" ? "bg-gradient-to-r from-green-400 via-green-600 to-lime-500 text-white" : "bg-gray-100 hover:bg-gradient-to-r hover:from-green-400 hover:via-green-600 hover:to-lime-500 hover:text-white"}`}
+          >
+            Shortlisted Candidates
+          </TabsTrigger>
+          <TabsTrigger
             value="candidates"
-            className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+            className={`flex-1 px-4 py-2 rounded-lg font-semibold text-base transition-all shadow-md
+              ${activeTab === "candidates" ? "bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 text-white" : "bg-gray-100 hover:bg-gradient-to-r hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 hover:text-white"}`}
           >
-            Candidates
-          </TabsTrigger>
-          <TabsTrigger
-            value="interviews"
-            className="bg-yellow-200 text-yellow-900 data-[state=active]:bg-yellow-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-          >
-            Interviews
-          </TabsTrigger>
-          <TabsTrigger
-            value="pipeline"
-            className="bg-purple-200 text-purple-900 data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-          >
-            Pipeline
+            Hired Candidates
           </TabsTrigger>
         </TabsList>
-
-        {/* Open Positions */}
         <TabsContent value="positions">
-          <div className="space-y-4">
-            <div className="flex gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search positions by title or department..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button variant="outline">
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
-            </div>
-
-            <div className="grid gap-4">
-              {filteredPositions.map((position) => (
-                <Card
-                  key={position.id}
-                  className="hover:shadow-md transition-shadow"
-                >
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-xl font-semibold">
-                            {position.title}
-                          </h3>
-                          <Badge
-                            variant={
-                              position.status === "open"
-                                ? "default"
-                                : position.status === "filled"
-                                ? "secondary"
-                                : "destructive"
-                            }
-                          >
-                            {position.status}
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className={
-                              position.priority === "high"
-                                ? "border-destructive text-destructive"
-                                : position.priority === "medium"
-                                ? "border-warning text-warning"
-                                : "border-muted-foreground"
-                            }
-                          >
-                            {position.priority} priority
-                          </Badge>
-                        </div>
-                        <p className="text-muted-foreground mb-2">
-                          {position.department}
-                        </p>
-                        <p className="text-sm mb-4">{position.description}</p>
-
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <p className="font-medium text-muted-foreground">
-                              Applicants
-                            </p>
-                            <p className="text-2xl font-bold text-primary">
-                              {position.applicants}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="font-medium text-muted-foreground">
-                              Posted Date
-                            </p>
-                            <p>
-                              {new Date(position.postedDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="font-medium text-muted-foreground">
-                              Closing Date
-                            </p>
-                            <p>
-                              {new Date(position.closingDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="font-medium text-muted-foreground">
-                              Days Remaining
-                            </p>
-                            <p className="font-bold">
-                              {Math.max(
-                                0,
-                                Math.ceil(
-                                  (new Date(position.closingDate).getTime() -
-                                    new Date().getTime()) /
-                                    (1000 * 60 * 60 * 24)
-                                )
-                              )}
-                            </p>
-                          </div>
+          <div className="grid gap-4">
+            {mockPositions.filter(pos => pos.status === "open").length === 0 ? (
+              <p className="text-muted-foreground">No open positions available.</p>
+            ) : (
+              mockPositions.filter(pos => pos.status === "open").map((job) => (
+                <Card key={job.id} className="border-l-8 border-primary shadow-md">
+                  <CardContent className="flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-lg text-primary mb-1">{job.title}</p>
+                        <p className="text-sm text-muted-foreground">{job.department} &bull; Priority: <span className="font-semibold">{job.priority}</span></p>
+                        <p className="text-xs text-gray-500">Posted: {job.postedDate} &bull; Closes: {job.closingDate}</p>
+                        <div className="mt-2 text-gray-700">
+                          <div dangerouslySetInnerHTML={{ __html: job.description }} />
                         </div>
                       </div>
-
+                      <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 font-semibold text-xs">{job.status}</span>
+                    </div>
+                    <div className="flex gap-2 justify-end mt-2">
+                      <Button size="sm" variant="default" onClick={() => { setShortlistDialogOpen(true); setShortlistJob(job); }}>
+                        Shortlist
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setEditingJob(job); setShowJobDialog(true); }}>
+                        Edit
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => { setJobToClose(job); setCloseJobDialogOpen(true); }}>
+                        Close
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+          {/* Shortlist Candidate Dialog */}
+          <Dialog open={shortlistDialogOpen} onOpenChange={setShortlistDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Shortlist Candidate for {shortlistJob?.title}</DialogTitle>
+              </DialogHeader>
+              <form
+                className="space-y-3"
+                onSubmit={e => {
+                  e.preventDefault();
+                  // Add logic to save candidate to shortlist
+                  alert(`Shortlisted ${candidateForm.name} for ${shortlistJob?.title}`);
+                  setCandidateForm({ name: "", cv: null });
+                  setShortlistDialogOpen(false);
+                }}
+              >
+                <Input
+                  placeholder="Full Name"
+                  value={candidateForm.name}
+                  onChange={e => setCandidateForm({ ...candidateForm, name: e.target.value })}
+                  required
+                />
+                <label className="block text-sm font-medium">Attach CV Document</label>
+                <Input
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={e => setCandidateForm({ ...candidateForm, cv: e.target.files[0] })}
+                  required
+                />
+                <Button type="submit" className="w-full">Add Candidate</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+          {/* Close Job Confirmation Dialog */}
+          <Dialog open={closeJobDialogOpen} onOpenChange={setCloseJobDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirm Close Job</DialogTitle>
+              </DialogHeader>
+              <p>Are you sure you want to close the job posting for <span className="font-semibold">{jobToClose?.title}</span>? This action cannot be undone.</p>
+              <DialogFooter className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setCloseJobDialogOpen(false)}>Cancel</Button>
+                <Button variant="destructive" onClick={() => { setCloseJobDialogOpen(false); setJobToClose(null); }}>Confirm Close</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+        <TabsContent value="shortlist">
+          <div className="grid gap-4">
+            {shortlistedCandidates.length === 0 ? (
+              <p className="text-muted-foreground">No shortlisted candidates.</p>
+            ) : (
+              shortlistedCandidates.map((candidate) => (
+                <Card key={candidate.id}>
+                  <CardContent className="flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold">{candidate.name}</p>
+                        <p className="text-sm text-muted-foreground">{candidate.position}</p>
+                      </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <Button size="sm" variant="default" onClick={() => handleSelect(candidate)}>Select</Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDecline(candidate)}>Decline</Button>
+                        <Button size="sm" variant="secondary" onClick={() => handleDownloadCV(candidate.cv)}>Download CV</Button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+              ))
+            )}
           </div>
         </TabsContent>
-
-        {/* Candidates */}
+        <TabsContent value="shortlist">
+          <div className="grid gap-4">
+            {shortlistedCandidates.length === 0 ? (
+              <p className="text-muted-foreground">No shortlisted candidates.</p>
+            ) : (
+              shortlistedCandidates.map((candidate) => (
+                <Card key={candidate.id}>
+                  <CardContent className="flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold">{candidate.name}</p>
+                        <p className="text-sm text-muted-foreground">{candidate.position}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="default" onClick={() => handleSelect(candidate)}>Select</Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDecline(candidate)}>Decline</Button>
+                        <Button size="sm" variant="secondary" onClick={() => handleDownloadCV(candidate.cv)}>Download CV</Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
         <TabsContent value="candidates">
-          <Card>
-            <CardHeader>
-              <CardTitle>Candidate Pipeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {candidates.map((candidate) => (
-                  <div
-                    key={candidate.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="bg-primary/10 p-2 rounded-full">
-                        <Users className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{candidate.name}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {candidate.position}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {candidate.experience} experience •{" "}
-                          {candidate.education}
-                        </p>
-                      </div>
+          <div className="grid gap-4">
+            {hiredCandidates.length === 0 ? (
+              <p className="text-muted-foreground">No hired candidates.</p>
+            ) : (
+              hiredCandidates.map((candidate) => (
+                <Card key={candidate.id}>
+                  <CardContent className="flex flex-col gap-2">
+                    <div>
+                      <p className="font-semibold">{candidate.name}</p>
+                      <p className="text-sm text-muted-foreground">{candidate.position}</p>
                     </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline">
-                          {candidate.stage.replace("_", " ")}
-                        </Badge>
-                        <span className="text-sm font-medium">
-                          {candidate.score}%
-                        </span>
-                      </div>
-                      <Progress value={candidate.score} className="w-24" />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Applied{" "}
-                        {new Date(candidate.appliedDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Interviews */}
-        <TabsContent value="interviews">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Interview Schedule</CardTitle>
-                <Button size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Schedule Interview
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {interviews.map((interview) => (
-                  <div
-                    key={interview.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="bg-warning/10 p-2 rounded-full">
-                        <Calendar className="w-5 h-5 text-warning" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{interview.candidate}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {interview.position}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Interviewer: {interview.interviewer}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge
-                          variant={
-                            interview.status === "scheduled"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          {interview.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm font-medium">
-                        {new Date(interview.date).toLocaleDateString()}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {interview.time}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Pipeline */}
-        <TabsContent value="pipeline">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            {[
-              "Application Review",
-              "Phone Screening",
-              "Technical Interview",
-              "Final Interview",
-            ].map((stage, index) => (
-              <Card key={stage}>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">{stage}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {candidates
-                      .filter((_, candidateIndex) => candidateIndex % 4 === index)
-                      .map((candidate) => (
-                        <div
-                          key={candidate.id}
-                          className="p-3 bg-muted/30 rounded-lg"
-                        >
-                          <p className="font-medium text-sm">{candidate.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {candidate.position}
-                          </p>
-                          <div className="flex justify-between items-center mt-2">
-                            <Progress
-                              value={candidate.score}
-                              className="flex-1 mr-2"
-                            />
-                            <span className="text-xs">
-                              {candidate.score}%
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{confirmAction === 'select' ? 'Confirm Selection' : 'Confirm Decline'}</DialogTitle>
+          </DialogHeader>
+          <div className="mb-3">
+            <p className="mb-2">Candidate: <span className="font-semibold">{confirmCandidate?.name}</span></p>
+            <p className="mb-2">Position: <span className="font-semibold">{confirmCandidate?.position}</span></p>
+            <label className="block text-sm font-medium mb-1">Reason for {confirmAction === 'select' ? 'hiring' : 'declining'}:</label>
+            <Textarea
+              value={confirmReason}
+              onChange={e => setConfirmReason(e.target.value)}
+              placeholder={confirmAction === 'select' ? 'Why was this candidate hired?' : 'Why was this candidate declined?'}
+              required
+              className="mb-2"
+            />
+          </div>
+          <DialogFooter className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleConfirm} disabled={!confirmReason.trim()}>{confirmAction === 'select' ? 'Confirm Hire' : 'Confirm Decline'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  )
-}
+  );
+};
+
+export default Recruitment;

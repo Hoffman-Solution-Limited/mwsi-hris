@@ -1,3 +1,59 @@
+// Mock data for hired candidates
+export const mockHiredCandidates = [
+  {
+    id: "sc-1",
+    name: "Jane Doe",
+    position: "Government Data Analyst",
+    jobId: "gov-1",
+    cv: { name: "JaneDoeCV.pdf" },
+    hireReason: "Excellent technical skills and interview performance."
+  },
+  {
+    id: "sc-3",
+    name: "Alice Brown",
+    position: "Public Relations Officer",
+    jobId: "gov-2",
+    cv: { name: "AliceBrownCV.pdf" },
+    hireReason: "Strong communication and PR experience."
+  }
+];
+// Shortlisted Candidate type
+export interface ShortlistedCandidate {
+  id: string;
+  name: string;
+  position: string;
+  jobId: string;
+  cv: { name: string };
+}
+
+// Mock data for shortlisted candidates per job
+export const mockShortlistedCandidates: { [jobId: string]: ShortlistedCandidate[] } = {
+  "gov-1": [
+    {
+      id: "sc-1",
+      name: "Jane Doe",
+      position: "Government Data Analyst",
+      jobId: "gov-1",
+      cv: { name: "JaneDoeCV.pdf" }
+    },
+    {
+      id: "sc-2",
+      name: "John Smith",
+      position: "Government Data Analyst",
+      jobId: "gov-1",
+      cv: { name: "JohnSmithCV.pdf" }
+    }
+  ],
+  "gov-2": [
+    {
+      id: "sc-3",
+      name: "Alice Brown",
+      position: "Public Relations Officer",
+      jobId: "gov-2",
+      cv: { name: "AliceBrownCV.pdf" }
+    }
+  ]
+};
 export type PerformanceTemplateType = 'quarterly' | 'half-yearly' | 'yearly';
 
 export interface PerformanceTemplate {
@@ -38,6 +94,7 @@ export interface PerformanceReview {
     comments: string;
   }[];
   overallScore?: number;
+  score?: number;
   managerComments?: string;
   hrComments?: string;
   goals?: string[];
@@ -213,17 +270,50 @@ export const mockEmployees: Employee[] = [
     company: 'Ministry of Water, Sanitation and Irrigation',
     dateOfBirth: '1982-11-10'
   },
+    {
+      id: '10',
+      name: 'David Manager',
+      email: 'david.manager@mwsi.com',
+      position: 'Operations Manager',
+      department: 'Operations',
+      manager: undefined,
+      hireDate: '2019-03-10',
+      status: 'active',
+      avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=DM',
+      phone: '+254-700-999999',
+      emergencyContact: 'Linda Manager (+254-700-888888)',
+      salary: 120000,
+      skills: [
+        { name: 'Operations Management', level: 'Expert' },
+        { name: 'Leadership', level: 'Advanced' },
+        { name: 'Process Improvement', level: 'Advanced' },
+      ],
+      gender: 'male',
+      employmentType: 'Permanent',
+      staffNumber: '2019031010',
+      nationalId: '12345678',
+      kraPin: 'A012345689Z',
+      children: '2',
+      workCounty: 'Nairobi',
+      homeCounty: 'Machakos',
+      postalAddress: 'P.O. Box 98765',
+      postalCode: '00100',
+      stationName: 'Operations Department - Head Office',
+      skillLevel: 'MBA',
+      company: 'Ministry of Water, Sanitation and Irrigation',
+      dateOfBirth: '1980-07-22'
+    },
   {
-    id: '3',
-    name: 'Michael Davis',
-    email: 'michael.davis@mwsi.com',
-    position: 'Software Developer',
-    department: 'Engineering',
-    manager: 'John Smith',
-    hireDate: '2022-07-10',
-    status: 'active',
-    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=MD',
-    phone: '+254-700-345678',
+  id: '3',
+  name: 'Michael Davis',
+  email: 'michael.davis@mwsi.com',
+  position: 'Software Developer',
+  department: 'Engineering',
+  manager: 'David Manager',
+  hireDate: '2022-07-10',
+  status: 'active',
+  avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=MD',
+  phone: '+254-700-345678',
     emergencyContact: 'Lisa Davis (+254-700-345679)',
     salary: 70000,
     skills: [
@@ -448,10 +538,65 @@ export const mockTrainingRecords: TrainingRecord[] = [
     status: 'in_progress',
     provider: 'Tech Learning Hub',
     expiryDate: '2025-06-30'
-  }
+  },
+  // Manager records (David Manager, id: '10')
+    {
+      id: 'dm1',
+      employeeId: '10',
+      title: 'Cybersecurity Awareness Training',
+      type: 'mandatory',
+      status: 'completed',
+      completionDate: '2024-03-01',
+      expiryDate: '2025-03-01',
+      provider: 'CyberSafe Institute'
+    },
+    {
+      id: 'dm2',
+      employeeId: '10',
+      title: 'Leadership Development Program',
+      type: 'development',
+      status: 'completed',
+      completionDate: '2024-06-15',
+      expiryDate: '2025-06-15',
+      provider: 'Management Excellence Academy'
+    },
+    {
+      id: 'dm3',
+      employeeId: '10',
+      title: 'Data Protection & GDPR Compliance',
+      type: 'compliance',
+      status: 'in_progress',
+      provider: 'Legal Compliance Corp'
+    },
 ];
 
 export const mockLeaveRequests: LeaveRequest[] = [
+  // Records for testing manager account (David Manager, id: '10')
+  {
+    id: 'L100',
+    employeeId: '10',
+    employeeName: 'David Manager',
+    type: 'annual',
+    startDate: '2025-08-01',
+    endDate: '2025-08-10',
+    days: 10,
+    status: 'approved',
+    reason: 'Annual leave',
+    appliedDate: '2025-07-15',
+    managerComments: 'Enjoy your break!'
+  },
+  {
+    id: 'L101',
+    employeeId: '10',
+    employeeName: 'David Manager',
+    type: 'sick',
+    startDate: '2025-09-01',
+    endDate: '2025-09-03',
+    days: 3,
+    status: 'pending_manager',
+    reason: 'Medical',
+    appliedDate: '2025-08-31'
+  },
   {
     id: '1',
     employeeId: '3',
@@ -543,6 +688,32 @@ export const mockLeaveRequests: LeaveRequest[] = [
 ];
 
 export const mockPerformanceReviews: PerformanceReview[] = [
+  // Records for testing manager account (David Manager, id: '10')
+  {
+    id: 'PR100',
+    employeeId: '10',
+    employeeName: 'David Manager',
+    templateId: 'template-1',
+    reviewPeriod: 'Q2 2025',
+    status: 'completed',
+    overallScore: 4.7,
+    managerComments: 'Excellent leadership and team management.',
+    hrComments: 'Consistently exceeds expectations.',
+    nextReviewDate: '2025-12-01',
+    createdBy: 'HR System',
+    createdAt: '2025-06-30'
+  },
+  {
+    id: 'PR101',
+    employeeId: '10',
+    employeeName: 'David Manager',
+    templateId: 'template-1',
+    reviewPeriod: 'Q3 2025',
+    status: 'draft',
+    nextReviewDate: '2026-03-01',
+    createdBy: 'HR System',
+    createdAt: '2025-09-01'
+  },
   {
     id: '1',
     employeeId: '3',
