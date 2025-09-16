@@ -161,6 +161,7 @@ export interface Document {
   status: 'pending' | 'approved' | 'rejected' | 'draft';
   uploadedBy: string;
   category: string;
+  createdAt?: string;
 }
 
 export type Position = {
@@ -410,6 +411,7 @@ export const mockDocuments: Document[] = [
     name: 'Employee Handbook 2024.pdf',
     type: 'policy',
     uploadDate: '2024-01-15',
+    createdAt: '2024-01-10',
     size: '2.3 MB',
     status: 'approved',
     uploadedBy: 'Sarah Johnson',
@@ -420,6 +422,7 @@ export const mockDocuments: Document[] = [
     name: 'Training Certificate - Data Protection.pdf',
     type: 'certificate',
     uploadDate: '2024-02-20',
+    createdAt: '2024-02-18',
     size: '856 KB',
     status: 'approved',
     uploadedBy: 'Michael Davis',
