@@ -1,3 +1,4 @@
+import HRPerformanceFilledList from "@/pages/HRPerformanceFilledList";
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -71,6 +72,7 @@ const App = () => (
   <Route path="/training" element={<ProtectedRoute><Layout><Training /></Layout></ProtectedRoute>} />
   <Route path="/leave" element={<ProtectedRoute><Layout><LeaveManagement /></Layout></ProtectedRoute>} />
   <Route path="/performance" element={<ProtectedRoute><Layout><PerformanceReviews /></Layout></ProtectedRoute>} />
+  <Route path="/hr-performance-filled" element={<ProtectedRoute><Layout><HRPerformanceFilledList /></Layout></ProtectedRoute>} />
   <Route path="/documents" element={<ProtectedRoute><Layout><Documents /></Layout></ProtectedRoute>} />
   <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
   <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />

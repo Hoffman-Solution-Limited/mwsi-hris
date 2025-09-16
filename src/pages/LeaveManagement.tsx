@@ -153,63 +153,8 @@ export const LeaveManagement: React.FC = () => {
             <Download className="w-4 h-4 mr-2" />
             Export Report
           </Button>
-          {user?.role === 'employee' ? (
-            <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Apply for Leave
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Apply for Leave</DialogTitle>
-                  <DialogDescription>Submit your leave request for approval.</DialogDescription>
-                </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium">Leave Type</label>
-                    <Select value={form.type} onValueChange={(v) => setForm(s => ({ ...s, type: v }))}>
-                      <SelectTrigger className="w-full mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="annual">Annual</SelectItem>
-                        <SelectItem value="sick">Sick</SelectItem>
-                        <SelectItem value="emergency">Emergency</SelectItem>
-                        <SelectItem value="maternity">Maternity</SelectItem>
-                        <SelectItem value="study">Study</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Start Date</label>
-                    <Input type="date" className="mt-1" value={form.startDate} onChange={(e) => setForm(s => ({ ...s, startDate: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">End Date</label>
-                    <Input type="date" className="mt-1" value={form.endDate} onChange={(e) => setForm(s => ({ ...s, endDate: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Total Days</label>
-                    <Input type="number" min={1} className="mt-1" value={form.days} onChange={(e) => setForm(s => ({ ...s, days: Number(e.target.value) }))} />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium">Reason</label>
-                    <Textarea className="mt-1" rows={3} value={form.reason} onChange={(e) => setForm(s => ({ ...s, reason: e.target.value }))} />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button onClick={submitLeave} disabled={!form.startDate || !form.endDate || !form.reason}>Submit</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          ) : (
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              New Leave Request
-            </Button>
-          )}
+          {/* Removed Apply for Leave button and dialog */}
+          {/* Removed new leave request dialog and button */}
         </div>
       </div>
 
@@ -624,7 +569,7 @@ export const LeaveManagement: React.FC = () => {
                       <th>Annual Leave</th>
                       <th>Sick Leave</th>
                       <th>Emergency Leave</th>
-                      <th>Actions</th>
+
                     </tr>
                   </thead>
                   <tbody>
@@ -683,11 +628,7 @@ export const LeaveManagement: React.FC = () => {
                               </div>
                             </div>
                           </td>
-                          <td>
-                            <Button variant="outline" size="sm">
-                              View Details
-                            </Button>
-                          </td>
+
                         </tr>
                       );
                     })}
