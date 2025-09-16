@@ -10,6 +10,7 @@ import { LeaveProvider } from "@/contexts/LeaveContext";
 import { DocumentProvider } from "@/contexts/DocumentContext";
 import { PerformanceProvider } from "@/contexts/PerformanceContext";
 import { TrainingProvider } from "@/contexts/TrainingContext";
+import { SystemLogsProvider } from "@/contexts/SystemLogsContext";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { Layout } from "@/components/layout/Layout";
 import { Dashboard } from "@/pages/Dashboard";
@@ -34,6 +35,9 @@ import AdminUserManagement from '@/pages/AdminUserManagement';
 import RoleConfiguration from '@/pages/AdminRoleConfiguration';
 import SystemSettings from '@/pages/AdminSystemSettings';
 import DataManagement from '@/pages/AdminDataManagement';
+import AdminPerformanceTemplates from '@/pages/AdminPerformanceTemplates';
+import AdminTrainingManagement from '@/pages/AdminTrainingManagement';
+import AdminSystemLogs from '@/pages/AdminSystemLogs';
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,10 +55,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <LeaveProvider>
-        <DocumentProvider>
-          <PerformanceProvider>
-            <TrainingProvider>
+      <SystemLogsProvider>
+        <LeaveProvider>
+          <DocumentProvider>
+            <PerformanceProvider>
+              <TrainingProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -160,16 +165,47 @@ const App = () => (
     </ProtectedRoute>
   }
 />
+<Route
+  path="/admin/performance-templates"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <AdminPerformanceTemplates />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/training-management"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <AdminTrainingManagement />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/system-logs"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <AdminSystemLogs />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
 
   <Route path="*" element={<NotFound />} />
 </Routes>
 
         </BrowserRouter>
       </TooltipProvider>
-            </TrainingProvider>
-          </PerformanceProvider>
-        </DocumentProvider>
-      </LeaveProvider>
+              </TrainingProvider>
+            </PerformanceProvider>
+          </DocumentProvider>
+        </LeaveProvider>
+      </SystemLogsProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
