@@ -4,7 +4,7 @@ import logo from '@/assets/logo.png';
 import {
   LayoutDashboard, Users, UserPlus, GraduationCap, Calendar,
   TrendingUp, FileText, BarChart3, Settings, Search,
-  Building2, User, Briefcase, MapPin, AlertTriangle, List
+  Building2, User, Briefcase, MapPin, AlertTriangle, List, Activity
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -51,7 +51,7 @@ const navGroups: NavGroup[] = [
 
     ]
   },
-  {
+  { 
     title: "Reports & Admin",
     items: [
       { path: '/documents', label: 'Document Registry', icon: <FileText className="w-5 h-5" />, roles: ['hr_manager','hr_staff'] },
