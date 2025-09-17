@@ -548,7 +548,7 @@ export const mockTrainingRecords: TrainingRecord[] = [
       employeeId: '10',
       title: 'Cybersecurity Awareness Training',
       type: 'mandatory',
-      status: 'completed',
+      status: 'in_progress',
       completionDate: '2024-03-01',
       expiryDate: '2025-03-01',
       provider: 'CyberSafe Institute'
@@ -699,6 +699,21 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     templateId: 'template-1',
     reviewPeriod: 'Q2 2025',
     status: 'completed',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Deliver Q2 operational OKRs', description: 'Execute quarterly plan' },
+      { criteriaId: 'c2', target: 'Monthly townhalls', description: 'Improve transparency' },
+      { criteriaId: 'c3', target: 'Implement 2 process improvements', description: 'Lean practices' }
+    ],
+    managerScores: [
+      { criteriaId: 'c1', score: 5, comments: 'Exceeded plan delivery' },
+      { criteriaId: 'c2', score: 4, comments: 'Clear communication cadence' },
+      { criteriaId: 'c3', score: 4, comments: 'Strong improvements' }
+    ],
+    hrScores: [
+      { criteriaId: 'c1', score: 5, comments: 'Outstanding execution' },
+      { criteriaId: 'c2', score: 4, comments: 'Positive feedback from staff' },
+      { criteriaId: 'c3', score: 5, comments: 'High impact changes' }
+    ],
     overallScore: 4.7,
     managerComments: 'Excellent leadership and team management.',
     hrComments: 'Consistently exceeds expectations.',
@@ -713,6 +728,10 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     templateId: 'template-1',
     reviewPeriod: 'Q3 2025',
     status: 'draft',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Align Q3 departmental KPIs', description: 'Weekly check-ins' },
+      { criteriaId: 'c2', target: 'Improve cross-team updates', description: 'Bi-weekly reports' }
+    ],
     nextReviewDate: '2026-03-01',
     createdBy: 'HR System',
     createdAt: '2025-09-01'
@@ -729,8 +748,16 @@ export const mockPerformanceReviews: PerformanceReview[] = [
       { criteriaId: 'c2', target: 'Mentor junior developers', description: 'Weekly mentorship sessions.' },
       { criteriaId: 'c3', target: 'Improve code review process', description: 'Document and share best practices.' }
     ],
-    managerScores: [],
-    hrScores: [],
+    managerScores: [
+      { criteriaId: 'c1', score: 5, comments: 'Migration completed successfully' },
+      { criteriaId: 'c2', score: 4, comments: 'Active mentorship observed' },
+      { criteriaId: 'c3', score: 4, comments: 'Better review coverage' }
+    ],
+    hrScores: [
+      { criteriaId: 'c1', score: 4, comments: 'Delivery met expectations' },
+      { criteriaId: 'c2', score: 4, comments: 'Positive peer feedback' },
+      { criteriaId: 'c3', score: 5, comments: 'Process improved' }
+    ],
     overallScore: 4.5,
     managerComments: '',
     hrComments: '',
@@ -782,5 +809,149 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     createdAt: '2025-09-01',
     goals: [],
     feedback: ''
+  },
+  // Additional scenarios for Michael Davis (id: '3')
+  {
+    id: 'PR104',
+    employeeId: '3',
+    employeeName: 'Michael Davis',
+    templateId: 'template-1',
+    reviewPeriod: 'Q4 2024',
+    status: 'targets_set',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Reduce critical bugs by 30%', description: 'Increase test coverage and peer reviews' },
+      { criteriaId: 'c2', target: 'Run bi-weekly knowledge shares', description: 'Friday sessions' }
+    ],
+    nextReviewDate: '2025-03-31',
+    createdBy: 'Sarah Johnson',
+    createdAt: '2024-12-15'
+  },
+  {
+    id: 'PR105',
+    employeeId: '3',
+    employeeName: 'Michael Davis',
+    templateId: 'template-1',
+    reviewPeriod: 'Q1 2025',
+    status: 'manager_review',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Ship v2 API', description: 'Stability and performance targets' },
+      { criteriaId: 'c3', target: 'Propose 2 automation ideas', description: 'CI/CD improvements' }
+    ],
+    managerScores: [
+      { criteriaId: 'c1', score: 4, comments: 'Delivered with good quality' },
+      { criteriaId: 'c2', score: 3, comments: 'Collaborates with team' },
+      { criteriaId: 'c3', score: 4, comments: 'Shows initiative' }
+    ],
+    managerComments: 'Strong quarter with tangible outcomes.',
+    nextReviewDate: '2025-06-30',
+    createdBy: 'Sarah Johnson',
+    createdAt: '2025-03-31'
+  },
+  {
+    id: 'PR106',
+    employeeId: '3',
+    employeeName: 'Michael Davis',
+    templateId: 'template-1',
+    reviewPeriod: 'Q2 2025',
+    status: 'hr_review',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Improve performance tests', description: 'Add load tests to CI' }
+    ],
+    managerScores: [
+      { criteriaId: 'c1', score: 4, comments: 'Improved performance tests' },
+      { criteriaId: 'c2', score: 4, comments: 'Good team player' },
+      { criteriaId: 'c3', score: 3, comments: 'Some initiative shown' }
+    ],
+    hrScores: [],
+    managerComments: 'Ready for HR finalization.',
+    nextReviewDate: '2025-09-30',
+    createdBy: 'HR System',
+    createdAt: '2025-06-30'
+  },
+  {
+    id: 'PR107',
+    employeeId: '3',
+    employeeName: 'Michael Davis',
+    templateId: 'template-1',
+    reviewPeriod: 'Q3 2025',
+    status: 'completed',
+    managerScores: [
+      { criteriaId: 'c1', score: 4, comments: 'Consistent quality' },
+      { criteriaId: 'c2', score: 4, comments: 'Great collaboration' },
+      { criteriaId: 'c3', score: 4, comments: 'Proactive' }
+    ],
+    hrScores: [
+      { criteriaId: 'c1', score: 4, comments: 'Meets standards' },
+      { criteriaId: 'c2', score: 4, comments: 'Positive feedback from peers' },
+      { criteriaId: 'c3', score: 4, comments: 'Initiatives recognized' }
+    ],
+    overallScore: 4.0,
+    score: 4.0,
+    managerComments: 'Well rounded quarter',
+    hrComments: 'Approved',
+    nextReviewDate: '2025-12-31',
+    createdBy: 'HR System',
+    createdAt: '2025-09-30'
+  },
+  // Additional scenarios for David Manager (id: '10') beyond PR100 and PR101
+  {
+    id: 'PR108',
+    employeeId: '10',
+    employeeName: 'David Manager',
+    templateId: 'template-1',
+    reviewPeriod: 'Q4 2025',
+    status: 'targets_set',
+    employeeTargets: [
+      { criteriaId: 'c2', target: 'Monthly townhalls', description: 'Improve team communication' },
+      { criteriaId: 'c3', target: 'Implement 1 process improvement', description: 'Streamline approvals' }
+    ],
+    nextReviewDate: '2026-03-31',
+    createdBy: 'HR System',
+    createdAt: '2025-12-01'
+  },
+  {
+    id: 'PR109',
+    employeeId: '10',
+    employeeName: 'David Manager',
+    templateId: 'template-1',
+    reviewPeriod: 'Q1 2026',
+    status: 'manager_review',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Department OKRs on track', description: 'Track weekly' }
+    ],
+    managerScores: [
+      { criteriaId: 'c1', score: 4, comments: 'High quality execution' },
+      { criteriaId: 'c2', score: 4, comments: 'Clear communication' },
+      { criteriaId: 'c3', score: 4, comments: 'Strong initiative' }
+    ],
+    managerComments: 'Submitting to HR.',
+    nextReviewDate: '2026-06-30',
+    createdBy: 'HR System',
+    createdAt: '2026-03-31'
+  },
+  {
+    id: 'PR110',
+    employeeId: '10',
+    employeeName: 'David Manager',
+    templateId: 'template-1',
+    reviewPeriod: 'Q2 2026',
+    status: 'completed',
+    managerScores: [
+      { criteriaId: 'c1', score: 5, comments: 'Outstanding leadership' },
+      { criteriaId: 'c2', score: 4, comments: 'Excellent communication' },
+      { criteriaId: 'c3', score: 4, comments: 'Proactively drives improvements' }
+    ],
+    hrScores: [
+      { criteriaId: 'c1', score: 5, comments: 'Exemplary performance' },
+      { criteriaId: 'c2', score: 4, comments: 'Consistently clear' },
+      { criteriaId: 'c3', score: 4, comments: 'Recognized initiatives' }
+    ],
+    overallScore: 4.5,
+    score: 4.5,
+    managerComments: 'Top performance',
+    hrComments: 'Approved and recorded',
+    nextReviewDate: '2026-09-30',
+    createdBy: 'HR System',
+    createdAt: '2026-06-30'
   }
 ];

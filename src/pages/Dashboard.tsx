@@ -213,7 +213,7 @@ if (isAdmin) {
               <Button
                 className="w-full justify-start bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 variant="default"
-                onClick={() => navigate('/leave')}
+                onClick={() => navigate('/manager-apply-leave')}
               >
                 <Calendar className="w-4 h-4 mr-2" />
                 Apply for Leave
