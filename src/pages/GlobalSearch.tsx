@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+
 import { Search, Filter, User, FileText, Calendar, Building } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,10 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { mockEmployees, mockDocuments, mockLeaveRequests } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const GlobalSearch: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const { user } = useAuth();
 
   // Filter results based on search query
   const employeeResults = mockEmployees.filter(emp => 
@@ -20,7 +23,17 @@ export const GlobalSearch: React.FC = () => {
     emp.position.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const documentResults = mockDocuments.filter(doc => 
+  // Restrict documents by role: employees/managers see only their own; HR/Admin see all
+  const baseDocuments = useMemo(() => {
+    if (!user) return [] as typeof mockDocuments;
+    if (user.role === 'employee' || user.role === 'manager') {
+      return mockDocuments.filter(doc => doc.uploadedBy === user.name);
+    }
+    // HR/Admin: show all
+    return mockDocuments;
+  }, [user]);
+
+  const documentResults = baseDocuments.filter(doc => 
     doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.uploadedBy.toLowerCase().includes(searchQuery.toLowerCase())

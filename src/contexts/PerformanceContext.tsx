@@ -43,6 +43,8 @@ export interface PerformanceReview {
   score?: number;
   managerComments?: string;
   hrComments?: string;
+  // Optional deadline for completing the review (set by HR during assignment)
+  deadlineDate?: string;
   nextReviewDate: string;
   createdBy: string;
   createdAt: string;
