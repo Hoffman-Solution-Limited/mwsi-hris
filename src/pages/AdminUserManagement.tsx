@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Plus, User } from 'lucide-react'
@@ -35,6 +36,7 @@ export default function AdminUserManagement() {
   const [roleFilter, setRoleFilter] = useState<'All' | 'Admin' | 'HR' | 'Employee'>('All')
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const [addOpen, setAddOpen] = useState(false)
   const usersPerPage = 5
 
   const filteredUsers = users.filter(user => {
@@ -105,7 +107,7 @@ export default function AdminUserManagement() {
           </select>
         </div>
 
-        <Dialog>
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" />
@@ -115,6 +117,7 @@ export default function AdminUserManagement() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Add New User</DialogTitle>
+              <DialogDescription>Fill in the details below to create a new user account.</DialogDescription>
             </DialogHeader>
             <UserForm
               defaultValues={{
@@ -126,7 +129,7 @@ export default function AdminUserManagement() {
               }}
               onSave={data => {
                 handleAddEmployee({ name: data.name, email: data.email, role: 'Employee' })
-                alert(`Employee ${data.name} added!`)
+                setAddOpen(false)
               }}
             />
           </DialogContent>
