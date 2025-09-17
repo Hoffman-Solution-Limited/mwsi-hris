@@ -1,58 +1,80 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Plus, User } from 'lucide-react'
+import {UserForm} from '@/components/UserForm'
 
 type User = {
-  id: string;
-  name: string;
-  email: string;
-  role: 'Admin' | 'HR' | 'Employee';
-  status: 'Active' | 'Inactive';
-};
+  id: string
+  name: string
+  email: string
+  role: 'Admin' | 'HR' | 'Employee'
+  status: 'Active' | 'Inactive'
+}
 
 const mockUsers: User[] = [
   { id: '1', name: 'Alice Kimani', email: 'alice@company.com', role: 'HR', status: 'Active' },
   { id: '2', name: 'Brian Otieno', email: 'brian@company.com', role: 'Employee', status: 'Inactive' },
   { id: '3', name: 'Carol Maina', email: 'carol@company.com', role: 'Admin', status: 'Active' },
   // Add more mock users for pagination
-];
+]
 
 export default function AdminUserManagement() {
-  const navigate = useNavigate();
-  const [users, setUsers] = useState<User[]>(mockUsers);
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'All' | 'Admin' | 'HR' | 'Employee'>('All');
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 5;
+  const navigate = useNavigate()
+
+  const [users, setUsers] = useState<User[]>(mockUsers)
+  const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState<'All' | 'Admin' | 'HR' | 'Employee'>('All')
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const usersPerPage = 5
 
   const filteredUsers = users.filter(user => {
     const matchesSearch =
       user.name.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase());
-    const matchesRole = roleFilter === 'All' || user.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+      user.email.toLowerCase().includes(search.toLowerCase())
+    const matchesRole = roleFilter === 'All' || user.role === roleFilter
+    return matchesSearch && matchesRole
+  })
 
   const paginatedUsers = filteredUsers.slice(
     (currentPage - 1) * usersPerPage,
     currentPage * usersPerPage
-  );
+  )
 
-  const toggleStatus = (id: string) => {
+  const toggleStatus = (id: string) =>
     setUsers(prev =>
-      prev.map(user =>
-        user.id === id ? { ...user, status: user.status === 'Active' ? 'Inactive' : 'Active' } : user
+      prev.map(u =>
+        u.id === id
+          ? { ...u, status: u.status === 'Active' ? 'Inactive' : 'Active' }
+          : u
       )
-    );
-  };
+    )
 
-  const handleEdit = (user: User) => setEditingUser(user);
-  const handleSave = () => setEditingUser(null);
+  const handleEdit = (user: User) => setEditingUser(user)
+  const handleSave = () => setEditingUser(null)
+
+  const handleAddEmployee = (data: Omit<User, 'id' | 'status'>) => {
+    const newUser: User = {
+      id: (users.length + 1).toString(),
+      status: 'Active',
+      ...data,
+    }
+    setUsers(prev => [newUser, ...prev])
+  }
 
   return (
     <div className="p-6">
-      {/* 🔙 Back Button */}
-        <button
+      {/* Back Button */}
+      <button
         onClick={() => navigate('/admin')}
         className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition"
       >
@@ -61,28 +83,57 @@ export default function AdminUserManagement() {
 
       <h1 className="text-2xl font-semibold mb-4">User Management</h1>
 
-      {/* Filters */}
+      {/* Filters & Add Employee Dialog */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
-        <input
-          type="text"
-          placeholder="Search by name or email"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="border px-3 py-2 rounded w-full sm:w-1/2"
-        />
-        <select
-          value={roleFilter}
-          onChange={e => setRoleFilter(e.target.value as any)}
-          className="border px-3 py-2 rounded w-full sm:w-1/4"
-        >
-          <option value="All">All Roles</option>
-          <option value="Admin">Admin</option>
-          <option value="HR">HR</option>
-          <option value="Employee">Employee</option>
-        </select>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full">
+          <input
+            type="text"
+            placeholder="Search by name or email"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="border px-3 py-2 rounded w-full sm:w-1/2"
+          />
+          <select
+            value={roleFilter}
+            onChange={e => setRoleFilter(e.target.value as any)}
+            className="border px-3 py-2 rounded w-full sm:w-1/4"
+          >
+            <option value="All">All Roles</option>
+            <option value="Admin">Admin</option>
+            <option value="HR">HR</option>
+            <option value="Employee">Employee</option>
+          </select>
+        </div>
+
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" />
+              Add New User
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Add New User</DialogTitle>
+            </DialogHeader>
+            <UserForm
+              defaultValues={{
+                name: '',
+                email: '',
+                phone: '',
+                role: 'Employee',
+      
+              }}
+              onSave={data => {
+                handleAddEmployee({ name: data.name, email: data.email, role: 'Employee' })
+                alert(`Employee ${data.name} added!`)
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Table */}
+      {/* User Table */}
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
           <thead className="bg-gray-100">
@@ -103,7 +154,9 @@ export default function AdminUserManagement() {
                 <td className="px-4 py-2">
                   <span
                     className={`px-2 py-1 rounded text-sm ${
-                      user.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      user.status === 'Active'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-700'
                     }`}
                   >
                     {user.status}
@@ -144,7 +197,7 @@ export default function AdminUserManagement() {
         ))}
       </div>
 
-      {/* Edit Modal */}
+      {/* Edit User Modal */}
       {editingUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
@@ -154,9 +207,7 @@ export default function AdminUserManagement() {
               <input
                 type="text"
                 value={editingUser.name}
-                onChange={e =>
-                  setEditingUser({ ...editingUser, name: e.target.value })
-                }
+                onChange={e => setEditingUser({ ...editingUser, name: e.target.value })}
                 className="border px-3 py-2 rounded w-full mt-1"
               />
             </label>
@@ -165,9 +216,7 @@ export default function AdminUserManagement() {
               <input
                 type="email"
                 value={editingUser.email}
-                onChange={e =>
-                  setEditingUser({ ...editingUser, email: e.target.value })
-                }
+                onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
                 className="border px-3 py-2 rounded w-full mt-1"
               />
             </label>
@@ -175,9 +224,7 @@ export default function AdminUserManagement() {
               Role:
               <select
                 value={editingUser.role}
-                onChange={e =>
-                  setEditingUser({ ...editingUser, role: e.target.value as any })
-                }
+                onChange={e => setEditingUser({ ...editingUser, role: e.target.value as any })}
                 className="border px-3 py-2 rounded w-full mt-1"
               >
                 <option value="Admin">Admin</option>
@@ -203,5 +250,5 @@ export default function AdminUserManagement() {
         </div>
       )}
     </div>
-  );
+  )
 }
