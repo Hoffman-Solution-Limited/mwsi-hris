@@ -44,6 +44,92 @@ export const Dashboard: React.FC = () => {
   const isEmployee = user?.role === 'employee';
   const isManager = user?.role === 'manager';
   const isHr = ['hr_manager', 'hr_staff'].includes(user?.role || '');
+  const isAdmin = user?.role === 'admin';
+if (isAdmin) {
+    const totalUsers = mockEmployees.length;
+    const activeUsers = mockEmployees.filter(emp => emp.status === 'active').length;
+    const inactiveUsers = mockEmployees.filter(emp => emp.status !== 'active').length;
+    const departments = [...new Set(mockEmployees.map(emp => emp.department))];
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">System-wide user overview</p>
+          </div>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader><CardTitle>Total Users</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold">{totalUsers}</div></CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Active Users</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold">{activeUsers}</div></CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Inactive Users</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold">{inactiveUsers}</div></CardContent>
+          </Card>
+        </div>
+
+        {/* Department Breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle>User Distribution by Department</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {departments.map((dept) => {
+                const count = mockEmployees.filter(emp => emp.department === dept).length;
+                return (
+                  <div key={dept} className="p-3 border rounded-lg flex justify-between">
+                    <span>{dept}</span>
+                    <span className="font-bold">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              className="w-full justify-start bg-blue-600 text-white hover:bg-blue-700"
+              onClick={() => navigate('/admin/users')}
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add New User
+            </Button>
+            <Button
+              className="w-full justify-start bg-red-600 text-white hover:bg-red-700"
+              onClick={() => navigate('/admin/users')}
+            >
+              <XCircle className="w-4 h-4 mr-2" />
+              Deactivate User
+            </Button>
+            <Button
+              className="w-full justify-start bg-purple-600 text-white hover:bg-purple-700"
+              onClick={() => navigate('/admin/roles')}
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Manage Roles
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   
   if (isEmployee) {
   // Employee-specific metrics
