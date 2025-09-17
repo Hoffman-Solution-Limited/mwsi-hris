@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Edit, Trash2, Eye, Users } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, Eye } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -8,33 +9,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Badge } from '@/components/ui/badge';
 import { usePerformance, PerformanceTemplate } from '@/contexts/PerformanceContext';
 import { useSystemLogs } from '@/contexts/SystemLogsContext';
-import { mockEmployees } from '@/data/mockEmployees';
 
 type NewTemplate = Omit<PerformanceTemplate, 'id' | 'createdAt' | 'createdBy'>;
 
 export default function AdminPerformanceTemplates() {
   const navigate = useNavigate();
-  const { templates, createTemplate, createReview } = usePerformance();
+  const { templates, createTemplate } = usePerformance();
+
   const { addLog } = useSystemLogs();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isAssignOpen, setIsAssignOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<PerformanceTemplate | null>(null);
   const [viewTemplate, setViewTemplate] = useState<PerformanceTemplate | null>(null);
-  
+
   const [newTemplate, setNewTemplate] = useState<NewTemplate>({
     name: '',
     type: 'quarterly',
     description: '',
     criteria: []
-  });
-
-  const [reviewForm, setReviewForm] = useState({
-    employeeId: '',
-    reviewPeriod: '',
-    nextReviewDate: ''
   });
 
   const [newCriteria, setNewCriteria] = useState({
@@ -45,7 +39,6 @@ export default function AdminPerformanceTemplates() {
 
   const handleCreateTemplate = () => {
     if (newTemplate.name && newTemplate.criteria.length > 0) {
-      // Validate weights sum to 100
       const totalWeight = newTemplate.criteria.reduce((sum, c) => sum + c.weight, 0);
       if (totalWeight !== 100) {
         alert('Criteria weights must sum to 100%');
@@ -56,7 +49,7 @@ export default function AdminPerformanceTemplates() {
         ...newTemplate,
         createdBy: 'admin'
       });
-      
+
       addLog({
         action: 'Created performance review template',
         actionType: 'create',
@@ -91,35 +84,6 @@ export default function AdminPerformanceTemplates() {
       ...prev,
       criteria: prev.criteria.filter(c => c.id !== id)
     }));
-  };
-
-  const handleAssignTemplate = () => {
-    if (selectedTemplate && reviewForm.employeeId && reviewForm.reviewPeriod) {
-      const employee = mockEmployees.find(e => e.id.toString() === reviewForm.employeeId);
-      if (!employee) return;
-
-      createReview({
-        employeeId: reviewForm.employeeId,
-        employeeName: employee.name,
-        templateId: selectedTemplate.id,
-        reviewPeriod: reviewForm.reviewPeriod,
-        status: 'draft',
-        nextReviewDate: reviewForm.nextReviewDate,
-        createdBy: 'admin'
-      });
-
-      addLog({
-        action: 'Assigned performance review template',
-        actionType: 'assign',
-        details: `Assigned ${selectedTemplate.name} template to ${employee.name}`,
-        entityType: 'performance_review',
-        status: 'success'
-      });
-
-      setReviewForm({ employeeId: '', reviewPeriod: '', nextReviewDate: '' });
-      setSelectedTemplate(null);
-      setIsAssignOpen(false);
-    }
   };
 
   const getTypeColor = (type: string) => {
@@ -204,7 +168,7 @@ export default function AdminPerformanceTemplates() {
 
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Evaluation Criteria</h3>
-                
+
                 <div className="grid grid-cols-12 gap-2">
                   <div className="col-span-5">
                     <Input
@@ -217,8 +181,8 @@ export default function AdminPerformanceTemplates() {
                     <Input
                       type="number"
                       placeholder="Weight %"
-            value={newCriteria.weight.toString() || ''}
-            onChange={(e) => setNewCriteria(prev => ({ ...prev, weight: parseInt(e.target.value) || 0 }))}
+                      value={newCriteria.weight.toString() || ''}
+                      onChange={(e) => setNewCriteria(prev => ({ ...prev, weight: parseInt(e.target.value) || 0 }))}
                     />
                   </div>
                   <div className="col-span-4">
@@ -298,17 +262,6 @@ export default function AdminPerformanceTemplates() {
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedTemplate(template);
-                      setIsAssignOpen(true);
-                    }}
-                  >
-                    <Users className="w-4 h-4" />
-                    Assign
-                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -329,7 +282,6 @@ export default function AdminPerformanceTemplates() {
         ))}
       </div>
 
-      {/* View Template Dialog */}
       <Dialog open={!!viewTemplate} onOpenChange={() => setViewTemplate(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -367,60 +319,6 @@ export default function AdminPerformanceTemplates() {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Assign Template Dialog */}
-      <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Assign Template: {selectedTemplate?.name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Select Employee</Label>
-              <Select
-                value={reviewForm.employeeId}
-                onValueChange={(value) => setReviewForm(prev => ({ ...prev, employeeId: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose employee..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockEmployees.map((employee) => (
-                    <SelectItem key={employee.id.toString()} value={employee.id.toString()}>
-                      {employee.name} - Developer
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Review Period</Label>
-              <Input
-                value={reviewForm.reviewPeriod}
-                onChange={(e) => setReviewForm(prev => ({ ...prev, reviewPeriod: e.target.value }))}
-                placeholder="e.g. Q1 2024, Jan-Mar 2024"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Next Review Date</Label>
-              <Input
-                type="date"
-                value={reviewForm.nextReviewDate}
-                onChange={(e) => setReviewForm(prev => ({ ...prev, nextReviewDate: e.target.value }))}
-              />
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsAssignOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAssignTemplate}>Assign Template</Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
     </div>
