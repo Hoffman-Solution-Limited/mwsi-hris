@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Plus, Search, Filter, GraduationCap, Clock, CheckCircle, Calendar, Upload } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,10 @@ export const Training: React.FC = () => {
     const source = trainings.length ? trainings : mockTrainingRecords;
     if (user.role === 'employee' || user.role === 'manager') {
       return source.filter(tr => tr.employeeId === user.id);
+    }
+    // HR sees all records but doesn't get assigned trainings themselves
+    if (user.role === 'hr_manager' || user.role === 'hr_staff') {
+      return source.filter(tr => tr.employeeId !== user.id);
     }
     return source;
   }, [user, trainings]);
@@ -113,16 +117,12 @@ export const Training: React.FC = () => {
             {user?.role === 'employee' ? 'Your assigned trainings and completions' : 'Manage training programs and compliance'}
           </p>
         </div>
-        {/* Only HR/Admin can add/enroll training programs */}
-        {['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '') && (
+        {/* Training assignment should now be handled by HR, not Admin */}
+        {['hr_manager', 'hr_staff'].includes(user?.role || '') && (
           <div className="flex gap-2">
-            <Button variant="outline">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Training Program
-            </Button>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
-              Enroll Employee
+              Assign Training to Employees
             </Button>
           </div>
         )}
@@ -190,18 +190,37 @@ export const Training: React.FC = () => {
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger
-            value="overview"
-            className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-          >
-            Overview
-          </TabsTrigger>
-          <TabsTrigger
-            value="records"
-            className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-          >
-            My Trainings
-          </TabsTrigger>
+          {['hr_manager', 'hr_staff'].includes(user?.role || '') ? (
+            <>
+              <TabsTrigger
+                value="overview"
+                className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+              >
+                Overview
+              </TabsTrigger>
+              <TabsTrigger
+                value="assignments"
+                className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+              >
+                Training Assignments
+              </TabsTrigger>
+            </>
+          ) : (
+            <>
+              <TabsTrigger
+                value="overview"
+                className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+              >
+                Overview
+              </TabsTrigger>
+              <TabsTrigger
+                value="records"
+                className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+              >
+                {user?.role === 'employee' ? 'My Trainings' : 'Employee Trainings'}
+              </TabsTrigger>
+            </>
+          )}
         </TabsList>
 
         {/* Overview */}
@@ -240,7 +259,94 @@ export const Training: React.FC = () => {
           </div>
         </TabsContent>
 
-        {/* Employee Records */}
+        {/* HR: Training Assignments Tab */}
+        {['hr_manager', 'hr_staff'].includes(user?.role || '') && (
+          <TabsContent value="assignments">
+            <Card>
+              <CardHeader>
+                <CardTitle>Training Assignments</CardTitle>
+                <CardDescription>Assign training programs to employees and track completion status</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Training Programs with Employee Status */}
+                  {trainingPrograms.map((program) => {
+                    const enrolledEmployees = filteredRecords.filter(tr => tr.title === program.title);
+                    const completedCount = enrolledEmployees.filter(tr => tr.status === 'completed').length;
+                    const inProgressCount = enrolledEmployees.filter(tr => tr.status === 'in_progress').length;
+                    const notStartedCount = enrolledEmployees.filter(tr => tr.status === 'not_started').length;
+                    
+                    return (
+                      <div key={program.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="font-medium text-lg">{program.title}</h4>
+                            <p className="text-sm text-muted-foreground mb-2">{program.description}</p>
+                            <div className="flex gap-2">
+                              <Badge variant={program.type === 'mandatory' ? 'destructive' : 'secondary'}>
+                                {program.type}
+                              </Badge>
+                              <Badge variant="outline">{program.duration}</Badge>
+                              <Badge variant="outline">{program.provider}</Badge>
+                            </div>
+                          </div>
+                          <Button size="sm">
+                            <Plus className="w-4 h-4 mr-2" />
+                            Assign to Employees
+                          </Button>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-4">
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="bg-success/10 p-2 rounded">
+                                  <CheckCircle className="w-5 h-5 text-success" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">Completed</p>
+                                  <p className="text-xl font-bold">{completedCount}</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="bg-warning/10 p-2 rounded">
+                                  <Clock className="w-5 h-5 text-warning" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">In Progress</p>
+                                  <p className="text-xl font-bold">{inProgressCount}</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="bg-muted/50 p-2 rounded">
+                                  <GraduationCap className="w-5 h-5 text-muted-foreground" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">Not Started</p>
+                                  <p className="text-xl font-bold">{notStartedCount}</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
         <TabsContent value="records">
           <Card>
             <CardHeader>

@@ -95,7 +95,7 @@ export default function AdminPerformanceTemplates() {
 
   const handleAssignTemplate = () => {
     if (selectedTemplate && reviewForm.employeeId && reviewForm.reviewPeriod) {
-      const employee = mockEmployees.find(e => e.id === reviewForm.employeeId);
+      const employee = mockEmployees.find(e => e.id.toString() === reviewForm.employeeId);
       if (!employee) return;
 
       createReview({

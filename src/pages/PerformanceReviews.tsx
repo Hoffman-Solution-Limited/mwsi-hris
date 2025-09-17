@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Plus, Search, Filter, TrendingUp, Star, Calendar, Eye, Clock, CheckCircle, Users, Target, Edit } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -423,6 +423,27 @@ export const PerformanceReviews: React.FC = () => {
               Team Appraisals
             </TabsTrigger>
           </TabsList>
+        ) : user?.role === 'hr_manager' || user?.role === 'hr_staff' ? (
+          <TabsList className="grid w-full grid-cols-3 gap-2">
+            <TabsTrigger
+              value="assign"
+              className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+            >
+              Assign Reviews
+            </TabsTrigger>
+            <TabsTrigger
+              value="pending"
+              className="bg-yellow-600 text-white data-[state=active]:bg-yellow-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+            >
+              Pending Reviews
+            </TabsTrigger>
+            <TabsTrigger
+              value="history"
+              className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+            >
+              Review History
+            </TabsTrigger>
+          </TabsList>
         ) : (
           <TabsList className="grid w-full grid-cols-2 gap-2">
             <TabsTrigger
@@ -565,7 +586,108 @@ export const PerformanceReviews: React.FC = () => {
           </TabsContent>
         )}
 
-        {/* Manager: Team Appraisals Tab */}
+        {/* HR: Assign Reviews Tab */}
+        {(user?.role === 'hr_manager' || user?.role === 'hr_staff') && (
+          <TabsContent value="assign">
+            <Card>
+              <CardHeader>
+                <CardTitle>Assign Performance Reviews</CardTitle>
+                <CardDescription>Create and assign performance reviews to employees using templates</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Template</label>
+                      <Select value={reviewForm.templateId} onValueChange={(v) => setReviewForm(prev => ({ ...prev, templateId: v }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select template" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {templates.map(template => (
+                            <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Employee</label>
+                      <Select value={reviewForm.employeeId} onValueChange={(v) => setReviewForm(prev => ({ ...prev, employeeId: v }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select employee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mockEmployees.map(emp => (
+                            <SelectItem key={emp.id} value={emp.id.toString()}>{emp.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Review Period</label>
+                      <Input 
+                        value={reviewForm.reviewPeriod} 
+                        onChange={(e) => setReviewForm(prev => ({ ...prev, reviewPeriod: e.target.value }))}
+                        placeholder="e.g. Q1 2024"
+                      />
+                    </div>
+                  </div>
+                  <Button onClick={createNewReview}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Assign Review
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {/* HR: Pending Reviews Tab */}
+        {(user?.role === 'hr_manager' || user?.role === 'hr_staff') && (
+          <TabsContent value="pending">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pending HR Reviews</CardTitle>
+                <CardDescription>Review and approve completed manager reviews</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {reviews.filter(r => r.status === 'manager_review').map((review) => {
+                    const employee = mockEmployees.find(emp => emp.id.toString() === review.employeeId);
+                    const template = templates.find(t => t.id === review.templateId);
+                    return (
+                      <div key={review.id} className="p-4 border rounded-lg">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{review.employeeName}</h4>
+                            <p className="text-sm text-muted-foreground">{review.reviewPeriod} • {template?.name}</p>
+                            <p className="text-sm text-muted-foreground">Department: {employee?.department}</p>
+                            <div className="mt-2">
+                              <Badge variant="outline" className="bg-yellow-50">Pending HR Review</Badge>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium">Manager Score: {review.overallScore?.toFixed(1)}/5.0</p>
+                            <Button variant="outline" size="sm" className="mt-2">
+                              <Eye className="w-4 h-4 mr-2" />
+                              Review & Approve
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {reviews.filter(r => r.status === 'manager_review').length === 0 && (
+                    <div className="text-center py-8">
+                      <CheckCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No pending HR reviews</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
         {user?.role === 'manager' && (
           <TabsContent value="team-appraisals">
             <div className="space-y-4">
