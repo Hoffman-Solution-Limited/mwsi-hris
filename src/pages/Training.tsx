@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Plus, Search, Filter, GraduationCap, Clock, CheckCircle, Calendar, Upload } from 'lucide-react';
+import { Plus, Search, Filter, GraduationCap, Clock, CheckCircle, Calendar, Upload, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { mockTrainingRecords, mockEmployees } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useTraining } from '@/contexts/TrainingContext';
 
 export const Training: React.FC = () => {
@@ -19,6 +20,9 @@ export const Training: React.FC = () => {
   const [completeOpen, setCompleteOpen] = useState(false);
   const [selectedTrainingId, setSelectedTrainingId] = useState<string | null>(null);
   const [certificateFile, setCertificateFile] = useState<File | null>(null);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedProgram, setSelectedProgram] = useState<any>(null);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
 
   const filteredRecords = useMemo(() => {
     if (!user) return [] as typeof mockTrainingRecords;
@@ -36,6 +40,32 @@ export const Training: React.FC = () => {
   const completedTrainings = filteredRecords.filter(tr => tr.status === 'completed');
   const inProgressTrainings = filteredRecords.filter(tr => tr.status === 'in_progress');
   const notStartedTrainings = filteredRecords.filter(tr => tr.status === 'not_started');
+
+  // Function to handle employee assignment
+  const handleAssignTraining = () => {
+    if (!selectedProgram || selectedEmployees.length === 0) return;
+    
+    selectedEmployees.forEach(employeeId => {
+      // In a real app, this would call an API to create training records
+      console.log(`Assigned training ${selectedProgram.title} to employee ${employeeId}`);
+    });
+    
+    // Reset state
+    setAssignDialogOpen(false);
+    setSelectedProgram(null);
+    setSelectedEmployees([]);
+  };
+
+  const handleSelectAllEmployees = (checked: boolean) => {
+    if (checked) {
+      const allEmployeeIds = mockEmployees
+        .filter(emp => !['hr_manager', 'hr_staff'].includes(emp.position.toLowerCase()))
+        .map(emp => emp.id);
+      setSelectedEmployees(allEmployeeIds);
+    } else {
+      setSelectedEmployees([]);
+    }
+  };
 
   // Mock training programs
   const trainingPrograms = [
@@ -290,7 +320,13 @@ export const Training: React.FC = () => {
                               <Badge variant="outline">{program.provider}</Badge>
                             </div>
                           </div>
-                          <Button size="sm">
+                          <Button 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedProgram(program);
+                              setAssignDialogOpen(true);
+                            }}
+                          >
                             <Plus className="w-4 h-4 mr-2" />
                             Assign to Employees
                           </Button>
@@ -428,6 +464,91 @@ export const Training: React.FC = () => {
 
         {/* Remove Compliance tab for simplified employee view */}
       </Tabs>
+
+      {/* Assignment Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Assign Training Program</DialogTitle>
+            <DialogDescription>
+              Assign "{selectedProgram?.title}" to employees
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedProgram && (
+            <div className="space-y-4">
+              <div className="bg-muted/30 p-4 rounded-lg">
+                <h4 className="font-medium">{selectedProgram.title}</h4>
+                <p className="text-sm text-muted-foreground">{selectedProgram.description}</p>
+                <div className="flex gap-2 mt-2">
+                  <Badge variant={selectedProgram.type === 'mandatory' ? 'destructive' : 'secondary'}>
+                    {selectedProgram.type}
+                  </Badge>
+                  <Badge variant="outline">{selectedProgram.duration}</Badge>
+                  <Badge variant="outline">{selectedProgram.provider}</Badge>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium">Select Employees</h4>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={selectedEmployees.length === mockEmployees.filter(emp => !['hr_manager', 'hr_staff'].includes(emp.position.toLowerCase())).length}
+                      onCheckedChange={handleSelectAllEmployees}
+                    />
+                    <label className="text-sm font-medium">Select All</label>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto">
+                  {mockEmployees
+                    .filter(emp => !['hr_manager', 'hr_staff'].includes(emp.position.toLowerCase()))
+                    .map((employee) => (
+                    <div key={employee.id} className="flex items-center space-x-3 p-3 border rounded-lg">
+                      <Checkbox
+                        checked={selectedEmployees.includes(employee.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedEmployees(prev => [...prev, employee.id]);
+                          } else {
+                            setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
+                          }
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{employee.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{employee.position} • {employee.department}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-600">
+                    {selectedEmployees.length} employee{selectedEmployees.length !== 1 ? 's' : ''} selected
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAssignTraining}
+              disabled={selectedEmployees.length === 0}
+            >
+              Assign Training to {selectedEmployees.length} Employee{selectedEmployees.length !== 1 ? 's' : ''}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
