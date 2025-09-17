@@ -27,7 +27,7 @@ export const PerformanceReviews: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
   const [editComments, setEditComments] = useState('');
   const [editScore, setEditScore] = useState<number | ''>('');
-
+  
   // Manager-specific review filters
   const myAppraisals = useMemo(() => {
     if (!user || user.role !== 'manager') return [];
@@ -149,6 +149,50 @@ export const PerformanceReviews: React.FC = () => {
     }
     setTargetDialogOpen(true);
   };
+   // ✅ Unified state for editing/saving/submitting employee review
+  //const [selectedReview, setSelectedReview] = useState<PerformanceReview | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [goals, setGoals] = useState('');
+
+  const handleOpenModal = (review: PerformanceReview) => {
+    setSelectedReview(review);
+    setGoals(review?.employeeTargets?.map(t => t.target).join('\n') || '');
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedReview(null);
+    setGoals('');
+    setIsModalOpen(false);
+  };
+
+ const handleSaveDraft = () => {
+  if (!selectedReview) return;
+  updateReview(selectedReview.id, {
+    status: 'draft',
+    employeeTargets: goals.split('\n').filter(Boolean).map((t) => ({
+      target: t,
+      description: '',   // ✅ add defaults to satisfy type
+      criteriaId: ''     // ✅ add if required
+    })),
+  });
+  handleCloseModal();
+};
+
+const handleSubmitToManager = () => {
+  if (!selectedReview) return;
+  updateReview(selectedReview.id, {
+    status: 'manager_review',
+    employeeTargets: goals.split('\n').filter(Boolean).map((t) => ({
+      target: t,
+      description: '',
+      criteriaId: ''
+    })),
+  });
+  handleCloseModal();
+};
+
+
 
   return (
     <div className="space-y-6">
@@ -857,35 +901,130 @@ export const PerformanceReviews: React.FC = () => {
           </TabsContent>
   )}
 
-        {/* Active Appraisal Tab */}
-        <TabsContent value="active">
-          <div className="space-y-4">
-            {reviews.filter(r => r.employeeId === user?.id && r.status !== 'completed').length === 0 ? (
-              <Card><CardContent className="p-6 text-center text-muted-foreground">No active appraisals.</CardContent></Card>
-            ) : (
-              reviews.filter(r => r.employeeId === user?.id && r.status !== 'completed').map((review) => {
-                const template = templates.find(t => t.id === review.templateId);
-                return (
-                  <Card key={review.id}>
-                    <CardHeader>
-                      <CardTitle>{review.reviewPeriod} {template ? `- ${template.name}` : ''}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div><span className="font-semibold">Status:</span> {review.status}</div>
-                        <div><span className="font-semibold">Goals:</span> {review.employeeTargets && review.employeeTargets.length > 0 ? review.employeeTargets.map(t => t.target).join(', ') : 'No goals.'}</div>
-                        <div><span className="font-semibold">Manager Feedback:</span> {review.managerComments || 'No feedback.'}</div>
-                        <div><span className="font-semibold">HR Feedback:</span> {review.hrComments || 'No feedback.'}</div>
-                        <div><span className="font-semibold">Next Review Date:</span> {review.nextReviewDate}</div>
-                        {/* No edit/view buttons for employee active appraisal */}
+<TabsContent value="active">
+      <div className="space-y-4">
+        {reviews.filter(r => r.employeeId === user?.id && r.status !== "completed").length === 0 ? (
+          <Card>
+            <CardContent className="p-6 text-center text-muted-foreground">
+              No active appraisals.
+            </CardContent>
+          </Card>
+        ) : (
+          reviews
+            .filter(r => r.employeeId === user?.id && r.status !== "completed")
+            .map((review) => {
+              const template = templates.find(t => t.id === review.templateId);
+
+              return (
+                <Card key={review.id}>
+                  <CardHeader>
+                    <CardTitle>
+                      {review.reviewPeriod} {template ? `- ${template.name}` : ""}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div>
+                        <span className="font-semibold">Status:</span> {review.status}
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
+
+                      {review.status === "new" && (
+                        <div className="space-y-3">
+                          <p className="text-muted-foreground">
+                            This is a new appraisal. Please start filling it out.
+                          </p>
+                          <Button
+                            className="bg-blue-600 text-white hover:bg-blue-700"
+                            onClick={() => handleOpenModal(review)}
+                          >
+                            Start Appraisal
+                          </Button>
+                        </div>
+                      )}
+
+                      {review.status === "draft" && (
+                        <div className="space-y-3">
+                          <div>
+                            <span className="font-semibold">Goals:</span>{" "}
+                            {review.employeeTargets?.length
+                              ? review.employeeTargets.map(t => t.target).join(", ")
+                              : "No goals yet."}
+                          </div>
+                          <Button
+                            className="bg-blue-600 text-white hover:bg-blue-700"
+                            onClick={() => handleOpenModal(review)}
+                          >
+                            Edit Appraisal
+                          </Button>
+                        </div>
+                      )}
+
+                      {review.status !== "new" && review.status !== "draft" && (
+                        <>
+                          <div>
+                            <span className="font-semibold">Goals:</span>{" "}
+                            {review.employeeTargets?.length
+                              ? review.employeeTargets.map(t => t.target).join(", ")
+                              : "No goals."}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Manager Feedback:</span>{" "}
+                            {review.managerComments || "No feedback."}
+                          </div>
+                          <div>
+                            <span className="font-semibold">HR Feedback:</span>{" "}
+                            {review.hrComments || "No feedback."}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Next Review Date:</span>{" "}
+                            {review.nextReviewDate}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+        )}
+      </div>
+
+      {/* ✅ Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedReview?.status === "new" ? "Start Appraisal" : "Edit Appraisal"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <label className="block text-sm font-medium">Goals</label>
+            <textarea
+              className="w-full border rounded-md p-2"
+              rows={4}
+              value={goals}
+              onChange={(e) => setGoals(e.target.value)}
+            />
           </div>
-        </TabsContent>
+
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={handleCloseModal}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveDraft}>
+              Save Draft
+            </Button>
+            <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={handleSubmitToManager}>
+              Submit to Manager
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </TabsContent>
+  
+
+
         <TabsContent value="history">
           <div className="space-y-4">
             {reviews.filter(r => r.status === 'completed').length === 0 ? (
