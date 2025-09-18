@@ -31,7 +31,11 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   };
 
   const handleProfile = () => {
-    navigate(`/employees/${user?.id}`);
+    navigate('/profile');
+  };
+
+  const handleSettings = () => {
+    navigate('/change-password');
   };
 
   return (
@@ -119,9 +123,9 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem onClick={handleSettings} className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+              <span>Change Password</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
