@@ -843,7 +843,7 @@ const handleSubmitToManager = () => {
                                   Review & Approve
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="max-w-2xl">
+                              <DialogContent className="max-w-3xl md:max-w-4xl">
                                 <DialogHeader>
                                   <DialogTitle>HR Review - {review.employeeName}</DialogTitle>
                                   <DialogDescription>
@@ -882,6 +882,27 @@ const handleSubmitToManager = () => {
                                       <TemplateCriteriaList template={template} />
                                     </div>
                                   </details>
+
+                                  {/* Manager per-criteria scores (read-only, collapsible) */}
+                                  {review.managerScores && review.managerScores.length > 0 && (
+                                    <details className="rounded border">
+                                      <summary className="cursor-pointer px-3 py-2 font-medium">Manager Scores</summary>
+                                      <div className="space-y-2 p-3">
+                                        {review.managerScores.map((s, idx) => {
+                                          const c = template?.criteria.find(c => c.id === s.criteriaId);
+                                          return (
+                                            <div key={idx} className="p-3 border rounded">
+                                              <div className="flex justify-between text-sm">
+                                                <span>{c?.name || 'Criteria'}</span>
+                                                <span>{s.score}/5</span>
+                                              </div>
+                                              {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </details>
+                                  )}
 
                                   {/* HR per-criteria scoring (collapsible) */}
                                   {template && (
@@ -1076,7 +1097,7 @@ const handleSubmitToManager = () => {
                                   Review & Score
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="max-w-2xl">
+                              <DialogContent className="max-w-3xl md:max-w-4xl">
                                 <DialogHeader>
                                   <DialogTitle>Manager Review - {review.employeeName}</DialogTitle>
                                   <DialogDescription>
