@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useSystemCatalog } from "@/contexts/SystemCatalogContext"
 
 type ProfileFormData = {
   name: string
@@ -39,6 +40,7 @@ export function EditProfileForm({ defaultValues, onSave }: {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<ProfileFormData>({
     defaultValues,
   })
+  const { designations, skillLevels, stations } = useSystemCatalog()
 
   const watchedGender = watch("gender")
   const watchedEmploymentType = watch("employmentType")
@@ -116,7 +118,16 @@ export function EditProfileForm({ defaultValues, onSave }: {
 
             <div>
               <Label htmlFor="position">Position *</Label>
-              <Input id="position" {...register("position", { required: "Position is required" })} />
+              <Select value={watch("position")} onValueChange={(value) => setValue("position", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select position" />
+                </SelectTrigger>
+                <SelectContent>
+                  {designations.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.position && <p className="text-destructive text-sm">{errors.position.message}</p>}
             </div>
 
@@ -177,12 +188,30 @@ export function EditProfileForm({ defaultValues, onSave }: {
 
             <div>
               <Label htmlFor="skillLevel">Skill Level</Label>
-              <Input id="skillLevel" {...register("skillLevel")} />
+              <Select value={watch("skillLevel")} onValueChange={(value) => setValue("skillLevel", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select skill level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {skillLevels.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <Label htmlFor="stationName">Station Name</Label>
-              <Input id="stationName" {...register("stationName")} />
+              <Select value={watch("stationName")} onValueChange={(value) => setValue("stationName", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select station" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stations.map((st) => (
+                    <SelectItem key={st} value={st}>{st}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>

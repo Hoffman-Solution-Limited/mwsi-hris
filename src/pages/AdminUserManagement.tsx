@@ -12,29 +12,15 @@ import {
 import { Button } from '@/components/ui/button'
 import { Plus, User } from 'lucide-react'
 import {UserForm} from '@/components/UserForm'
-
-type User = {
-  id: string
-  name: string
-  email: string
-  role: 'Admin' | 'HR' | 'Employee'
-  status: 'Active' | 'Inactive'
-}
-
-const mockUsers: User[] = [
-  { id: '1', name: 'Alice Kimani', email: 'alice@company.com', role: 'HR', status: 'Active' },
-  { id: '2', name: 'Brian Otieno', email: 'brian@company.com', role: 'Employee', status: 'Inactive' },
-  { id: '3', name: 'Carol Maina', email: 'carol@company.com', role: 'Admin', status: 'Active' },
-  // Add more mock users for pagination
-]
+import { useUsers, AppUser } from '@/contexts/UsersContext'
 
 export default function AdminUserManagement() {
   const navigate = useNavigate()
+  const { users, addUser, toggleStatus, updateUser } = useUsers()
 
-  const [users, setUsers] = useState<User[]>(mockUsers)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'All' | 'Admin' | 'HR' | 'Employee'>('All')
-  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [editingUser, setEditingUser] = useState<AppUser | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [addOpen, setAddOpen] = useState(false)
   const usersPerPage = 5
@@ -52,36 +38,16 @@ export default function AdminUserManagement() {
     currentPage * usersPerPage
   )
 
-  const toggleStatus = (id: string) =>
-    setUsers(prev =>
-      prev.map(u =>
-        u.id === id
-          ? { ...u, status: u.status === 'Active' ? 'Inactive' : 'Active' }
-          : u
-      )
-    )
-
-  const handleEdit = (user: User) => setEditingUser(user)
+  const handleEdit = (user: AppUser) => setEditingUser(user)
   const handleSave = () => setEditingUser(null)
 
-  const handleAddEmployee = (data: Omit<User, 'id' | 'status'>) => {
-    const newUser: User = {
-      id: (users.length + 1).toString(),
-      status: 'Active',
-      ...data,
-    }
-    setUsers(prev => [newUser, ...prev])
+  const handleAddEmployee = (data: Omit<AppUser, 'id' | 'status'>) => {
+    addUser({ name: data.name, email: data.email, role: data.role as any })
   }
 
   return (
     <div className="p-6">
       {/* Back Button */}
-      <button
-        onClick={() => navigate('/admin')}
-        className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition"
-      >
-        ← Back to Admin Panel
-      </button>
 
       <h1 className="text-2xl font-semibold mb-4">User Management</h1>
 
@@ -114,10 +80,14 @@ export default function AdminUserManagement() {
               Add New User
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl">
             <DialogHeader>
-              <DialogTitle>Add New User</DialogTitle>
-              <DialogDescription>Fill in the details below to create a new user account.</DialogDescription>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="w-4 h-4" /> Add New User
+              </DialogTitle>
+              <DialogDescription>
+                Fill in the details below to create a new user account.
+              </DialogDescription>
             </DialogHeader>
             <UserForm
               defaultValues={{
@@ -125,12 +95,16 @@ export default function AdminUserManagement() {
                 email: '',
                 phone: '',
                 role: 'Employee',
-      
               }}
               onSave={data => {
-                handleAddEmployee({ name: data.name, email: data.email, role: 'Employee' })
+                handleAddEmployee({ name: data.name, email: data.email, role: data.role as any })
+                // TODO: integrate with backend to send invitation email using temp password
+                if (data.sendInvite) {
+                  console.log('Send invite enabled. Temp password:', data.tempPassword)
+                }
                 setAddOpen(false)
               }}
+              onCancel={() => setAddOpen(false)}
             />
           </DialogContent>
         </Dialog>
@@ -243,7 +217,7 @@ export default function AdminUserManagement() {
                 Cancel
               </button>
               <button
-                onClick={handleSave}
+                onClick={() => { if (editingUser) { updateUser(editingUser.id, { name: editingUser.name, email: editingUser.email, role: editingUser.role }); handleSave(); } }}
                 className="px-4 py-2 bg-blue-600 text-white rounded"
               >
                 Save
