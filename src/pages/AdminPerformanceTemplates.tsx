@@ -97,17 +97,7 @@ export default function AdminPerformanceTemplates() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/admin')}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Admin Panel
-        </Button>
-      </div>
+
 
       <div className="flex justify-between items-center">
         <div>

@@ -11,15 +11,18 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import logo from '@/assets/logo.png';
 
 export const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => localStorage.getItem('login_email') || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [remember, setRemember] = useState(() => !!localStorage.getItem('login_email'));
   const { login, isLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -30,6 +33,11 @@ export const LoginPage: React.FC = () => {
 
     try {
       await login(email, password);
+      if (remember) {
+        localStorage.setItem('login_email', email);
+      } else {
+        localStorage.removeItem('login_email');
+      }
       toast({
         title: 'Welcome back!',
         description: 'Successfully logged in to MWSI HRIS.',
@@ -43,7 +51,7 @@ export const LoginPage: React.FC = () => {
   const demoUsers = [
     { email: 'admin@mwsi.com', role: 'Administrator', password: 'demo123' },
     { email: 'hr@mwsi.com', role: 'HR Manager', password: 'demo123' },
-    { email: 'manager@mwsi.com', role: 'Manager', password: 'demo123' },
+    { email: 'david.manager@mwsi.com', role: 'Manager', password: 'demo123' },
     { email: 'employee@mwsi.com', role: 'Employee', password: 'demo123' },
   ];
 
@@ -82,21 +90,45 @@ export const LoginPage: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your.name@mwsi.com"
                   required
+                  autoFocus
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyUp={(e) => setCapsLockOn(e.getModifierState && e.getModifierState('CapsLock'))}
+                    onKeyDown={(e) => setCapsLockOn(e.getModifierState && e.getModifierState('CapsLock'))}
+                    placeholder="Enter your password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {capsLockOn && (
+                  <p className="text-xs text-amber-600">Warning: Caps Lock is on</p>
+                )}
               </div>
 
-              {showForgotPassword && (
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                  />
+                  Remember me
+                </label>
                 <div className="text-right">
                   <button
                     type="button"
@@ -106,7 +138,7 @@ export const LoginPage: React.FC = () => {
                     Forgot Password?
                   </button>
                 </div>
-              )}
+              </div>
 
               {error && (
                 <Alert variant="destructive">
@@ -157,6 +189,17 @@ export const LoginPage: React.FC = () => {
             </p>
           </CardContent>
         </Card>
+
+        {/* Footer */}
+        <div className="text-center text-xs text-muted-foreground">
+          <div className="inline-flex items-center gap-1">
+            <ShieldCheck className="h-3 w-3" />
+            Ministry of Water, Irrigation and Sanitation – HRIS
+          </div>
+          <div className="mt-1">
+            Need help? <button className="underline" type="button" onClick={() => navigate('/forgot-password')}>Reset Password</button>
+          </div>
+        </div>
       </div>
     </div>
   );
