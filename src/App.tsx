@@ -42,6 +42,7 @@ import AdminPerformanceTemplates from '@/pages/AdminPerformanceTemplates';
 import AdminTrainingManagement from '@/pages/AdminTrainingManagement';
 import AdminSystemLogs from '@/pages/AdminSystemLogs';
 import WorkStationsPage from '@/pages/WorkStations';
+import ChangePassword from '@/pages/ChangePassword';
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -103,6 +104,7 @@ const App = () => (
                           <Route path="/admin/training-management" element={<ProtectedRoute><Layout><AdminTrainingManagement /></Layout></ProtectedRoute>} />
                           <Route path="/admin/system-logs" element={<ProtectedRoute><Layout><AdminSystemLogs /></Layout></ProtectedRoute>} />
                           <Route path="/work-stations" element={<ProtectedRoute><Layout><WorkStationsPage /></Layout></ProtectedRoute>} />
+                          <Route path="/change-password" element={<ProtectedRoute><Layout><ChangePassword /></Layout></ProtectedRoute>} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </BrowserRouter>

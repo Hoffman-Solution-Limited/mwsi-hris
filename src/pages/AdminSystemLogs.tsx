@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Filter, Download, RefreshCw, Trash2, Search } from 'lucide-react';
+import { ArrowLeft, Filter, Download, RefreshCw, Trash2, Search, Building2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useSystemLogs } from '@/contexts/SystemLogsContext';
 import { Label } from '@/components/ui/label';
+import logo from '@/assets/logo.png';
 
 export default function AdminSystemLogs() {
   const navigate = useNavigate();
@@ -140,6 +141,45 @@ export default function AdminSystemLogs() {
 
   return (
     <div className="space-y-6">
+      {/* Ministry Branding / HRIS Details */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <img src={logo} alt="Ministry Logo" className="w-12 h-12 rounded-md" />
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                <h2 className="text-xl font-semibold">Ministry of Water, Irrigation and Sanitation – HRIS</h2>
+                <Badge variant="secondary">Production</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                This page provides a unified view of system activity within the Human Resource Information System (HRIS)
+                for the Ministry of Water, Irrigation and Sanitation. Use filters to audit user actions, security events,
+                and operational changes.
+              </p>
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-md border p-3">
+                  <p className="text-muted-foreground">System</p>
+                  <p className="font-medium">MWIS HRIS</p>
+                </div>
+                <div className="rounded-md border p-3">
+                  <p className="text-muted-foreground">Organization</p>
+                  <p className="font-medium">Ministry of Water, Irrigation and Sanitation</p>
+                </div>
+                <div className="rounded-md border p-3">
+                  <p className="text-muted-foreground">Version</p>
+                  <p className="font-medium">v1.0.0</p>
+                </div>
+                <div className="rounded-md border p-3">
+                  <p className="text-muted-foreground">Support</p>
+                  <p className="font-medium">ict-support@mwis.go.ke</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">System Activity Logs</h1>
