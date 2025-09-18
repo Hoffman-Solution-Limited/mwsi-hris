@@ -80,10 +80,14 @@ export default function AdminUserManagement() {
               Add New User
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl">
             <DialogHeader>
-              <DialogTitle>Add New User</DialogTitle>
-              <DialogDescription>Fill in the details below to create a new user account.</DialogDescription>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="w-4 h-4" /> Add New User
+              </DialogTitle>
+              <DialogDescription>
+                Fill in the details below to create a new user account.
+              </DialogDescription>
             </DialogHeader>
             <UserForm
               defaultValues={{
@@ -91,12 +95,16 @@ export default function AdminUserManagement() {
                 email: '',
                 phone: '',
                 role: 'Employee',
-      
               }}
               onSave={data => {
-                handleAddEmployee({ name: data.name, email: data.email, role: 'Employee' })
+                handleAddEmployee({ name: data.name, email: data.email, role: data.role as any })
+                // TODO: integrate with backend to send invitation email using temp password
+                if (data.sendInvite) {
+                  console.log('Send invite enabled. Temp password:', data.tempPassword)
+                }
                 setAddOpen(false)
               }}
+              onCancel={() => setAddOpen(false)}
             />
           </DialogContent>
         </Dialog>
