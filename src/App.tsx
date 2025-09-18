@@ -10,7 +10,10 @@ import { LeaveProvider } from "@/contexts/LeaveContext";
 import { DocumentProvider } from "@/contexts/DocumentContext";
 import { PerformanceProvider } from "@/contexts/PerformanceContext";
 import { TrainingProvider } from "@/contexts/TrainingContext";
+import { UsersProvider } from "@/contexts/UsersContext";
+import { SystemCatalogProvider } from "@/contexts/SystemCatalogContext";
 import { SystemLogsProvider } from "@/contexts/SystemLogsContext";
+import { EmployeesProvider } from "@/contexts/EmployeesContext";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { Layout } from "@/components/layout/Layout";
 import { Dashboard } from "@/pages/Dashboard";
@@ -38,6 +41,7 @@ import DataManagement from '@/pages/AdminDataManagement';
 import AdminPerformanceTemplates from '@/pages/AdminPerformanceTemplates';
 import AdminTrainingManagement from '@/pages/AdminTrainingManagement';
 import AdminSystemLogs from '@/pages/AdminSystemLogs';
+import WorkStationsPage from '@/pages/WorkStations';
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,147 +64,52 @@ const App = () => (
           <DocumentProvider>
             <PerformanceProvider>
               <TrainingProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-  <Routes>
-  <Route path="/login" element={<LoginPage />} />
-  <Route path="/apply-leave" element={<ProtectedRoute><ApplyLeave /></ProtectedRoute>} />
-  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-  <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-  <Route path="/search" element={<ProtectedRoute><Layout><GlobalSearch /></Layout></ProtectedRoute>} />
-  <Route path="/employees" element={<ProtectedRoute><Layout><EmployeeDirectory /></Layout></ProtectedRoute>} />
-  <Route path="/employees/:id" element={<ProtectedRoute><Layout><EmployeeProfile /></Layout></ProtectedRoute>} />
-  <Route path="/profile" element={<ProtectedRoute><Layout><EmployeeProfile /></Layout></ProtectedRoute>} />
-  <Route path="/recruitment" element={<ProtectedRoute><Layout><Recruitment /></Layout></ProtectedRoute>} />
-  <Route path="/training" element={<ProtectedRoute><Layout><Training /></Layout></ProtectedRoute>} />
-  <Route path="/leave" element={<ProtectedRoute><Layout><LeaveManagement /></Layout></ProtectedRoute>} />
-  <Route path="/performance" element={<ProtectedRoute><Layout><PerformanceReviews /></Layout></ProtectedRoute>} />
-  <Route path="/hr-performance-filled" element={<ProtectedRoute><Layout><HRPerformanceFilledList /></Layout></ProtectedRoute>} />
-  <Route path="/documents" element={<ProtectedRoute><Layout><Documents /></Layout></ProtectedRoute>} />
-  <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
-  <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />
-  <Route path="/manager-apply-leave" element={<ProtectedRoute><Layout><ManagerApplyLeave /></Layout></ProtectedRoute>} />
+                <UsersProvider>
+                  <SystemCatalogProvider>
+                    <EmployeesProvider>
+                    <TooltipProvider>
+                      <Toaster />
+                      <Sonner />
+                      <BrowserRouter>
+                        <Routes>
+                          <Route path="/login" element={<LoginPage />} />
+                          <Route path="/apply-leave" element={<ProtectedRoute><ApplyLeave /></ProtectedRoute>} />
+                          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                          <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+                          <Route path="/search" element={<ProtectedRoute><Layout><GlobalSearch /></Layout></ProtectedRoute>} />
+                          <Route path="/employees" element={<ProtectedRoute><Layout><EmployeeDirectory /></Layout></ProtectedRoute>} />
+                          <Route path="/employees/:id" element={<ProtectedRoute><Layout><EmployeeProfile /></Layout></ProtectedRoute>} />
+                          <Route path="/profile" element={<ProtectedRoute><Layout><EmployeeProfile /></Layout></ProtectedRoute>} />
+                          <Route path="/recruitment" element={<ProtectedRoute><Layout><Recruitment /></Layout></ProtectedRoute>} />
+                          <Route path="/training" element={<ProtectedRoute><Layout><Training /></Layout></ProtectedRoute>} />
+                          <Route path="/leave" element={<ProtectedRoute><Layout><LeaveManagement /></Layout></ProtectedRoute>} />
+                          <Route path="/performance" element={<ProtectedRoute><Layout><PerformanceReviews /></Layout></ProtectedRoute>} />
+                          <Route path="/hr-performance-filled" element={<ProtectedRoute><Layout><HRPerformanceFilledList /></Layout></ProtectedRoute>} />
+                          <Route path="/documents" element={<ProtectedRoute><Layout><Documents /></Layout></ProtectedRoute>} />
+                          <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
+                          <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />
+                          <Route path="/manager-apply-leave" element={<ProtectedRoute><Layout><ManagerApplyLeave /></Layout></ProtectedRoute>} />
 
-
-
-  {/* ✅ Wrap Designations same way */}
-  <Route path="/Designation"
-    element={
-      <ProtectedRoute>
-        <Layout>
-          <DesignationPage />
-        </Layout>
-      </ProtectedRoute>
-    }
-  />
-  <Route
-  path="/employees-by-county"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <EmployeeByCounty />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/disciplinary"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <DisciplinaryCases />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/skills"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <SkillsPage />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/admin/users"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <AdminUserManagement />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/admin/roles"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <RoleConfiguration />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/admin/settings"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <SystemSettings />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/admin/data"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <DataManagement />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/admin/performance-templates"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <AdminPerformanceTemplates />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/admin/training-management"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <AdminTrainingManagement />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/admin/system-logs"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <AdminSystemLogs />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-
-  <Route path="*" element={<NotFound />} />
-</Routes>
-
-        </BrowserRouter>
-      </TooltipProvider>
+                          {/* ✅ Wrap Designations same way */}
+                          <Route path="/Designation" element={<ProtectedRoute><Layout><DesignationPage /></Layout></ProtectedRoute>} />
+                          <Route path="/employees-by-county" element={<ProtectedRoute><Layout><EmployeeByCounty /></Layout></ProtectedRoute>} />
+                          <Route path="/disciplinary" element={<ProtectedRoute><Layout><DisciplinaryCases /></Layout></ProtectedRoute>} />
+                          <Route path="/skills" element={<ProtectedRoute><Layout><SkillsPage /></Layout></ProtectedRoute>} />
+                          <Route path="/admin/users" element={<ProtectedRoute><Layout><AdminUserManagement /></Layout></ProtectedRoute>} />
+                          <Route path="/admin/roles" element={<ProtectedRoute><Layout><RoleConfiguration /></Layout></ProtectedRoute>} />
+                          <Route path="/admin/settings" element={<ProtectedRoute><Layout><SystemSettings /></Layout></ProtectedRoute>} />
+                          <Route path="/admin/data" element={<ProtectedRoute><Layout><DataManagement /></Layout></ProtectedRoute>} />
+                          <Route path="/admin/performance-templates" element={<ProtectedRoute><Layout><AdminPerformanceTemplates /></Layout></ProtectedRoute>} />
+                          <Route path="/admin/training-management" element={<ProtectedRoute><Layout><AdminTrainingManagement /></Layout></ProtectedRoute>} />
+                          <Route path="/admin/system-logs" element={<ProtectedRoute><Layout><AdminSystemLogs /></Layout></ProtectedRoute>} />
+                          <Route path="/work-stations" element={<ProtectedRoute><Layout><WorkStationsPage /></Layout></ProtectedRoute>} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </BrowserRouter>
+                    </TooltipProvider>
+                    </EmployeesProvider>
+                  </SystemCatalogProvider>
+                </UsersProvider>
               </TrainingProvider>
             </PerformanceProvider>
           </DocumentProvider>

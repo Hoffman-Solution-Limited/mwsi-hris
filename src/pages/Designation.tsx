@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { mockEmployees } from "@/data/mockData"
+import { useSystemCatalog } from "@/contexts/SystemCatalogContext"
 
 
 // --- Types ---
@@ -23,26 +24,22 @@ type Designation = {
 
 export const DesignationPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("")
-  const [customDesignations, setCustomDesignations] = useState<Designation[]>([])
   const [newDesignation, setNewDesignation] = useState("")
+  const { designations, addDesignation } = useSystemCatalog()
 
-  // 🔹 Group employees by their "position" field
-  const employeeDesignations: Designation[] = useMemo(() => {
+  // 🔹 Build list with counts from mock employees for display
+  const allDesignations: Designation[] = useMemo(() => {
     const counts: Record<string, number> = {}
     mockEmployees.forEach((emp) => {
       const pos = emp.position || "Unassigned"
       counts[pos] = (counts[pos] || 0) + 1
     })
-
-    return Object.entries(counts).map(([name, count], index) => ({
-      id: `emp-${index + 1}`,
+    return designations.map((name, index) => ({
+      id: `sys-${index + 1}`,
       name,
-      employeeCount: count,
+      employeeCount: counts[name] || 0,
     }))
-  }, [])
-
-  // 🔹 Combine system designations (from employees) + custom ones
-  const allDesignations: Designation[] = [...employeeDesignations, ...customDesignations]
+  }, [designations])
 
   // 🔹 Filter by search
   const filteredDesignations = allDesignations.filter((d) =>
@@ -52,12 +49,7 @@ export const DesignationPage: React.FC = () => {
   // 🔹 Add new designation (starts with 0 employees)
   const handleAddDesignation = () => {
     if (!newDesignation.trim()) return
-    const newEntry: Designation = {
-      id: `custom-${customDesignations.length + 1}`,
-      name: newDesignation.trim(),
-      employeeCount: 0,
-    }
-    setCustomDesignations([...customDesignations, newEntry])
+    addDesignation(newDesignation.trim())
     setNewDesignation("")
   }
 

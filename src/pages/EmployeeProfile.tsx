@@ -22,7 +22,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { 
-  mockEmployees, 
   mockTrainingRecords,
   mockPerformanceReviews,
   mockLeaveRequests 
@@ -32,6 +31,7 @@ import { usePerformance } from '@/contexts/PerformanceContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { EditProfileForm } from "@/components/EditProfileForm"
 import { useDocuments } from '@/contexts/DocumentContext';
+import { useEmployees } from '@/contexts/EmployeesContext';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -41,6 +41,7 @@ export const EmployeeProfile: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { templates } = usePerformance();
+  const { updateEmployee } = useEmployees();
   const [activeTab, setActiveTab] = useState('personal');
   const { documents, addDocument, getDocumentUrl } = useDocuments();
   const [docOpen, setDocOpen] = useState(false);
@@ -54,7 +55,8 @@ export const EmployeeProfile: React.FC = () => {
     const isMyProfile = location.pathname === '/profile';
     // For manager, allow viewing/editing their own profile
     const targetEmployeeId = isMyProfile ? user?.id : id;
-    const employee = mockEmployees.find(emp => emp.id === targetEmployeeId);
+    const { employees } = useEmployees();
+    const employee = employees.find(emp => emp.id === targetEmployeeId);
 
   // Check if current user can access this profile
   // Managers can view/edit their own profile and direct reports
@@ -158,7 +160,7 @@ export const EmployeeProfile: React.FC = () => {
                 </div>
               </div>
             </div>
-            {(isMyProfile || (user?.role === 'manager' && user?.id === employee?.id) || ['admin', 'hr_manager', 'hr_staff'].includes(user?.role || '')) && (
+            {(['hr_manager', 'hr_staff'].includes(user?.role || '')) && (
               <div className="flex gap-2">
                <Dialog>
   <DialogTrigger asChild>
@@ -198,8 +200,32 @@ export const EmployeeProfile: React.FC = () => {
                         status: employee.status
                       }}
       onSave={(data) => {
-        console.log("Updated profile:", data)
-        // TODO: connect to API with fetch/axios
+        // Persist updates to Employees store so they reflect across the app
+        updateEmployee(employee.id, {
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          position: data.position,
+          department: data.department,
+          gender: data.gender,
+          employmentType: data.employmentType,
+          staffNumber: data.staffNumber,
+          nationalId: data.nationalId,
+          kraPin: data.kraPin,
+          children: data.children,
+          workCounty: data.workCounty,
+          homeCounty: data.homeCounty,
+          postalAddress: data.postalAddress,
+          postalCode: data.postalCode,
+          stationName: data.stationName,
+          skillLevel: data.skillLevel,
+          company: data.company,
+          dateOfBirth: data.dateOfBirth,
+          hireDate: data.hireDate,
+          emergencyContact: data.emergencyContact,
+          salary: data.salary,
+          status: data.status,
+        });
       }}
     />
   </DialogContent>
