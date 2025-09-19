@@ -317,7 +317,12 @@ export const EmployeeProfile: React.FC = () => {
                       {employee.name}
                     </div>
                   </div>
-                  
+                                 <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Emergency Contact</label>
+                    <div className="bg-muted px-3 py-2 rounded-md text-sm font-medium">
+                      {employee.emergencyContact || 'Not specified'}
+                    </div>
+                  </div>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">Employment Type</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm">
