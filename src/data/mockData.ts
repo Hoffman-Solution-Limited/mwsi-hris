@@ -136,6 +136,7 @@ export interface Employee {
   skills?: { name: string; level: string }[];
   // Additional fields for government form
   gender?: 'male' | 'female' | 'other';
+  cadre?: 'Support' | 'Technical' | 'Management';
   employmentType?: string;
   staffNumber?: string;
   nationalId?: string;
@@ -225,6 +226,7 @@ export const mockEmployees: Employee[] = [
       { name: 'Cybersecurity', level: 'Intermediate' },
     ],
     gender: 'male',
+    cadre: 'Technical',
     employmentType: 'Permanent',
     staffNumber: '20221234567',
     nationalId: '32456789',
@@ -257,6 +259,7 @@ export const mockEmployees: Employee[] = [
       { name: 'Conflict Resolution', level: 'Intermediate' },
     ],
     gender: 'female',
+    cadre: 'Management',
     employmentType: 'Permanent',
     staffNumber: '20211234568',
     nationalId: '28123456',
@@ -323,6 +326,7 @@ export const mockEmployees: Employee[] = [
       { name: 'TypeScript', level: 'Intermediate' },
     ],
     gender: 'male',
+    cadre: 'Technical',
     employmentType: 'Permanent',
     staffNumber: '20221234569',
     nationalId: '29876543',
@@ -356,6 +360,7 @@ export const mockEmployees: Employee[] = [
       { name: 'Social Media', level: 'Advanced' },
     ],
     gender: 'female',
+    cadre: 'Support',
     employmentType: 'Contract',
     staffNumber: '20231234570',
     nationalId: '31234567',
@@ -388,6 +393,7 @@ export const mockEmployees: Employee[] = [
       { name: 'Budgeting', level: 'Advanced' },
     ],
     gender: 'male',
+    cadre: 'Management',
     employmentType: 'Permanent',
     staffNumber: '20201234571',
     nationalId: '25987654',

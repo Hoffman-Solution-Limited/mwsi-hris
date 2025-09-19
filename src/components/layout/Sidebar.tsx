@@ -34,6 +34,8 @@ const navGroups: NavGroup[] = [
       { path: '/search', label: 'Global Search', icon: <Search className="w-5 h-5" /> },
       { path: '/profile', label: 'My Profile', icon: <User className="w-5 h-5" />, roles: ['employee', 'manager'] },
       { path: '/manager-apply-leave', label: 'Apply for Leave', icon: (<Calendar className='w-5 h-5' />), roles: ['manager' ,'employee']},
+      { path: '/training', label: 'Training & CPD', icon: <GraduationCap className="w-5 h-5" />, roles: [ 'manager'] },
+
     ]
   },
   {
@@ -42,20 +44,20 @@ const navGroups: NavGroup[] = [
       { path: '/employees', label: 'Employee Directory', icon: <Users className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'manager'] },
       { path: '/recruitment', label: 'Recruitment', icon: <UserPlus className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/disciplinary', label: 'Disciplinary Cases', icon: <AlertTriangle className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
-      { path: '/training', label: 'Training & CPD', icon: <GraduationCap className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'manager', 'employee'] },
+      { path: '/training', label: 'Training & CPD', icon: <GraduationCap className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'employee'] },
       { path: '/leave', label: 'Leave Management', icon: <Calendar className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'manager'] },
       { path: '/performance', label: 'Performance Reviews', icon: <TrendingUp className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'manager', 'employee'] },
       { path: '/hr-performance-filled', label: 'Filled Performance Reviews', icon: <BarChart3 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/designation', label: 'Designations', icon: <Briefcase className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/Skills', label: 'Skills', icon: <List className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/work-stations', label: 'Work Stations', icon: <Building2 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
+      { path: '/documents', label: 'Document Registry', icon: <FileText className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'employee', 'manager'] },
+
     ]
   },
   {
     title: "Reports & Admin",
     items: [
-      { path: '/documents', label: 'Document Registry', icon: <FileText className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
-      { path: '/employees-by-county', label: 'Employees by County', icon: <MapPin className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/reports', label: 'Reports & Analytics', icon: <BarChart3 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/admin/users', label: 'User Management', icon: <UserCog2 className="w-5 h-5" />, roles: ['admin'] },
       { path: '/admin/performance-templates', label: 'Performance Template', icon: <TrendingUp className="w-5 h-5" />, roles: ['admin'] },
