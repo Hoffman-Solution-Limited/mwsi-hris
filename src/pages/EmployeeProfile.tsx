@@ -135,6 +135,9 @@ export const EmployeeProfile: React.FC = () => {
                     {employee.status}
                   </Badge>
                   <Badge variant="outline">ID: {employee.id}</Badge>
+                  {employee.cadre && (
+                    <Badge variant="outline" className="capitalize">{employee.cadre}</Badge>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                   <div className="flex items-center gap-2">
@@ -181,6 +184,7 @@ export const EmployeeProfile: React.FC = () => {
                         position: employee.position,
                         department: employee.department,
                         gender: employee.gender,
+                        cadre: employee.cadre as any,
                         employmentType: employee.employmentType,
                         staffNumber: employee.staffNumber,
                         nationalId: employee.nationalId,
@@ -208,6 +212,7 @@ export const EmployeeProfile: React.FC = () => {
           position: data.position,
           department: data.department,
           gender: data.gender,
+          cadre: data.cadre as any,
           employmentType: data.employmentType,
           staffNumber: data.staffNumber,
           nationalId: data.nationalId,
@@ -327,6 +332,13 @@ export const EmployeeProfile: React.FC = () => {
                     <label className="text-sm font-medium text-foreground mb-1 block">Employment Type</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm">
                       {employee.employmentType || 'Permanent'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Cadre</label>
+                    <div className="bg-muted px-3 py-2 rounded-md text-sm capitalize">
+                      {employee.cadre || 'Not specified'}
                     </div>
                   </div>
                   

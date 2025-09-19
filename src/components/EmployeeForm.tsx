@@ -32,6 +32,7 @@ export type EmployeeFormData = {
   emergencyContact?: string
   salary?: number
   status?: 'active' | 'inactive' | 'terminated'
+  cadre?: 'Support' | 'Technical' | 'Management'
 }
 
 export function EmployeeForm({
@@ -65,6 +66,7 @@ export function EmployeeForm({
   const watchedGender = watch("gender")
   const watchedEmploymentType = watch("employmentType")
   const watchedStatus = watch("status")
+  const watchedCadre = watch("cadre")
 
   const handleSave = (data: EmployeeFormData) => {
     // Required validations for system-selected fields
@@ -160,6 +162,21 @@ export function EmployeeForm({
           {/* Employment Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold mb-4">Employment Information</h3>
+
+            <div>
+              <Label htmlFor="cadre">Cadre *</Label>
+              <Select value={watchedCadre} onValueChange={(value: 'Support' | 'Technical' | 'Management') => setValue("cadre", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select cadre" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Support">Support</SelectItem>
+                  <SelectItem value="Technical">Technical</SelectItem>
+                  <SelectItem value="Management">Management</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.cadre && <p className="text-destructive text-sm">{(errors as any).cadre?.message}</p>}
+            </div>
 
             <div>
               <Label htmlFor="position">Position *</Label>

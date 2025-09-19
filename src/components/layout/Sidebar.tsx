@@ -51,7 +51,7 @@ const navGroups: NavGroup[] = [
       { path: '/designation', label: 'Designations', icon: <Briefcase className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/Skills', label: 'Skills', icon: <List className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/work-stations', label: 'Work Stations', icon: <Building2 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
-      { path: '/documents', label: 'Document Registry', icon: <FileText className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
+      { path: '/documents', label: 'Document Registry', icon: <FileText className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'employee', 'manager'] },
 
     ]
   },
