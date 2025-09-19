@@ -147,15 +147,6 @@ export const Training: React.FC = () => {
             {(user?.role === 'employee' || user?.role === 'manager') ? 'Your assigned trainings and completions' : 'Manage training programs and compliance'}
           </p>
         </div>
-        {/* Training assignment should now be handled by HR, not Admin */}
-        {['hr_manager', 'hr_staff'].includes(user?.role || '') && (
-          <div className="flex gap-2">
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Assign Training to Employees
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Overview Stats */}
