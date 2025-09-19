@@ -217,13 +217,24 @@ export const Reports: React.FC = () => {
       )}
 
       <Tabs defaultValue="overview">
-        <TabsList className="grid grid-cols-5 w-full">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="workforce">Workforce</TabsTrigger>
-          <TabsTrigger value="leave">Leave</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="training">Training</TabsTrigger>
-        </TabsList>
+            <TabsList className="grid grid-cols-5 w-full text-white font-medium">
+              <TabsTrigger value="overview" className="bg-sky-500 hover:bg-sky-600">
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="workforce" className="bg-emerald-500 hover:bg-emerald-600">
+                Workforce
+              </TabsTrigger>
+              <TabsTrigger value="leave" className="bg-rose-500 hover:bg-rose-600">
+                Leave
+              </TabsTrigger>
+              <TabsTrigger value="performance" className="bg-amber-500 hover:bg-amber-600">
+                Performance
+              </TabsTrigger>
+              <TabsTrigger value="training" className="bg-indigo-500 hover:bg-indigo-600">
+                Training
+              </TabsTrigger>
+            </TabsList>
+
 
         {/* Overview */}
         <TabsContent value="overview" className="space-y-6">
