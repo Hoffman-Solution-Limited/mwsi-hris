@@ -31,6 +31,7 @@ type ProfileFormData = {
   emergencyContact?: string
   salary?: number
   status?: 'active' | 'inactive' | 'terminated'
+  cadre?: 'Support' | 'Technical' | 'Management'
 }
 
 export function EditProfileForm({ defaultValues, onSave }: { 
@@ -45,6 +46,7 @@ export function EditProfileForm({ defaultValues, onSave }: {
   const watchedGender = watch("gender")
   const watchedEmploymentType = watch("employmentType")
   const watchedStatus = watch("status")
+  const watchedCadre = watch("cadre")
 
   return (
     <ScrollArea className="h-[600px] pr-4">
@@ -115,6 +117,20 @@ export function EditProfileForm({ defaultValues, onSave }: {
           {/* Employment Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold mb-4">Employment Information</h3>
+
+            <div>
+              <Label htmlFor="cadre">Cadre</Label>
+              <Select value={watchedCadre} onValueChange={(value: 'Support' | 'Technical' | 'Management') => setValue("cadre", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select cadre" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Support">Support</SelectItem>
+                  <SelectItem value="Technical">Technical</SelectItem>
+                  <SelectItem value="Management">Management</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             <div>
               <Label htmlFor="position">Position *</Label>

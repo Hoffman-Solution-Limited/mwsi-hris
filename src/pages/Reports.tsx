@@ -167,6 +167,33 @@ export const Reports: React.FC = () => {
     return agg;
   }, [employees, trainings]);
 
+  // Cadre Breakdown
+  const byCadre = useMemo(() => {
+    return employees.reduce<Record<string, number>>((acc, e) => {
+      const c = e.cadre || 'Unspecified';
+      acc[c] = (acc[c] || 0) + 1;
+      return acc;
+    }, {});
+  }, [employees]);
+
+  // Retirement Projections (age 60): upcoming 12 months
+  const retirementsUpcoming = useMemo(() => {
+    const now = new Date();
+    const in12m = new Date();
+    in12m.setMonth(in12m.getMonth() + 12);
+    const rows = employees
+      .filter(e => !!e.dateOfBirth)
+      .map(e => {
+        const dob = new Date(e.dateOfBirth!);
+        const retirement = new Date(dob);
+        retirement.setFullYear(retirement.getFullYear() + 60);
+        return { id: e.id, name: e.name, department: e.department, cadre: e.cadre, stationName: e.stationName, retirement };
+      })
+      .filter(r => r.retirement >= now && r.retirement <= in12m)
+      .sort((a,b) => a.retirement.getTime() - b.retirement.getTime());
+    return rows;
+  }, [employees]);
+
   const exportAll = () => {
     // Simple CSV export of headline metrics (can be expanded)
     const rows = [
@@ -334,6 +361,20 @@ export const Reports: React.FC = () => {
             </Card>
             <Card>
               <CardHeader>
+                <CardTitle>Cadre Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {Object.entries(byCadre).map(([cadre, count]) => (
+                  <div key={cadre} className="flex items-center gap-3">
+                    <div className="w-32 text-sm">{cadre}</div>
+                    <Progress value={workforce.total ? Math.round((count / workforce.total) * 100) : 0} className="flex-1" />
+                    <div className="w-16 text-right text-sm">{count}</div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
                 <CardTitle>Status</CardTitle>
               </CardHeader>
               <CardContent>
@@ -401,6 +442,24 @@ export const Reports: React.FC = () => {
                   <span className="text-muted-foreground">{count}</span>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Retirement Projections (Next 12 Months)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-sm text-muted-foreground">Total: {retirementsUpcoming.length}</div>
+              {retirementsUpcoming.slice(0,10).map(r => (
+                <div key={r.id} className="flex justify-between text-sm">
+                  <span className="truncate max-w-[60%]" title={`${r.name} • ${r.department} • ${r.cadre || ''}`}>{r.name}</span>
+                  <span className="text-muted-foreground">{new Date(r.retirement).toLocaleDateString()}</span>
+                </div>
+              ))}
+              {retirementsUpcoming.length > 10 && (
+                <div className="text-xs text-muted-foreground">Showing first 10 records.</div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

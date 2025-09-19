@@ -57,7 +57,7 @@ export const Documents: React.FC = () => {
             }
           </p>
         </div>
-        {(user && (user.role === 'employee' || user.role === 'manager')) && (
+        {(user && (user.role === 'employee' || user.role === 'manager'|| user.role === 'hr_manager')) && (
           <div className="flex gap-2">
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
@@ -117,6 +117,7 @@ export const Documents: React.FC = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            {[("admin" as const), ("hr_manager" as const)].includes(user?.role as any) && (
             <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
@@ -145,7 +146,9 @@ export const Documents: React.FC = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            )}
           </div>
+                
         )}
       </div>
 
@@ -198,9 +201,10 @@ export const Documents: React.FC = () => {
                       <Eye className="w-4 h-4 mr-2" />
                       View
                     </Button>
+                    {[("admin" as const), ("hr_manager" as const)].includes(user?.role as any) && (
                     <Button variant="outline" size="sm" onClick={() => { setSelectedDocument(document); setAssignModalOpen(true); }}>
                       Move / Assign
-                    </Button>
+                    </Button> )}
                     <a
                       href={getDocumentUrl(document.id) || '#'}
                       download={document.name}
