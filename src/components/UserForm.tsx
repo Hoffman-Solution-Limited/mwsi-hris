@@ -81,11 +81,11 @@ export function UserForm({
   }, [watchedInvite])
 
   return (
-    <ScrollArea className="h-[600px] pr-4">
-      <form onSubmit={handleSubmit(handleSave)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <ScrollArea className="h-[600px] px-6">
+      <form onSubmit={handleSubmit(handleSave)} className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Personal Information */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             <h3 className="text-lg font-semibold mb-2">
               Personal Information
             </h3>
@@ -187,7 +187,7 @@ export function UserForm({
         </div>
 
         {/* Account Setup */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           <h3 className="text-lg font-semibold mb-2">Account Setup</h3>
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div>
