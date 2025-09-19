@@ -13,10 +13,12 @@ import { Button } from '@/components/ui/button'
 import { Plus, User } from 'lucide-react'
 import {UserForm} from '@/components/UserForm'
 import { useUsers, AppUser } from '@/contexts/UsersContext'
+import { useEmployees } from '@/contexts/EmployeesContext'
 
 export default function AdminUserManagement() {
   const navigate = useNavigate()
   const { users, addUser, toggleStatus, updateUser } = useUsers()
+  const { employees } = useEmployees()
 
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'All' | 'Admin' | 'HR' | 'Employee'>('All')
@@ -42,6 +44,11 @@ export default function AdminUserManagement() {
   const handleSave = () => setEditingUser(null)
 
   const handleAddEmployee = (data: Omit<AppUser, 'id' | 'status'>) => {
+    const existsInHR = employees.some(e => e.email.toLowerCase() === (data.email || '').toLowerCase())
+    if (!existsInHR) {
+      alert('This email does not match any employee record. Please ask HR to create the employee record first.')
+      return
+    }
     addUser({ name: data.name, email: data.email, role: data.role as any })
   }
 
@@ -86,7 +93,7 @@ export default function AdminUserManagement() {
                 <User className="w-4 h-4" /> Add New User
               </DialogTitle>
               <DialogDescription>
-                Fill in the details below to create a new user account.
+                Note: Users can only be created for emails that exist in HR employee records.
               </DialogDescription>
             </DialogHeader>
             <UserForm
