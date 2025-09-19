@@ -39,7 +39,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   };
 
   return (
-    <header className="sticky top-0 z-10 h-16 bg-card border-b border-border flex items-center justify-between px-6">
+    <header className="sticky top-0 z-10 h-16 bg-sky-50 border-b border-sky-100 shadow-sm flex items-center justify-between px-6">
       {/* Left: Mobile Sidebar Toggle + Search */}
       <div className="flex items-center gap-4 flex-1">
         {onToggleSidebar && (
@@ -52,7 +52,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           </button>
         )}
         <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-900" />
           <Input
             placeholder="Search employees, documents, or records..."
             className="pl-10 w-80"
@@ -65,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="relative">
+            <Button variant="ghost" size="sm" className="relative text-blue-900">
               <Bell className="w-5 h-5" />
               <Badge
                 variant="destructive"
@@ -105,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2">
+            <Button variant="ghost" className="flex items-center gap-2 text-blue-900">
               <Avatar className="w-8 h-8">
                 <AvatarImage src={user?.avatar} />
                 <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
