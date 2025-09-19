@@ -32,21 +32,20 @@ export const EmployeeDirectory: React.FC = () => {
   const navigate = useNavigate()
   const { employees, addEmployee } = useEmployees()
 
-  // Unique departments
-  const departments = [...new Set(employees.map((emp) => emp.department))]
-
   // Get logged-in user (manager) from context
   // Use useAuth hook for consistent logic
   const { user } = useAuth();
 
-  // Filter employees: if manager, show only direct reports
-  const filteredEmployees = employees.filter((employee) => {
-    if (user?.role === 'manager') {
-      // Only show employees whose manager field matches logged-in manager's name
-      if (employee.manager !== user.name) {
-        return false;
-      }
-    }
+  // Scope employees by role (manager sees only direct reports; others see all)
+  const baseEmployees = user?.role === 'manager'
+    ? employees.filter(e => e.manager === user.name)
+    : employees;
+
+  // Unique departments based on scoped employees
+  const departments = [...new Set(baseEmployees.map((emp) => emp.department))]
+
+  // Filter employees within scoped set
+  const filteredEmployees = baseEmployees.filter((employee) => {
     const matchesSearch =
       employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       employee.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -231,7 +230,7 @@ export const EmployeeDirectory: React.FC = () => {
       {/* Results Summary */}
       <div className="flex justify-between items-center">
         <p className="text-sm text-muted-foreground">
-          Showing {filteredEmployees.length} of {employees.length} employees
+          Showing {filteredEmployees.length} of {baseEmployees.length} employees
         </p>
       </div>
 
