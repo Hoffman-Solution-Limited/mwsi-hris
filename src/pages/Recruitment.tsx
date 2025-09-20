@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { mockShortlistedCandidates, mockHiredCandidates, mockPositions } from "@/data/mockData";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,21 +9,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plus } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import { EmployeeForm } from "@/components/EmployeeForm";
+import { useEmployees } from "@/contexts/EmployeesContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Recruitment: React.FC = () => {
   const [activeTab, setActiveTab] = useState("positions");
   const [showJobDialog, setShowJobDialog] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
-    const [jobForm, setJobForm] = useState({
-      title: "",
-      department: "",
-      priority: "medium",
-      status: "open",
-      description: "",
-      postedDate: "",
-      closingDate: "",
-      applicants: 0,
-    });
+  const { addEmployee } = useEmployees();
+  const { user } = useAuth();
+  const [jobForm, setJobForm] = useState({
+    title: "",
+    department: "",
+    priority: "medium",
+    status: "open",
+    description: "",
+    postedDate: "",
+    closingDate: "",
+    applicants: 0,
+  });
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [shortlistDialogOpen, setShortlistDialogOpen] = useState(false);
   const [shortlistJob, setShortlistJob] = useState(null);
@@ -38,6 +42,55 @@ const Recruitment: React.FC = () => {
     Object.values(mockShortlistedCandidates).flat()
   );
   const [hiredCandidates, setHiredCandidates] = useState(mockHiredCandidates);
+
+  // Create Employee dialog state (for hired candidates)
+  const [createEmpOpen, setCreateEmpOpen] = useState(false);
+  const [prefillCandidate, setPrefillCandidate] = useState<any>(null);
+
+  const canCreateEmployee = ["admin", "hr_manager", "hr_staff"].includes(user?.role || "");
+
+  const openCreateEmployee = (candidate: any) => {
+    setPrefillCandidate(candidate);
+    setCreateEmpOpen(true);
+  };
+
+  const handleCreateEmployeeSave = (data: any) => {
+    // Minimal mapping; HR can complete missing fields (e.g., department)
+    addEmployee({
+      id: undefined as any,
+      name: data.name,
+      email: data.email,
+      position: data.position,
+      department: data.department,
+      manager: undefined,
+      hireDate: data.hireDate || new Date().toISOString().slice(0,10),
+      status: (data.status as any) || 'active',
+      avatar: '',
+      phone: data.phone,
+      emergencyContact: data.emergencyContact,
+      salary: data.salary,
+      documents: [],
+      skills: [],
+      gender: data.gender,
+      cadre: data.cadre,
+      employmentType: data.employmentType,
+      staffNumber: data.staffNumber,
+      nationalId: data.nationalId,
+      kraPin: data.kraPin,
+      children: data.children,
+      workCounty: data.workCounty,
+      homeCounty: data.homeCounty,
+      postalAddress: data.postalAddress,
+      postalCode: data.postalCode,
+      stationName: data.stationName,
+      skillLevel: data.skillLevel,
+      company: data.company,
+      dateOfBirth: data.dateOfBirth,
+    } as any);
+    setCreateEmpOpen(false);
+    setPrefillCandidate(null);
+    alert(`Employee ${data.name} created from recruitment!`);
+  };
 
   const handleSaveJob = () => {
     setShowJobDialog(false);
@@ -267,51 +320,39 @@ const Recruitment: React.FC = () => {
           </Dialog>
         </TabsContent>
         <TabsContent value="shortlist">
-          <div className="grid gap-4">
+          <div className="grid gap-6">
             {shortlistedCandidates.length === 0 ? (
               <p className="text-muted-foreground">No shortlisted candidates.</p>
             ) : (
-              shortlistedCandidates.map((candidate) => (
-                <Card key={candidate.id}>
-                  <CardContent className="flex flex-col gap-2">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-semibold">{candidate.name}</p>
-                        <p className="text-sm text-muted-foreground">{candidate.position}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="default" onClick={() => handleSelect(candidate)}>Select</Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleDecline(candidate)}>Decline</Button>
-                        <Button size="sm" variant="secondary" onClick={() => handleDownloadCV(candidate.cv)}>Download CV</Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </TabsContent>
-        <TabsContent value="shortlist">
-          <div className="grid gap-4">
-            {shortlistedCandidates.length === 0 ? (
-              <p className="text-muted-foreground">No shortlisted candidates.</p>
-            ) : (
-              shortlistedCandidates.map((candidate) => (
-                <Card key={candidate.id}>
-                  <CardContent className="flex flex-col gap-2">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-semibold">{candidate.name}</p>
-                        <p className="text-sm text-muted-foreground">{candidate.position}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="default" onClick={() => handleSelect(candidate)}>Select</Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleDecline(candidate)}>Decline</Button>
-                        <Button size="sm" variant="secondary" onClick={() => handleDownloadCV(candidate.cv)}>Download CV</Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              // Group by position
+              Object.entries(shortlistedCandidates.reduce((acc: any, c: any) => {
+                acc[c.position] = acc[c.position] || [];
+                acc[c.position].push(c);
+                return acc;
+              }, {})).map(([position, list]: any) => (
+                <div key={position} className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">{position}</h3>
+                    <span className="text-sm text-muted-foreground">{list.length} shortlisted</span>
+                  </div>
+                  {list.map((candidate: any) => (
+                    <Card key={candidate.id}>
+                      <CardContent className="flex flex-col gap-2">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-semibold">{candidate.name}</p>
+                            <p className="text-sm text-muted-foreground">{candidate.position}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="default" onClick={() => handleSelect(candidate)}>Select</Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDecline(candidate)}>Decline</Button>
+                            <Button size="sm" variant="secondary" onClick={() => handleDownloadCV(candidate.cv)}>Download CV</Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               ))
             )}
           </div>
@@ -323,11 +364,14 @@ const Recruitment: React.FC = () => {
             ) : (
               hiredCandidates.map((candidate) => (
                 <Card key={candidate.id}>
-                  <CardContent className="flex flex-col gap-2">
+                  <CardContent className="flex items-center justify-between gap-2">
                     <div>
                       <p className="font-semibold">{candidate.name}</p>
                       <p className="text-sm text-muted-foreground">{candidate.position}</p>
                     </div>
+                    {canCreateEmployee && (
+                      <Button size="sm" onClick={() => openCreateEmployee(candidate)}>Create Employee</Button>
+                    )}
                   </CardContent>
                 </Card>
               ))
@@ -357,6 +401,46 @@ const Recruitment: React.FC = () => {
             <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleConfirm} disabled={!confirmReason.trim()}>{confirmAction === 'select' ? 'Confirm Hire' : 'Confirm Decline'}</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Employee Dialog from Hired Candidate */}
+      <Dialog open={createEmpOpen} onOpenChange={setCreateEmpOpen}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Create Employee from Candidate</DialogTitle>
+          </DialogHeader>
+          {prefillCandidate && (
+            <EmployeeForm
+              defaultValues={{
+                name: prefillCandidate.name || "",
+                email: "",
+                phone: "",
+                position: prefillCandidate.position || "",
+                department: "",
+                cadre: undefined as any,
+                gender: undefined,
+                employmentType: "Permanent",
+                staffNumber: "",
+                nationalId: "",
+                kraPin: "",
+                children: "",
+                workCounty: "",
+                homeCounty: "",
+                postalAddress: "",
+                postalCode: "",
+                stationName: "",
+                skillLevel: "",
+                company: "Ministry of Water, Sanitation and Irrigation",
+                dateOfBirth: "",
+                hireDate: new Date().toISOString().slice(0,10),
+                emergencyContact: "",
+                salary: undefined,
+                status: 'active'
+              }}
+              onSave={handleCreateEmployeeSave}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

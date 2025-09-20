@@ -22,6 +22,7 @@ export const LeaveManagement: React.FC = () => {
   const { leaveRequests, addLeaveRequest, approveManagerRequest, rejectManagerRequest, approveHrRequest, rejectHrRequest } = useLeave();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
+  const [balancesSearch, setBalancesSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [applyOpen, setApplyOpen] = useState(false);
   const [form, setForm] = useState({ type: 'annual', startDate: '', endDate: '', days: 1, reason: '' });
@@ -423,7 +424,7 @@ export const LeaveManagement: React.FC = () => {
 
         {/* Requests Overview */}
         <TabsContent value="overview">
-          <div className="space-y-4">
+          <div className="space-y-6 mt-6">
             <div className="flex gap-4 items-center">
               <Input
                 placeholder="Search leave requests..."
@@ -615,20 +616,39 @@ export const LeaveManagement: React.FC = () => {
               <CardTitle>Employee Leave Balances</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Employee</th>
-                      <th>Department</th>
-                      <th>Annual Leave</th>
-                      <th>Sick Leave</th>
-                      <th>Emergency Leave</th>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Input
+                    placeholder="Search by employee name, ID, or department..."
+                    value={balancesSearch}
+                    onChange={(e) => setBalancesSearch(e.target.value)}
+                    className="max-w-md"
+                  />
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Annual Leave</th>
+                        <th>Sick Leave</th>
+                        <th>Emergency Leave</th>
 
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaveBalances.map((balance) => {
+                      </tr>
+                    </thead>
+                    <tbody>
+                    {leaveBalances
+                      .filter((b) => {
+                        const q = balancesSearch.toLowerCase().trim();
+                        if (!q) return true;
+                        return (
+                          b.employeeName.toLowerCase().includes(q) ||
+                          b.employeeId.toLowerCase().includes(q) ||
+                          b.department.toLowerCase().includes(q)
+                        );
+                      })
+                      .map((balance) => {
                       const employee = mockEmployees.find(emp => emp.id === balance.employeeId);
                       return (
                         <tr key={balance.employeeId}>
@@ -640,7 +660,7 @@ export const LeaveManagement: React.FC = () => {
                                   {balance.employeeName.split(' ').map(n => n[0]).join('')}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{balance.employeeName}</span>
+                              <span className="font-medium">{balance.employeeName} <span className="text-xs text-muted-foreground">(ID: {balance.employeeId})</span></span>
                             </div>
                           </td>
                           <td>{balance.department}</td>
@@ -687,8 +707,9 @@ export const LeaveManagement: React.FC = () => {
                         </tr>
                       );
                     })}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
