@@ -31,8 +31,8 @@ export const LeaveManagement: React.FC = () => {
   const isHrRole = ['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '');
   const isManager = user?.role === 'manager';
 
-  // My queue only toggle (default on for managers/HR)
-  const [myQueueOnly, setMyQueueOnly] = useState<boolean>(!!(isManager || isHrRole));
+  // My queue only toggle (only for managers)
+  const [myQueueOnly, setMyQueueOnly] = useState<boolean>(!!isManager);
 
   // Details dialog state
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -444,7 +444,7 @@ export const LeaveManagement: React.FC = () => {
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
-              {(isManager || isHrRole) && (
+              {isManager && (
                 <div className="flex items-center gap-2">
                   <Switch checked={myQueueOnly} onCheckedChange={setMyQueueOnly} />
                   <span className="text-sm">My queue only</span>
