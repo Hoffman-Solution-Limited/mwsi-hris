@@ -16,6 +16,8 @@ type DocumentContextType = {
   getDocumentUrl: (id: string) => string | undefined;
   approveDocument: (id: string) => void;
   rejectDocument: (id: string) => void;
+  assignDocumentToEmployee: (docId: string, params: { employeeId: string; name: string; email?: string; department?: string; reason?: string; }) => void;
+  returnDocumentToRegistry: (docId: string, params: { remarks?: string }) => void;
 };
 
 const STORAGE_KEY = 'hris-documents';
@@ -75,12 +77,65 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     ));
   };
 
+  const assignDocumentToEmployee: DocumentContextType['assignDocumentToEmployee'] = (docId, { employeeId, name, email, department, reason }) => {
+    if (!user) return;
+    setDocuments(prev => prev.map(doc => {
+      if (doc.id !== docId) return doc;
+      const updated: Document = {
+        ...doc,
+        assignedToEmployeeId: employeeId,
+        assignedToName: name,
+        assignedToEmail: email,
+        assignedToDepartment: department,
+        assignedDate: new Date().toISOString(),
+        movementLog: [
+          ...(doc.movementLog || []),
+          {
+            action: 'assigned',
+            by: user.name,
+            to: `${name}${department ? ' (' + department + ')' : ''}`,
+            date: new Date().toISOString(),
+            reason,
+          },
+        ],
+      };
+      return updated;
+    }));
+  };
+
+  const returnDocumentToRegistry: DocumentContextType['returnDocumentToRegistry'] = (docId, { remarks }) => {
+    if (!user) return;
+    setDocuments(prev => prev.map(doc => {
+      if (doc.id !== docId) return doc;
+      const updated: Document = {
+        ...doc,
+        assignedToEmployeeId: undefined,
+        assignedToName: undefined,
+        assignedToEmail: undefined,
+        assignedToDepartment: undefined,
+        assignedDate: undefined,
+        movementLog: [
+          ...(doc.movementLog || []),
+          {
+            action: 'returned',
+            by: user.name,
+            date: new Date().toISOString(),
+            remarks,
+          },
+        ],
+      };
+      return updated;
+    }));
+  };
+
   const value = useMemo(() => ({ 
     documents, 
     addDocument, 
     getDocumentUrl, 
     approveDocument, 
-    rejectDocument 
+    rejectDocument,
+    assignDocumentToEmployee,
+    returnDocumentToRegistry,
   }), [documents, blobUrls]);
 
   return (

@@ -163,6 +163,21 @@ export interface Document {
   uploadedBy: string;
   category: string;
   createdAt?: string;
+  // Assignment fields (temporary assignment to an employee)
+  assignedToEmployeeId?: string;
+  assignedToName?: string;
+  assignedToEmail?: string;
+  assignedToDepartment?: string;
+  assignedDate?: string;
+  // Movement log entries
+  movementLog?: {
+    action: 'assigned' | 'returned' | 'moved';
+    by: string; // actor name
+    to?: string; // destination name when moved/assigned
+    date: string; // ISO timestamp
+    reason?: string;
+    remarks?: string;
+  }[];
 }
 
 export type Position = {
