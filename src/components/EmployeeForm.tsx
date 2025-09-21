@@ -68,6 +68,18 @@ export function EmployeeForm({
   const watchedStatus = watch("status")
   const watchedCadre = watch("cadre")
 
+  // Kenyan counties list (47)
+  const counties = [
+    "Mombasa","Kwale","Kilifi","Tana River","Lamu","Taita-Taveta",
+    "Garissa","Wajir","Mandera","Marsabit","Isiolo","Meru","Tharaka-Nithi",
+    "Embu","Kitui","Machakos","Makueni","Nyandarua","Nyeri","Kirinyaga",
+    "Murang'a","Kiambu","Turkana","West Pokot","Samburu","Trans Nzoia",
+    "Uasin Gishu","Elgeyo-Marakwet","Nandi","Baringo","Laikipia","Nakuru",
+    "Narok","Kajiado","Kericho","Bomet","Kakamega","Vihiga","Bungoma",
+    "Busia","Siaya","Kisumu","Homa Bay","Migori","Kisii","Nyamira",
+    "Nairobi"
+  ]
+
   const handleSave = (data: EmployeeFormData) => {
     // Required validations for system-selected fields
     if (!data.position) {
@@ -296,12 +308,30 @@ export function EmployeeForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
           <div>
             <Label htmlFor="workCounty">Work County</Label>
-            <Input id="workCounty" {...register("workCounty")} />
+            <Select value={watch("workCounty")} onValueChange={(value) => setValue("workCounty", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select county" />
+              </SelectTrigger>
+              <SelectContent>
+                {counties.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <Label htmlFor="homeCounty">Home County</Label>
-            <Input id="homeCounty" {...register("homeCounty")} />
+            <Select value={watch("homeCounty")} onValueChange={(value) => setValue("homeCounty", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select county" />
+              </SelectTrigger>
+              <SelectContent>
+                {counties.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
