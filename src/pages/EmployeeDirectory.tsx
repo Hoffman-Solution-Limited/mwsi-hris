@@ -175,7 +175,7 @@ const BulkUploadCsvDialog: React.FC = () => {
              {[("admin" as const), ("hr_manager" as const)].includes(user?.role as any) && ( 
               <Button size="sm">
                 <Plus className="w-4 h-4 mr-2" />
-                Add Employee
+                Add New Employee
               </Button>)}
             </DialogTrigger>
             <DialogContent className="sm:max-w-4xl">
