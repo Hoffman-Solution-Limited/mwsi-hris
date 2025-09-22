@@ -14,6 +14,7 @@ import { UsersProvider } from "@/contexts/UsersContext";
 import { SystemCatalogProvider } from "@/contexts/SystemCatalogContext";
 import { SystemLogsProvider } from "@/contexts/SystemLogsContext";
 import { EmployeesProvider } from "@/contexts/EmployeesContext";
+import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { Layout } from "@/components/layout/Layout";
 import { Dashboard } from "@/pages/Dashboard";
@@ -60,6 +61,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <NotificationsProvider>
       <SystemLogsProvider>
         <LeaveProvider>
           <DocumentProvider>
@@ -117,6 +119,7 @@ const App = () => (
           </DocumentProvider>
         </LeaveProvider>
       </SystemLogsProvider>
+      </NotificationsProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
