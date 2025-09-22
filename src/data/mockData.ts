@@ -468,6 +468,18 @@ export const mockDocuments: Document[] = [
     status: 'approved',
     uploadedBy: 'Sarah Johnson',
     category: 'Contracts'
+  },
+  // Testing document uploaded by an employee (unassigned -> should be under Registry)
+  {
+    id: 'TEST-EMP-1',
+    name: 'Test Upload from Employee.pdf',
+    type: 'form',
+    uploadDate: '2025-09-22',
+    createdAt: '2025-09-22',
+    size: '123 KB',
+    status: 'pending',
+    uploadedBy: 'Michael Davis',
+    category: 'Employee Uploads'
   }
 ];
 
