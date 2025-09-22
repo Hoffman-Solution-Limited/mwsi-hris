@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -13,7 +13,8 @@ import {
   FileText,
   TrendingUp,
   GraduationCap,
-  Shield
+  Shield,
+  Bell
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ import { useDocuments } from '@/contexts/DocumentContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useNotifications } from '@/contexts/NotificationsContext';
 
 export const EmployeeProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -57,6 +59,15 @@ export const EmployeeProfile: React.FC = () => {
     const targetEmployeeId = isMyProfile ? user?.id : id;
     const { employees } = useEmployees();
     const employee = employees.find(emp => emp.id === targetEmployeeId);
+    const { getUserNotifications, markAllRead, markRead } = useNotifications();
+    const notifications = targetEmployeeId ? getUserNotifications(targetEmployeeId) : [];
+
+  // Allow deep linking to specific tab via ?tab= query param
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab) setActiveTab(tab);
+  }, [location.search]);
 
   // Check if current user can access this profile
   // Managers can view/edit their own profile and direct reports
@@ -248,7 +259,7 @@ export const EmployeeProfile: React.FC = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="personal" className="flex items-center gap-2">
             <User className="w-4 h-4" />
             Personal
@@ -271,6 +282,10 @@ export const EmployeeProfile: React.FC = () => {
           <TabsTrigger value="leave" className="flex items-center gap-2">
             <Calendar className="w-4 h-4" />
             Leave
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="w-4 h-4" />
+            Notifications
           </TabsTrigger>
         </TabsList>
 
