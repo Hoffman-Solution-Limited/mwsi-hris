@@ -80,6 +80,9 @@ export function EmployeeForm({
     "Nairobi"
   ]
 
+  // Phone dial code selection - default to Kenya (+254) regardless of current phone value
+  const [phoneDial, setPhoneDial] = React.useState<string>("+254")
+
   const handleSave = (data: EmployeeFormData) => {
     // Required validations for system-selected fields
     if (!data.position) {
@@ -126,7 +129,67 @@ export function EmployeeForm({
 
             <div>
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" {...register("phone")} />
+              {/* Hidden input holds the composed E.164 value for validation and submission */}
+              <input
+                type="hidden"
+                id="phone"
+                {...register("phone", {
+                  validate: (v) => {
+                    if (!v) return true
+                    const e164 = /^\+[1-9]\d{6,14}$/
+                    return e164.test(v) || "Enter a valid phone in international format"
+                  },
+                })}
+              />
+              {(() => {
+                // Lightweight country list with dial codes and flags
+                const countries = [
+                  { code: 'KE', name: 'Kenya', dial: '+254', flag: '🇰🇪' },
+                  { code: 'UG', name: 'Uganda', dial: '+256', flag: '🇺🇬' },
+                  { code: 'TZ', name: 'Tanzania', dial: '+255', flag: '🇹🇿' },
+                  { code: 'RW', name: 'Rwanda', dial: '+250', flag: '🇷🇼' },
+                  { code: 'SS', name: 'South Sudan', dial: '+211', flag: '🇸🇸' },
+                  { code: 'ET', name: 'Ethiopia', dial: '+251', flag: '🇪🇹' },
+                  { code: 'SO', name: 'Somalia', dial: '+252', flag: '🇸🇴' },
+                  { code: 'BI', name: 'Burundi', dial: '+257', flag: '🇧🇮' },
+                  { code: 'US', name: 'United States', dial: '+1', flag: '🇺🇸' },
+                  { code: 'GB', name: 'United Kingdom', dial: '+44', flag: '🇬🇧' },
+                  { code: 'IN', name: 'India', dial: '+91', flag: '🇮🇳' },
+                ]
+                const raw = watch('phone') || ''
+                const digitsOnly = raw.replace(/\D/g, '')
+                const dialDigits = phoneDial.replace('+','')
+                const local = digitsOnly.startsWith(dialDigits) ? digitsOnly.slice(dialDigits.length) : digitsOnly
+                const setPhone = (dial: string, localDigits: string) => {
+                  const digits = (localDigits || '').replace(/\D/g, '')
+                  setPhoneDial(dial)
+                  setValue('phone', digits ? `${dial}${digits}` : dial, { shouldValidate: true })
+                }
+                return (
+                  <div className="flex gap-2">
+                    <Select value={phoneDial} onValueChange={(dial) => setPhone(dial, local)}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countries.map((c) => (
+                          <SelectItem key={c.code} value={c.dial}>
+                            {c.flag} {c.name} ({c.dial})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="7XXXXXXXX"
+                      value={local}
+                      onChange={(e) => setPhone(phoneDial, e.target.value)}
+                    />
+                  </div>
+                )
+              })()}
+              {errors.phone && <p className="text-destructive text-sm">{errors.phone.message as any}</p>}
             </div>
 
             <div>
