@@ -23,6 +23,7 @@ interface DisciplinaryCase {
   date: string;
   description: string;
   verdict?: string; // set when status becomes closed
+  updates?: { timestamp: string; text: string }[]; // chronological log of status update comments
 }
 
 const mockCases: DisciplinaryCase[] = [
@@ -34,6 +35,9 @@ const mockCases: DisciplinaryCase[] = [
     status: "open",
     date: "2025-07-12",
     description: "Missed work for 3 consecutive days without notice.",
+    updates: [
+      { timestamp: "2025-07-13T10:15:00Z", text: "HR reached out to employee for explanation." }
+    ]
   },
   {
     id: 2,
@@ -43,6 +47,9 @@ const mockCases: DisciplinaryCase[] = [
     status: "pending",
     date: "2025-08-01",
     description: "Unprofessional behavior towards a colleague.",
+    updates: [
+      { timestamp: "2025-08-03T09:00:00Z", text: "Waiting disciplinary committee update." }
+    ]
   },
   {
     id: 3,
@@ -53,6 +60,10 @@ const mockCases: DisciplinaryCase[] = [
     date: "2025-06-20",
     description: "Repeatedly failed to meet deadlines.",
     verdict: "Final warning issued; performance improvement plan for 60 days.",
+    updates: [
+      { timestamp: "2025-06-15T14:30:00Z", text: "Final meeting held with the employee and manager." },
+      { timestamp: "2025-06-20T16:00:00Z", text: "Case closed with final warning issued." }
+    ]
   },
 ];
 
@@ -63,6 +74,7 @@ export const DisciplinaryCases: React.FC = () => {
   const [selectedCase, setSelectedCase] = useState<DisciplinaryCase | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [verdictNotes, setVerdictNotes] = useState("");
+  const [statusUpdateNotes, setStatusUpdateNotes] = useState("");
   const { employees } = useEmployees();
 
   // Add Case form state (controlled)
@@ -106,26 +118,34 @@ export const DisciplinaryCases: React.FC = () => {
     setSelectedCase(caseItem);
     setSelectedStatus(caseItem.status);
     setVerdictNotes("");
+    setStatusUpdateNotes("");
     setModalOpen(true);
   };
 
   const handleModalSubmit = () => {
     if (!selectedCase) return;
+    const now = new Date().toISOString();
     setCases((prev) =>
-      prev.map((c) =>
-        c.id === selectedCase.id
-          ? {
-              ...c,
-              status: selectedStatus as "open" | "closed" | "pending",
-              verdict: selectedStatus === "closed" ? (verdictNotes || c.verdict) : c.verdict,
-            }
-          : c
-      )
+      prev.map((c) => {
+        if (c.id !== selectedCase.id) return c;
+        const next: DisciplinaryCase = {
+          ...c,
+          status: selectedStatus as "open" | "closed" | "pending",
+          verdict: selectedStatus === "closed" ? (verdictNotes || c.verdict) : c.verdict,
+          updates: [...(c.updates || [])]
+        };
+        const trimmed = statusUpdateNotes.trim();
+        if (trimmed) {
+          next.updates!.push({ timestamp: now, text: trimmed });
+        }
+        return next;
+      })
     );
     setModalOpen(false);
     setSelectedCase(null);
     setSelectedStatus("");
     setVerdictNotes("");
+    setStatusUpdateNotes("");
   };
 
   const filteredCases = cases.filter(
@@ -265,6 +285,9 @@ export const DisciplinaryCases: React.FC = () => {
                     >
                       Update Status
                     </Button>
+                    {c.updates && c.updates.length > 0 && (
+                      <LatestUpdateButton latest={c.updates[c.updates.length - 1]} />
+                    )}
                     {c.status === "closed" && c.verdict && (
                       <VerdictButton verdict={c.verdict} />
                     )}
@@ -275,6 +298,7 @@ export const DisciplinaryCases: React.FC = () => {
           </table>
         </CardContent>
       </Card>
+
       {/* Complete Case Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-md">
@@ -293,6 +317,16 @@ export const DisciplinaryCases: React.FC = () => {
                 <option value="pending">Pending</option>
                 <option value="closed">Closed</option>
               </select>
+            </div>
+            <div>
+              <label className="block mb-1 font-medium">Status Update (optional)</label>
+              <textarea
+                className="w-full border rounded p-2"
+                rows={3}
+                value={statusUpdateNotes}
+                onChange={(e) => setStatusUpdateNotes(e.target.value)}
+                placeholder="e.g., Waiting disciplinary committee update"
+              />
             </div>
             {selectedStatus === "closed" && (
               <div>
@@ -318,6 +352,29 @@ export const DisciplinaryCases: React.FC = () => {
         </DialogContent>
       </Dialog>
     </div>
+  );
+};
+
+// Small inline component to view latest status update in a dialog
+const LatestUpdateButton: React.FC<{ latest: { timestamp: string; text: string } }> = ({ latest }) => {
+  const [open, setOpen] = useState(false);
+  const dt = new Date(latest.timestamp);
+  const formatted = isNaN(dt.getTime()) ? latest.timestamp : dt.toLocaleString();
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="ghost">Latest Update</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Latest Update</DialogTitle>
+        </DialogHeader>
+        <div className="text-sm space-y-2">
+          <div className="text-muted-foreground">{formatted}</div>
+          <div className="whitespace-pre-wrap">{latest.text}</div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
