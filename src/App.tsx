@@ -15,6 +15,7 @@ import { SystemCatalogProvider } from "@/contexts/SystemCatalogContext";
 import { SystemLogsProvider } from "@/contexts/SystemLogsContext";
 import { EmployeesProvider } from "@/contexts/EmployeesContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
+import { FileTrackingProvider } from "@/contexts/FileTrackingContext";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { Layout } from "@/components/layout/Layout";
 import { Dashboard } from "@/pages/Dashboard";
@@ -45,6 +46,10 @@ import AdminSystemLogs from '@/pages/AdminSystemLogs';
 import WorkStationsPage from '@/pages/WorkStations';
 import ChangePassword from '@/pages/ChangePassword';
 import NotFound from "./pages/NotFound";
+import DocumentTrackingPage from "@/pages/Document";
+import MyFilesPage from "@/pages/MyFiles";
+import RequestsManagementPage from "@/pages/RequestsManagement";
+import EmploymentAttributesPage from "@/pages/EmploymentAttributes";
 
 const queryClient = new QueryClient();
 
@@ -70,11 +75,12 @@ const App = () => (
                 <UsersProvider>
                   <SystemCatalogProvider>
                     <EmployeesProvider>
-                    <TooltipProvider>
-                      <Toaster />
-                      <Sonner />
-                      <BrowserRouter>
-                        <Routes>
+                    <FileTrackingProvider>
+                      <TooltipProvider>
+                        <Toaster />
+                        <Sonner />
+                        <BrowserRouter>
+                          <Routes>
                           <Route path="/login" element={<LoginPage />} />
                           <Route path="/apply-leave" element={<ProtectedRoute><ApplyLeave /></ProtectedRoute>} />
                           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -89,6 +95,8 @@ const App = () => (
                           <Route path="/performance" element={<ProtectedRoute><Layout><PerformanceReviews /></Layout></ProtectedRoute>} />
                           <Route path="/hr-performance-filled" element={<ProtectedRoute><Layout><HRPerformanceFilledList /></Layout></ProtectedRoute>} />
                           <Route path="/documents" element={<ProtectedRoute><Layout><Documents /></Layout></ProtectedRoute>} />
+                          <Route path="/employee-files" element={<ProtectedRoute><Layout><DocumentTrackingPage /></Layout></ProtectedRoute>} />
+                          <Route path="/my-files" element={<ProtectedRoute><Layout><MyFilesPage /></Layout></ProtectedRoute>} />
                           <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
                           <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />
                           <Route path="/manager-apply-leave" element={<ProtectedRoute><Layout><ManagerApplyLeave /></Layout></ProtectedRoute>} />
@@ -105,12 +113,15 @@ const App = () => (
                           <Route path="/admin/performance-templates" element={<ProtectedRoute><Layout><AdminPerformanceTemplates /></Layout></ProtectedRoute>} />
                           <Route path="/admin/training-management" element={<ProtectedRoute><Layout><AdminTrainingManagement /></Layout></ProtectedRoute>} />
                           <Route path="/admin/system-logs" element={<ProtectedRoute><Layout><AdminSystemLogs /></Layout></ProtectedRoute>} />
+                          <Route path="/admin/requests" element={<ProtectedRoute><Layout><RequestsManagementPage /></Layout></ProtectedRoute>} />
+                          <Route path="/employment-attributes" element={<ProtectedRoute><Layout><EmploymentAttributesPage /></Layout></ProtectedRoute>} />
                           <Route path="/work-stations" element={<ProtectedRoute><Layout><WorkStationsPage /></Layout></ProtectedRoute>} />
                           <Route path="/change-password" element={<ProtectedRoute><Layout><ChangePassword /></Layout></ProtectedRoute>} />
                           <Route path="*" element={<NotFound />} />
-                        </Routes>
-                      </BrowserRouter>
-                    </TooltipProvider>
+                          </Routes>
+                        </BrowserRouter>
+                      </TooltipProvider>
+                    </FileTrackingProvider>
                     </EmployeesProvider>
                   </SystemCatalogProvider>
                 </UsersProvider>
