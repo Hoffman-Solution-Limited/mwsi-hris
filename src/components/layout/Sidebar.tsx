@@ -33,6 +33,7 @@ const navGroups: NavGroup[] = [
       { path: '/', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
       { path: '/search', label: 'Global Search', icon: <Search className="w-5 h-5" /> },
       { path: '/profile', label: 'My Profile', icon: <User className="w-5 h-5" />, roles: ['employee', 'manager'] },
+      { path: '/my-files', label: 'My Files', icon: <FileText className="w-5 h-5" />, roles: ['employee'] },
       { path: '/manager-apply-leave', label: 'Apply for Leave', icon: (<Calendar className='w-5 h-5' />), roles: ['manager' ,'employee']},
       { path: '/training', label: 'Training & CPD', icon: <GraduationCap className="w-5 h-5" />, roles: [ 'manager'] },
 
@@ -50,8 +51,10 @@ const navGroups: NavGroup[] = [
       { path: '/hr-performance-filled', label: 'Filled Performance Reviews', icon: <BarChart3 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/designation', label: 'Designations', icon: <Briefcase className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/Skills', label: 'Skills', icon: <List className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
+      { path: '/employment-attributes', label: 'Employment Attributes', icon: <Settings className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/work-stations', label: 'Work Stations', icon: <Building2 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/documents', label: 'Document Registry', icon: <FileText className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'employee', 'manager'] },
+      { path: '/employee-files', label: 'Employee File Tracking', icon: <FileText className="w-5 h-5" />, roles: ['admin', 'hr_manager', 'hr_staff', 'manager'] },
 
     ]
   },
@@ -66,6 +69,7 @@ const navGroups: NavGroup[] = [
       { path: '/admin/data', label: 'Data Management', icon: <DatabaseBackup className="w-5 h-5" />, roles: ['admin'] },
       { path: '/admin/roles', label: 'Role Configuration', icon: <UserCheck2 className="w-5 h-5" />, roles: ['admin'] },
       { path: '/admin/settings', label: 'System Settings', icon: <Settings2 className="w-5 h-5" />, roles: ['admin'] },
+      { path: '/admin/requests', label: 'Requests Management', icon: <Activity className="w-5 h-5" />, roles: ['admin'] },
     ]
   }
 ];
