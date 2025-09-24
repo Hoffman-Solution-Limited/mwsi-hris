@@ -2,8 +2,18 @@
 export const mockHiredCandidates = [
   {
     id: "sc-1",
-    name: "Jane Doe",
+    name: "Jane A. Doe",
+    firstName: "Jane",
+    middleName: "A.",
+    surname: "Doe",
     position: "Government Data Analyst",
+    designation: "Government Data Analyst",
+    employmentType: "Permanent",
+    jobGroup: "JG 10",
+    stationName: "IT Department - Head Office",
+    skillLevel: "Senior",
+    description: "Hired for the Government Data Analyst role.",
+    closingDate: "2024-03-30",
     jobId: "gov-1",
     cv: { name: "JaneDoeCV.pdf" },
     hireReason: "Excellent technical skills and interview performance."
@@ -11,7 +21,17 @@ export const mockHiredCandidates = [
   {
     id: "sc-3",
     name: "Alice Brown",
+    firstName: "Alice",
+    middleName: "",
+    surname: "Brown",
     position: "Public Relations Officer",
+    designation: "Public Relations Officer",
+    employmentType: "Contract",
+    jobGroup: "JG 8",
+    stationName: "Marketing Department - Head Office",
+    skillLevel: "Intermediate",
+    description: "Hired for the Public Relations Officer role.",
+    closingDate: "2024-04-10",
     jobId: "gov-2",
     cv: { name: "AliceBrownCV.pdf" },
     hireReason: "Strong communication and PR experience."
@@ -222,7 +242,13 @@ export type Position = {
   applicants: number
   postedDate: string
   closingDate: string
-  description: string 
+  description: string
+  // Recruitment enhancements (optional)
+  designation?: string
+  skillLevel?: string
+  stationName?: string
+  jobGroup?: string
+  employmentType?: string
 }
 
 
@@ -577,7 +603,12 @@ export const mockPositions: Position[] = [
     applicants: 24,
     postedDate: "2024-03-01",
     closingDate: "2024-03-30",
-    description: "We are looking for a Senior Software Engineer with experience in full-stack development, React, and Node.js. You will lead a team of developers and collaborate with product managers to deliver scalable applications."
+    description: "We are looking for a Senior Software Engineer with experience in full-stack development, React, and Node.js. You will lead a team of developers and collaborate with product managers to deliver scalable applications.",
+    designation: "Senior Software Engineer",
+    skillLevel: "Senior",
+    stationName: "Nairobi HQ",
+    jobGroup: "JG 12",
+    employmentType: "Permanent"
   },
   {
     id: "2",
@@ -588,7 +619,12 @@ export const mockPositions: Position[] = [
     applicants: 10,
     postedDate: "2024-03-10",
     closingDate: "2024-04-10",
-    description: "The HR Assistant will support recruitment, onboarding, and employee engagement activities. Strong organizational and communication skills are required."
+    description: "The HR Assistant will support recruitment, onboarding, and employee engagement activities. Strong organizational and communication skills are required.",
+    designation: "HR Assistant",
+    skillLevel: "Entry",
+    stationName: "Human Resources - Head Office",
+    jobGroup: "JG 6",
+    employmentType: "Permanent"
   },
   {
     id: "3",
@@ -599,7 +635,12 @@ export const mockPositions: Position[] = [
     applicants: 15,
     postedDate: "2024-02-15",
     closingDate: "2024-03-15",
-    description: "We are seeking a Marketing Manager to develop and execute campaigns, manage digital channels, and lead a small team. Experience in B2B marketing is a plus."
+    description: "We are seeking a Marketing Manager to develop and execute campaigns, manage digital channels, and lead a small team. Experience in B2B marketing is a plus.",
+    designation: "Marketing Manager",
+    skillLevel: "Senior",
+    stationName: "Operations Department - Head Office",
+    jobGroup: "JG 11",
+    employmentType: "Contract"
   }
 ]
 
