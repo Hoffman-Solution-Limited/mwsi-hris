@@ -17,7 +17,7 @@ type ProfileFormData = {
   employmentType?: string
   jobGroup?: string
   ethnicity?: string
-  staffNumber?: string
+  employeeNumber?: string
   nationalId?: string
   kraPin?: string
   children?: string
@@ -275,8 +275,8 @@ export function EditProfileForm({ defaultValues, onSave }: {
 
 
             <div>
-              <Label htmlFor="staffNumber">Staff Number</Label>
-              <Input id="staffNumber" {...register("staffNumber")} />
+              <Label htmlFor="employeeNumber">Employee Number</Label>
+              <Input id="employeeNumber" value={watch("employeeNumber") || ''} disabled readOnly />
             </div>
 
             <div>
