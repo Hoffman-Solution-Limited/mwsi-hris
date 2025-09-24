@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 
-import { Upload, Search, Filter, FileText, Download, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Filter, FileText, Download, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,25 +9,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDocuments } from '@/contexts/DocumentContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
 
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 
 export const Documents: React.FC = () => {
   const { user } = useAuth();
-  const { documents, addDocument, getDocumentUrl, approveDocument, rejectDocument, assignDocumentToEmployee, returnDocumentToRegistry } = useDocuments();
+  const { documents, getDocumentUrl, assignDocumentToEmployee, returnDocumentToRegistry } = useDocuments();
   const { employees } = useEmployees();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [open, setOpen] = useState(false);
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [type, setType] = useState<'contract' | 'certificate' | 'policy' | 'form' | 'report'>('form');
-  const [category, setCategory] = useState('General');
-  const [file, setFile] = useState<File | null>(null);
-  const [bulkFiles, setBulkFiles] = useState<FileList | null>(null);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [assignEmployeeId, setAssignEmployeeId] = useState('');
@@ -76,101 +68,7 @@ export const Documents: React.FC = () => {
             }
           </p>
         </div>
-        {(user && (user.role === 'employee' || user.role === 'manager' || user.role === 'hr_manager')) && (
-          <div className="flex gap-2">
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Single Document
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Upload Document</DialogTitle>
-                  <DialogDescription>Provide details for your document.</DialogDescription>
-                </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium">Document Name</label>
-                    <Input className="mt-1" placeholder="e.g. National ID Scan.pdf" value={name} onChange={(e) => setName(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Document Type</label>
-                    <Select value={type} onValueChange={(v) => setType(v as any)}>
-                      <SelectTrigger className="w-full mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="contract">Contract</SelectItem>
-                        <SelectItem value="certificate">Certificate</SelectItem>
-                        <SelectItem value="policy">Policy</SelectItem>
-                        <SelectItem value="form">Form</SelectItem>
-                        <SelectItem value="report">Report</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium">Select File</label>
-                    <Input className="mt-1" type="file" onChange={(e) => setFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Category</label>
-                    <Input className="mt-1" placeholder="e.g. HR Records" value={category} onChange={(e) => setCategory(e.target.value)} />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium">Notes (optional)</label>
-                    <Textarea className="mt-1" rows={3} placeholder="Add any notes..." />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button onClick={() => {
-                    if (!name) return;
-                    addDocument({ name, type, category, file });
-                    toast({ title: 'Document uploaded', description: `${name} has been uploaded.` });
-                    setName('');
-                    setType('form');
-                    setCategory('General');
-                    setFile(null);
-                    setOpen(false);
-                  }}>Submit</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            {[("admin" as const), ("hr_manager" as const)].includes(user?.role as any) && (
-              <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Bulk Upload
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Bulk Upload Documents</DialogTitle>
-                    <DialogDescription>Select multiple files to upload at once.</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <Input type="file" multiple onChange={e => setBulkFiles(e.target.files)} />
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={() => {
-                      if (!bulkFiles || bulkFiles.length === 0) return;
-                      // For demo, just call addDocument for each file
-                      Array.from(bulkFiles).forEach(file => {
-                        addDocument({ name: file.name, type: 'form', category: 'Bulk', file });
-                      });
-                      toast({ title: 'Bulk upload complete', description: `${bulkFiles.length} document(s) uploaded.` });
-                      setBulkFiles(null);
-                      setBulkOpen(false);
-                    }}>Upload All</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
-
-        )}
+        {/* Upload capability removed */}
       </div>
 
       <div className="flex gap-4">
@@ -376,7 +274,7 @@ export const Documents: React.FC = () => {
           {filteredDocuments.length === 0 ? (
             <Card className="mt-2">
               <CardContent className="p-4 text-sm text-muted-foreground">
-                No documents uploaded yet.
+                No documents available.
               </CardContent>
             </Card>
           ) : (

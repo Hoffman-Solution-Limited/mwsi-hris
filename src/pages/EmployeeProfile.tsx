@@ -4,7 +4,6 @@ import {
   ArrowLeft, 
   Edit, 
   Download, 
-  Upload, 
   Mail, 
   Phone, 
   MapPin, 
@@ -34,7 +33,7 @@ import { EditProfileForm } from "@/components/EditProfileForm"
 import { useDocuments } from '@/contexts/DocumentContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+// Removed Select import used only by document upload UI
 import { useNotifications } from '@/contexts/NotificationsContext';
 
 export const EmployeeProfile: React.FC = () => {
@@ -45,12 +44,7 @@ export const EmployeeProfile: React.FC = () => {
   const { templates } = usePerformance();
   const { updateEmployee } = useEmployees();
   const [activeTab, setActiveTab] = useState('personal');
-  const { documents, addDocument, getDocumentUrl } = useDocuments();
-  const [docOpen, setDocOpen] = useState(false);
-  const [docName, setDocName] = useState('');
-  const [docType, setDocType] = useState<'contract' | 'certificate' | 'policy' | 'form' | 'report'>('form');
-  const [docCategory, setDocCategory] = useState('General');
-  const [docFile, setDocFile] = useState<File | null>(null);
+  const { documents, getDocumentUrl } = useDocuments();
 
   // For testing, always use Michael Davis (id: '3') as the target employee
     // If on /profile route, show current user's profile
@@ -496,67 +490,10 @@ export const EmployeeProfile: React.FC = () => {
         {/* Documents */}
         {(isMyProfile || ["admin", "hr_manager", "hr_staff"].includes(user?.role || "")) && (
         <TabsContent value="documents">
-
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Employee Documents</CardTitle>
-                {isMyProfile && (
-                  <Dialog open={docOpen} onOpenChange={setDocOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm">
-                        <Upload className="w-4 h-4 mr-2" />
-                        Upload Document
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Upload Document</DialogTitle>
-                        <DialogDescription>Add a document to your profile.</DialogDescription>
-                      </DialogHeader>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
-                          <label className="text-sm font-medium">Document Name</label>
-                          <Input className="mt-1" placeholder="e.g. National ID Scan.pdf" value={docName} onChange={(e) => setDocName(e.target.value)} />
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium">Document Type</label>
-                          <Select value={docType} onValueChange={(v) => setDocType(v as any)}>
-                            <SelectTrigger className="w-full mt-1">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="contract">Contract</SelectItem>
-                              <SelectItem value="certificate">Certificate</SelectItem>
-                              <SelectItem value="policy">Policy</SelectItem>
-                              <SelectItem value="form">Form</SelectItem>
-                              <SelectItem value="report">Report</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium">Category</label>
-                          <Input className="mt-1" placeholder="e.g. HR Records" value={docCategory} onChange={(e) => setDocCategory(e.target.value)} />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="text-sm font-medium">Select File</label>
-                          <Input className="mt-1" type="file" onChange={(e) => setDocFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button onClick={() => {
-                          if (!docName) return;
-                          addDocument({ name: docName, type: docType, category: docCategory, file: docFile });
-                          setDocName('');
-                          setDocType('form');
-                          setDocCategory('General');
-                          setDocFile(null);
-                          setDocOpen(false);
-                        }}>Submit</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -599,7 +536,7 @@ export const EmployeeProfile: React.FC = () => {
                 {employeeDocuments.length === 0 && (
                   <div className="text-center py-8">
                     <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No documents uploaded yet</p>
+                    <p className="text-muted-foreground">No documents available</p>
                   </div>
                 )}
               </div>
