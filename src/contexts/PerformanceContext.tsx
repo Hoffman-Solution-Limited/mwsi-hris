@@ -7,6 +7,8 @@ export interface PerformanceTemplate {
   name: string;
   type: 'quarterly' | 'half-yearly' | 'yearly';
   description: string;
+  // Optional: scope this template to a specific department
+  department?: string;
   criteria: {
     id: string;
     name: string;
@@ -21,6 +23,8 @@ export interface PerformanceReview {
   id: string;
   employeeId: string;
   employeeName: string;
+  // Optional: human employee number for cross-system linkage
+  employeeNumber?: string;
   templateId?: string;
   reviewPeriod: string;
   status: 'new' | 'draft' | 'targets_set' | 'manager_review' | 'hr_review' | 'in_review' | 'completed' 

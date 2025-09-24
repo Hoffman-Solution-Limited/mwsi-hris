@@ -259,7 +259,14 @@ export const DisciplinaryCases: React.FC = () => {
             <tbody>
               {filteredCases.map((c) => (
                 <tr key={c.id} className="border-t">
-                  <td className="p-3">{c.employeeName} <span className="text-xs text-muted-foreground">(ID: {c.employeeId})</span></td>
+                  <td className="p-3">{c.employeeName} <span className="text-xs text-muted-foreground">(ID: {c.employeeId}{(() => {
+                    // Best-effort resolve employee number for display
+                    try {
+                      const emp = employees.find(e => e.id === c.employeeId);
+                      const empNo = (emp as any)?.employeeNumber;
+                      return empNo ? ` • Employee No: ${empNo}` : '';
+                    } catch { return ''; }
+                  })()})</span></td>
                   <td className="p-3">{c.caseType}</td>
                   <td className="p-3">
                     <Badge

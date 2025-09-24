@@ -27,12 +27,51 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(employees)); } catch {}
   }, [employees]);
 
+  // Removed legacy backfill from staffNumber; employeeNumber must be managed by HR
+
+  // One-time migration: if localStorage employees are missing employeeNumber, backfill from mockData by id
+  useEffect(() => {
+    const missing = employees.some((e: any) => !e.employeeNumber);
+    if (!missing) return;
+    setEmployees(prev => prev.map((e: any) => {
+      if (e.employeeNumber) return e;
+      const seed = (mockEmployees as any[]).find(m => m.id === e.id);
+      if (seed && seed.employeeNumber) {
+        return { ...e, employeeNumber: seed.employeeNumber } as EmployeeRecord;
+      }
+      return e;
+    }));
+  }, []);
+
+  // One-time deduplication: if many employees share the same employeeNumber, restore from mock where possible
+  useEffect(() => {
+    const FLAG = 'hris-empno-dedupe-v1';
+    try {
+      if (localStorage.getItem(FLAG)) return;
+    } catch {}
+    const nums = employees.map((e: any) => e.employeeNumber).filter(Boolean) as string[];
+    if (nums.length < 2) return;
+    const unique = new Set(nums);
+    const hasDupes = unique.size < nums.length;
+    if (!hasDupes) return;
+    // perform dedupe using mock as source of truth
+    setEmployees(prev => prev.map((e: any) => {
+      const seed = (mockEmployees as any[]).find(m => m.id === e.id);
+      if (seed?.employeeNumber && seed.employeeNumber !== e.employeeNumber) {
+        return { ...e, employeeNumber: seed.employeeNumber } as EmployeeRecord;
+      }
+      return e;
+    }));
+    try { localStorage.setItem(FLAG, '1'); } catch {}
+  }, [employees]);
+
   const addEmployee: EmployeesContextType['addEmployee'] = (data) => {
     const id = crypto.randomUUID();
     const avatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.name || 'EMP')}`;
     const hireDate = data.hireDate || new Date().toISOString().slice(0,10);
     const status = data.status || 'active';
-    const rec: EmployeeRecord = { id, avatar, hireDate, status, ...data } as EmployeeRecord;
+    const employeeNumber = (data as any).employeeNumber ? String((data as any).employeeNumber) : undefined;
+    const rec: EmployeeRecord = { id, avatar, hireDate, status, ...(employeeNumber ? { employeeNumber } : {}), ...data } as EmployeeRecord;
     setEmployees(prev => [rec, ...prev]);
   };
 
