@@ -163,7 +163,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Employee Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Leave Balance</CardTitle>
@@ -196,16 +196,7 @@ export const Dashboard: React.FC = () => {
               <Progress value={(completedTrainings / (myTrainings.length || 1)) * 100} className="mt-2" />
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">My Documents</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{myDocuments.length}</div>
-              <p className="text-xs text-muted-foreground">uploaded files</p>
-            </CardContent>
-          </Card>
+
         </div>
 
         {/* Quick Actions */}
@@ -234,10 +225,10 @@ export const Dashboard: React.FC = () => {
               <Button
                 className="w-full justify-start bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800 focus:ring-2 focus:ring-purple-400 focus:outline-none"
                 variant="default"
-                onClick={() => navigate('/documents')}
+                onClick={() => navigate('/performance')}
               >
                 <FileText className="w-4 h-4 mr-2" />
-                Upload Document
+                Performance Review
               </Button>
             </CardContent>
           </Card>
@@ -517,51 +508,6 @@ export const Dashboard: React.FC = () => {
       change: '24 applications received',
       trend: 'up'
     },
-    {
-      title: 'Pending Documents',
-      value: pendingDocuments,
-      icon: <FileText className="w-6 h-6 text-destructive" />,
-      change: 'Require attention',
-      trend: 'down'
-    }
-  ];
-
-  const recentActivities = [
-    {
-      id: 1,
-      action: 'Leave request submitted',
-      user: 'Michael Davis',
-      time: '2 hours ago',
-      status: 'pending'
-    },
-    {
-      id: 2,
-      action: 'Training certificate uploaded',
-      user: 'Emily Chen',
-      time: '4 hours ago',
-      status: 'completed'
-    },
-    {
-      id: 3,
-      action: 'Performance review completed',
-      user: 'Sarah Johnson',
-      time: '1 day ago',
-      status: 'completed'
-    },
-    {
-      id: 4,
-      action: 'New position posted',
-      user: 'HR Department',
-      time: '2 days ago',
-      status: 'active'
-    }
-  ];
-
-  const upcomingTasks = [
-    { task: 'Review Q1 performance evaluations', due: 'Today', priority: 'high' },
-    { task: 'Approve pending leave requests', due: 'Tomorrow', priority: 'medium' },
-    { task: 'Update employee handbook', due: 'This week', priority: 'low' },
-    { task: 'Conduct new hire orientation', due: 'Friday', priority: 'high' }
   ];
 
   return (
@@ -577,7 +523,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {quickStats.map((stat, index) => (
           <Card key={index}>
             <CardContent className="p-6">
@@ -600,77 +546,7 @@ export const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activities */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Recent Activities
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{activity.action}</p>
-                    <p className="text-xs text-muted-foreground">by {activity.user}</p>
-                  </div>
-                  <div className="text-right">
-                    <Badge
-                      variant={
-                        activity.status === 'completed' ? 'default' :
-                        activity.status === 'pending' ? 'secondary' : 'outline'
-                      }
-                      className="mb-1"
-                    >
-                      {activity.status}
-                    </Badge>
-                    <p className="text-xs text-muted-foreground">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Button variant="outline" className="w-full mt-4">
-              View All Activities
-            </Button>
-          </CardContent>
-        </Card>
 
-        {/* Upcoming Tasks */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5" />
-              Upcoming Tasks
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {upcomingTasks.map((task, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{task.task}</p>
-                    <p className="text-xs text-muted-foreground">Due: {task.due}</p>
-                  </div>
-                  <Badge
-                    variant={
-                      task.priority === 'high' ? 'destructive' :
-                      task.priority === 'medium' ? 'default' : 'secondary'
-                    }
-                  >
-                    {task.priority}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-            <Button variant="outline" className="w-full mt-4">
-              View All Tasks
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Department Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
