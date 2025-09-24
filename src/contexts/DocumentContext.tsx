@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Document, mockDocuments } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationsContext';
 
 type NewDocumentInput = {
   name: string;
@@ -26,6 +27,7 @@ const DocumentContext = createContext<DocumentContextType | undefined>(undefined
 
 export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const { addNotification } = useNotifications();
   const [documents, setDocuments] = useState<Document[]>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -61,6 +63,16 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const url = URL.createObjectURL(input.file);
       setBlobUrls(prev => ({ ...prev, [doc.id]: url }));
     }
+
+    // Notify uploader about successful upload
+    try {
+      addNotification({
+        userId: user.id,
+        title: 'Document uploaded',
+        message: `"${doc.name}" has been uploaded and is pending review.`,
+        link: '/profile?tab=notifications',
+      });
+    } catch {}
   };
 
   const getDocumentUrl = (id: string) => blobUrls[id];
@@ -99,6 +111,16 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           },
         ],
       };
+
+      // Notify assigned employee
+      try {
+        addNotification({
+          userId: employeeId,
+          title: 'Document assigned to you',
+          message: `"${doc.name}" has been assigned to you by ${user.name}.`,
+          link: '/profile?tab=notifications',
+        });
+      } catch {}
       return updated;
     }));
   };
@@ -107,6 +129,8 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!user) return;
     setDocuments(prev => prev.map(doc => {
       if (doc.id !== docId) return doc;
+      const previousAssigneeId = doc.assignedToEmployeeId;
+      const previousAssigneeName = doc.assignedToName;
       const updated: Document = {
         ...doc,
         assignedToEmployeeId: undefined,
@@ -124,6 +148,17 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           },
         ],
       };
+      // Notify previous assignee that document was returned
+      try {
+        if (previousAssigneeId) {
+          addNotification({
+            userId: previousAssigneeId,
+            title: 'Document returned to registry',
+            message: `"${doc.name}" has been returned to the registry by ${user.name}.`,
+            link: '/profile?tab=notifications',
+          });
+        }
+      } catch {}
       return updated;
     }));
   };
