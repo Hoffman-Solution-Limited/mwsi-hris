@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { usePerformance, PerformanceTemplate } from '@/contexts/PerformanceContext';
 import { useSystemLogs } from '@/contexts/SystemLogsContext';
+import { useDepartmentGoals } from '@/contexts/DepartmentGoalsContext';
 
 type NewTemplate = Omit<PerformanceTemplate, 'id' | 'createdAt' | 'createdBy'>;
 
@@ -23,12 +24,14 @@ export default function AdminPerformanceTemplates() {
   const { addLog } = useSystemLogs();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [viewTemplate, setViewTemplate] = useState<PerformanceTemplate | null>(null);
+  const { getDepartments, getGoalsByDepartment } = useDepartmentGoals();
 
   const [newTemplate, setNewTemplate] = useState<NewTemplate>({
     name: '',
     type: 'quarterly',
     description: '',
-    criteria: []
+    criteria: [],
+    department: undefined
   });
 
   const [newCriteria, setNewCriteria] = useState({
@@ -47,6 +50,7 @@ export default function AdminPerformanceTemplates() {
 
       createTemplate({
         ...newTemplate,
+        department: newTemplate.department && (newTemplate.department as any) !== 'all' ? newTemplate.department : undefined,
         createdBy: 'admin'
       });
 
@@ -58,7 +62,7 @@ export default function AdminPerformanceTemplates() {
         status: 'success'
       });
 
-      setNewTemplate({ name: '', type: 'quarterly', description: '', criteria: [] });
+      setNewTemplate({ name: '', type: 'quarterly', description: '', criteria: [], department: undefined });
       setIsCreateOpen(false);
     }
   };
@@ -143,6 +147,45 @@ export default function AdminPerformanceTemplates() {
                       <SelectItem value="yearly">Yearly</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department (optional)</Label>
+                  <Select
+                    value={(newTemplate.department as any) || 'all'}
+                    onValueChange={(value: string) => setNewTemplate(prev => ({ ...prev, department: value as any }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Departments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {getDepartments().map((dept) => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const dept = newTemplate.department as any;
+                      if (!dept || dept === 'all') { alert('Select a specific department to generate criteria from its goals'); return; }
+                      const goals = getGoalsByDepartment(dept);
+                      if (!goals.length) { alert('No active goals found for this department'); return; }
+                      const total = goals.reduce((s,g)=> s + g.weight, 0);
+                      if (total !== 100) { alert(`Departmental goals weights sum to ${total}%. Adjust goals to total 100%.`); return; }
+                      setNewTemplate(prev => ({
+                        ...prev,
+                        criteria: goals.map(g => ({ id: crypto.randomUUID(), name: g.title, weight: g.weight, description: g.description })),
+                      }));
+                    }}
+                  >
+                    Generate from Department Goals
+                  </Button>
                 </div>
               </div>
 
@@ -235,6 +278,9 @@ export default function AdminPerformanceTemplates() {
                     <Badge className={getTypeColor(template.type)}>
                       {template.type}
                     </Badge>
+                    {template.department && (
+                      <Badge variant="secondary" className="ml-1">{template.department}</Badge>
+                    )}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
                     {template.description}

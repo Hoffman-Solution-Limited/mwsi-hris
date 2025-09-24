@@ -143,9 +143,12 @@ const RequestsManagementPage: React.FC = () => {
                   <div className="text-xs text-muted-foreground">Documents To Move</div>
                   {file ? (
                     <ul className="list-disc list-inside text-sm text-muted-foreground">
-                      {file.defaultDocuments.map((d) => (
-                        <li key={d}>{`${file.employeeId}_${d}`}</li>
-                      ))}
+                      {(() => {
+                        const empNo = (owner as any)?.employeeNumber || file.employeeId;
+                        return file.defaultDocuments.map((d) => (
+                          <li key={d}>{`${empNo}_${d}`}</li>
+                        ));
+                      })()}
                     </ul>
                   ) : (
                     <div className="text-sm text-muted-foreground">—</div>
