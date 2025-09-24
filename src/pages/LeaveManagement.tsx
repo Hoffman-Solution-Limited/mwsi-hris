@@ -660,7 +660,7 @@ export const LeaveManagement: React.FC = () => {
                                   {balance.employeeName.split(' ').map(n => n[0]).join('')}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{balance.employeeName} <span className="text-xs text-muted-foreground">(ID: {balance.employeeId})</span></span>
+                              <span className="font-medium">{balance.employeeName} <span className="text-xs text-muted-foreground">(ID: {balance.employeeId} • Employee No: {(employee as any)?.employeeNumber || '—'})</span></span>
                             </div>
                           </td>
                           <td>{balance.department}</td>

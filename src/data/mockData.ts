@@ -61,6 +61,8 @@ export interface PerformanceTemplate {
   name: string;
   type: PerformanceTemplateType;
   description: string;
+  // Optional: templates can be scoped to a department and generated from its goals
+  department?: string;
   criteria: {
     id: string;
     name: string;
@@ -75,6 +77,8 @@ export interface PerformanceReview {
   id: string;
   employeeId: string;
   employeeName: string;
+  // New: employee unique number for physical registry linkage
+  employeeNumber?: string;
     templateId?: string;
   reviewPeriod: string;
   status: 'draft' | 'targets_set' | 'manager_review' | 'hr_review' | 'completed';
@@ -110,6 +114,7 @@ export const mockPerformanceTemplates = [
     name: 'Quarterly Appraisal',
     type: 'quarterly' as PerformanceTemplateType,
     description: 'Standard quarterly performance review template.',
+    department: undefined,
     criteria: [
       { id: 'c1', name: 'Quality of Work', weight: 40, description: 'Accuracy, thoroughness, and effectiveness.' },
       { id: 'c2', name: 'Teamwork', weight: 30, description: 'Collaboration and communication.' },
@@ -119,8 +124,33 @@ export const mockPerformanceTemplates = [
     createdAt: '2025-09-01'
   }
 ];
+
+// Departmental Goals (used to generate department-aligned templates)
+export interface DepartmentGoal {
+  id: string;
+  department: string;
+  title: string;
+  description: string;
+  weight: number; // should total 100 within a department when used as a template
+  active: boolean;
+  createdAt: string;
+  createdBy: string;
+}
+
+export const mockDepartmentGoals: DepartmentGoal[] = [
+  // Engineering sample goals
+  { id: 'eng-1', department: 'Engineering', title: 'Quality of Deliverables', description: 'Maintain high code quality and test coverage', weight: 40, active: true, createdAt: '2025-09-01', createdBy: 'HR System' },
+  { id: 'eng-2', department: 'Engineering', title: 'Team Collaboration', description: 'Effective collaboration with peers and stakeholders', weight: 30, active: true, createdAt: '2025-09-01', createdBy: 'HR System' },
+  { id: 'eng-3', department: 'Engineering', title: 'Innovation & Initiative', description: 'Proactive solutions and process improvements', weight: 30, active: true, createdAt: '2025-09-01', createdBy: 'HR System' },
+  // Marketing sample goals
+  { id: 'mkt-1', department: 'Marketing', title: 'Campaign Effectiveness', description: 'Deliver measurable campaign results', weight: 50, active: true, createdAt: '2025-09-01', createdBy: 'HR System' },
+  { id: 'mkt-2', department: 'Marketing', title: 'Content Quality', description: 'High-quality content aligned to brand', weight: 30, active: true, createdAt: '2025-09-01', createdBy: 'HR System' },
+  { id: 'mkt-3', department: 'Marketing', title: 'Cross-team Collaboration', description: 'Coordinate effectively with Sales and Product', weight: 20, active: true, createdAt: '2025-09-01', createdBy: 'HR System' },
+];
 export interface Employee {
   id: string;
+  // New: Employee Number (human identifier, used across physical and digital records)
+  employeeNumber?: string;
   name: string;
   email: string;
   position: string;
@@ -142,7 +172,6 @@ export interface Employee {
   jobGroup?: string; // e.g., A-L
   engagementType?: string; // e.g., Permanent, Extended Service, Local Contract
   ethnicity?: string;
-  staffNumber?: string;
   nationalId?: string;
   kraPin?: string;
   children?: string;
@@ -250,7 +279,7 @@ export const mockEmployees: Employee[] = [
     engagementType: 'Permanent',
     jobGroup: 'G',
     ethnicity: 'Kikuyu',
-    staffNumber: '20221234567',
+    employeeNumber: '20221234567',
     nationalId: '32456789',
     kraPin: 'A012345678Z',
     children: '2',
@@ -286,7 +315,7 @@ export const mockEmployees: Employee[] = [
     engagementType: 'Permanent',
     jobGroup: 'J',
     ethnicity: 'Luo',
-    staffNumber: '20211234568',
+    employeeNumber: '20211234568',
     nationalId: '28123456',
     kraPin: 'A012345679Z',
     children: '1',
@@ -322,7 +351,7 @@ export const mockEmployees: Employee[] = [
       engagementType: 'Permanent',
       jobGroup: 'K',
       ethnicity: 'Kalenjin',
-      staffNumber: '2019031010',
+      employeeNumber: '2019031010',
       nationalId: '12345678',
       kraPin: 'A012345689Z',
       children: '2',
@@ -359,7 +388,7 @@ export const mockEmployees: Employee[] = [
     engagementType: 'Permanent',
     jobGroup: 'H',
     ethnicity: 'Kamba',
-    staffNumber: '20221234569',
+    employeeNumber: '20221234569',
     nationalId: '29876543',
     kraPin: 'A012345680Z',
     children: '0',
@@ -396,7 +425,7 @@ export const mockEmployees: Employee[] = [
     engagementType: 'Contract',
     jobGroup: 'F',
     ethnicity: 'Kisii',
-    staffNumber: '20231234570',
+    employeeNumber: '20231234570',
     nationalId: '31234567',
     kraPin: 'A012345681Z',
     children: '0',
@@ -432,7 +461,7 @@ export const mockEmployees: Employee[] = [
     engagementType: 'Permanent',
     jobGroup: 'L',
     ethnicity: 'Meru',
-    staffNumber: '20201234571',
+    employeeNumber: '20201234571',
     nationalId: '25987654',
     kraPin: 'A012345682Z',
     children: '3',
@@ -466,7 +495,7 @@ export const mockEmployees: Employee[] = [
     engagementType: 'Permanent',
     jobGroup: 'I',
     ethnicity: 'Luhya',
-    staffNumber: '202005106',
+    employeeNumber: '202005106',
     nationalId: '19876543',
     kraPin: 'A012345683Z',
     children: '1',

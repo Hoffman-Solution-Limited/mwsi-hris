@@ -19,7 +19,7 @@ export type EmployeeFormData = {
   jobGroup?: string
   engagementType?: string
   ethnicity?: string
-  staffNumber?: string
+  employeeNumber: string
   nationalId?: string
   kraPin?: string
   children?: string
@@ -234,6 +234,12 @@ export function EmployeeForm({
             </div>
 
             <div>
+              <Label htmlFor="employeeNumber">Employee Number *</Label>
+              <Input id="employeeNumber" {...register("employeeNumber", { required: "Employee Number is required" })} />
+              {errors as any && (errors as any).employeeNumber && <p className="text-destructive text-sm">{(errors as any).employeeNumber.message as any}</p>}
+            </div>
+
+            <div>
               <Label htmlFor="nationalId">National ID</Label>
               <Input id="nationalId" {...register("nationalId")} />
             </div>
@@ -327,10 +333,7 @@ export function EmployeeForm({
             </div>
 
 
-            <div>
-              <Label htmlFor="staffNumber">Staff Number</Label>
-              <Input id="staffNumber" {...register("staffNumber")} />
-            </div>
+            {/* Removed Staff Number for consistency with Employee Number */}
 
             <div>
               <Label htmlFor="hireDate">Date of Joining *</Label>

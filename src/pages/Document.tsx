@@ -14,19 +14,24 @@ import { useSystemCatalog } from '@/contexts/SystemCatalogContext';
 
 const DocumentTrackingPage: React.FC = () => {
   const { user } = useAuth();
-  const { files, getFileByEmployeeId, moveFile, requestFile, listAllRequests, rejectRequest } = useFileTracking();
+  const { files, getFileByEmployeeId, moveFile, requestFile, listAllRequests, rejectRequest, approveRequest } = useFileTracking();
   const { employees } = useEmployees();
   const { stations } = useSystemCatalog();
   const [employeeFilter, setEmployeeFilter] = useState('');
   const [moveModal, setMoveModal] = useState<{ open: boolean; employeeId?: string; toLocation: string; assigneeId: string; assigneeName: string; remarks: string }>({ open: false, toLocation: '', assigneeId: '', assigneeName: '', remarks: '' });
   const [assigneeQuery, setAssigneeQuery] = useState('');
   const [requestModal, setRequestModal] = useState<{ open: boolean; employeeId?: string; remarks: string }>({ open: false, remarks: '' });
+  const [approveModal, setApproveModal] = useState<{ open: boolean; requestId?: string; employeeId?: string; toLocation: string; comment?: string }>({ open: false, toLocation: '' });
   
 
   const filteredEmployees = useMemo(() => {
     const q = employeeFilter.trim().toLowerCase();
     if (!q) return employees;
-    return employees.filter(e => e.id.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || (e.staffNumber || '').toLowerCase().includes(q));
+    return employees.filter(e =>
+      e.id.toLowerCase().includes(q) ||
+      e.name.toLowerCase().includes(q) ||
+      ((e as any).employeeNumber || '').toString().toLowerCase().includes(q)
+    );
   }, [employeeFilter, employees]);
 
   const openMove = (employeeId: string) => {
@@ -87,12 +92,12 @@ const DocumentTrackingPage: React.FC = () => {
               <CardTitle>Find Employee</CardTitle>
             </CardHeader>
             <CardContent>
-              <Input placeholder="Search by Employee ID, Name or Staff No" value={employeeFilter} onChange={e => setEmployeeFilter(e.target.value)} />
+              <Input placeholder="Search by Employee ID, Name, or Employee No" value={employeeFilter} onChange={e => setEmployeeFilter(e.target.value)} />
               <div className="mt-4 space-y-2 max-h-[400px] overflow-auto">
                 {filteredEmployees.map(emp => (
                   <div key={emp.id} className="p-2 border rounded hover:bg-muted cursor-pointer" onClick={() => setEmployeeFilter(emp.id)}>
                     <div className="font-medium">{emp.name}</div>
-                    <div className="text-xs text-muted-foreground">ID: {emp.id} • {emp.department}</div>
+                    <div className="text-xs text-muted-foreground">ID: {emp.id} • Employee No: {emp.employeeNumber || '—'} • {emp.department}</div>
                   </div>
                 ))}
                 {filteredEmployees.length === 0 && (
@@ -115,7 +120,7 @@ const DocumentTrackingPage: React.FC = () => {
                   <TabsContent value="file">
                     <Card>
                       <CardHeader>
-                        <CardTitle>Employee File: {employeeFilter}</CardTitle>
+                        <CardTitle>Employee File: </CardTitle>
                       </CardHeader>
                       <CardContent>
                         {!file ? (
@@ -140,9 +145,13 @@ const DocumentTrackingPage: React.FC = () => {
                             <div className="p-3 border rounded">
                               <div className="text-sm font-medium mb-1">Default Documents (placeholders)</div>
                               <ul className="list-disc list-inside text-sm text-muted-foreground">
-                                {file.defaultDocuments.map((d) => (
-                                  <li key={d}>{`${file.employeeId}_${d}`}</li>
-                                ))}
+                                {file.defaultDocuments.map((d) => {
+                                  const emp = employees.find(e => e.id === file.employeeId);
+                                  const empNo = (emp as any)?.employeeNumber || file.employeeId;
+                                  return (
+                                    <li key={d}>{`${empNo}_${d}`}</li>
+                                  );
+                                })}
                               </ul>
                             </div>
                             <div className="p-3 border rounded">
@@ -174,11 +183,21 @@ const DocumentTrackingPage: React.FC = () => {
                               <div>
                                 <div className="font-medium">Employee File: {r.employeeId}</div>
                                 <div className="text-xs text-muted-foreground">Requested by {r.requestedByName} • {r.createdAt.slice(0,19).replace('T',' ')}</div>
+                                {(() => {
+                                  const emp = employees.find(e => e.id === r.employeeId);
+                                  const empNo = (emp as any)?.employeeNumber || r.employeeId;
+                                  const file = getFileByEmployeeId(r.employeeId);
+                                  const docs = (file?.defaultDocuments || []).map(d => `${empNo}_${d}`);
+                                  return (
+                                    <div className="text-xs text-muted-foreground mt-1">Documents: {docs.length ? docs.join(', ') : `${empNo}_Employee_File`}</div>
+                                  );
+                                })()}
                               </div>
                               <div className="flex items-center gap-2">
                                 <Badge className={`status-${r.status}`}>{r.status}</Badge>
                                 {user?.role === 'admin' && r.status === 'pending' && (
                                   <>
+                                    <Button size="sm" variant="outline" onClick={() => setApproveModal({ open: true, requestId: r.id, employeeId: r.employeeId, toLocation: LOCATIONS[0] || 'Registry Office' })}>Approve</Button>
                                     <Button size="sm" variant="outline" onClick={() => rejectRequest(r.id, 'Not available')}>Reject</Button>
                                   </>
                                 )}
@@ -275,7 +294,64 @@ const DocumentTrackingPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      
+      {/* Approve Dialog (Admin) */}
+      <Dialog open={approveModal.open} onOpenChange={(o) => setApproveModal(prev => ({ ...prev, open: o }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve File Movement</DialogTitle>
+            <DialogDescription>Confirm destination and documents to move.</DialogDescription>
+          </DialogHeader>
+          {approveModal.employeeId && (
+            <div className="space-y-4">
+              {(() => {
+                const emp = employees.find(e => e.id === approveModal.employeeId);
+                const empNo = (emp as any)?.employeeNumber || approveModal.employeeId;
+                const file = getFileByEmployeeId(approveModal.employeeId);
+                const docs = (file?.defaultDocuments || []).map(d => `${empNo}_${d}`);
+                return (
+                  <div className="text-sm">
+                    <div className="font-medium mb-1">Employee: {emp?.name || approveModal.employeeId}</div>
+                    <div className="text-muted-foreground">Documents:</div>
+                    <ul className="list-disc list-inside text-muted-foreground">
+                      {docs.length > 0 ? docs.map(d => (<li key={d}>{d}</li>)) : (<li>{empNo}_Employee_File</li>)}
+                    </ul>
+                  </div>
+                );
+              })()}
+              <div>
+                <label className="text-sm font-medium">Destination Location</label>
+                <Select value={approveModal.toLocation} onValueChange={(v) => setApproveModal(prev => ({ ...prev, toLocation: v }))}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LOCATIONS.map(loc => (
+                      <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Comment (optional)</label>
+                <Textarea className="mt-1" rows={3} value={approveModal.comment || ''} onChange={e => setApproveModal(prev => ({ ...prev, comment: e.target.value }))} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproveModal({ open: false, requestId: undefined, employeeId: undefined, toLocation: '', comment: '' })}>Cancel</Button>
+            <Button
+              onClick={() => {
+                if (!approveModal.requestId || !approveModal.toLocation) return;
+                approveRequest(approveModal.requestId, { toLocation: approveModal.toLocation, comment: approveModal.comment });
+                setApproveModal({ open: false, requestId: undefined, employeeId: undefined, toLocation: '', comment: '' });
+              }}
+            >
+              Approve
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
