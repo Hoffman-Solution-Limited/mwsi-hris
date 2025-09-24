@@ -10,6 +10,7 @@ import { useDocuments } from '@/contexts/DocumentContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -55,6 +56,10 @@ export const Documents: React.FC = () => {
   }, [documents, user]);
 
   const selectedEmployee = useMemo(() => employees.find(e => e.id === assignEmployeeId.trim()), [assignEmployeeId, employees]);
+
+  // Grouping for HR/Admin: Assigned vs Registry
+  const assignedDocs = useMemo(() => filteredDocuments.filter(d => d.assignedToEmployeeId), [filteredDocuments]);
+  const registryDocs = useMemo(() => filteredDocuments.filter(d => !d.assignedToEmployeeId), [filteredDocuments]);
 
   return (
     <div className="space-y-6">
@@ -188,7 +193,7 @@ export const Documents: React.FC = () => {
       {user?.role === 'employee' && assignedToMe.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Temporarily Assigned To Me</CardTitle>
+            <CardTitle>Documents Temporarily Assigned To Me</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -206,75 +211,246 @@ export const Documents: React.FC = () => {
         </Card>
       )}
 
-      <div className="grid gap-4">
-        {filteredDocuments.map((document) => {
-          return (
-            <Card key={document.id}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+      {([('admin' as const), ('hr_manager' as const)].includes(user?.role as any)) ? (
+        <Tabs defaultValue="registry">
+          <TabsList  className="grid w-full grid-cols-2 gap-2">
+            <TabsTrigger value="assigned"
+                          className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow">Assigned to Employees ({assignedDocs.length})</TabsTrigger>
+            <TabsTrigger value="registry"
+                          className="bg-yellow-600 text-white data-[state=active]:bg-yellow-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow">Registry ({registryDocs.length})</TabsTrigger>
+          </TabsList>
 
-                    <div className="bg-primary/10 p-2 rounded">
-                      <FileText className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">{document.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {document.category} • Uploaded by {document.uploadedBy}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Created at: {document.createdAt || document.uploadDate} • Uploaded by: {document.uploadedBy} • Size: {document.size}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Current Location: {document.assignedToName ? `${document.assignedToName} (${document.assignedToDepartment || '—'})` : 'Registry'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={`status-${document.status}`}>{document.status}</Badge>
-                    <Button variant="outline" size="sm" onClick={() => {
-                      const url = getDocumentUrl(document.id);
-                      if (url) window.open(url, '_blank');
-                    }} disabled={!getDocumentUrl(document.id)}>
-                      <Eye className="w-4 h-4 mr-2" />
-                      View
-                    </Button>
-                    {[('admin' as const), ('hr_manager' as const)].includes(user?.role as any) && (
-                      <Button variant="outline" size="sm" onClick={() => { setSelectedDocument(document as any); setAssignEmployeeId(''); setAssignReason(''); setAssignModalOpen(true); }}>
-                        Move / Assign
-                      </Button>
-                    )}
-                    {!document.assignedToEmployeeId && (
-                      <a
-                        href={getDocumentUrl(document.id) || '#'}
-                        download={document.name}
-                        onClick={(e) => { if (!getDocumentUrl(document.id)) e.preventDefault(); }}
-                      >
-                        <Button variant="outline" size="sm" disabled={!getDocumentUrl(document.id)}>
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      </a>
-                    )}
-                  </div>
-                </div>
-                {/* Movement Log */}
-                <div className="mt-2">
-                  <p className="text-xs font-semibold mb-1">Movement Log:</p>
-                  <ul className="text-xs text-muted-foreground">
-                    {(document.movementLog || []).map((m, idx) => (
-                      <li key={idx}>
-                        {m.date.slice(0, 19).replace('T', ' ')}: {m.action} {m.to ? `to ${m.to}` : ''} by {m.by}
-                        {m.reason ? ` (Reason: ${m.reason})` : ''}
-                        {m.remarks ? ` (Remarks: ${m.remarks})` : ''}
-                      </li>
+          <TabsContent value="assigned">
+            <Card>
+              <CardHeader>
+                <CardTitle>Assigned to Employees</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {assignedDocs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No documents are currently assigned to employees.</p>
+                ) : (
+                  <div className="grid gap-4">
+                    {assignedDocs.map((document) => (
+                      <Card key={document.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="bg-primary/10 p-2 rounded">
+                                <FileText className="w-5 h-5 text-primary" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium">{document.name}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {document.category} • Uploaded by {document.uploadedBy}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Created at: {document.createdAt || document.uploadDate} • Uploaded by: {document.uploadedBy} • Size: {document.size}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Current Location: {document.assignedToName ? `${document.assignedToName} (${document.assignedToDepartment || '—'})` : 'Registry'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={`status-${document.status}`}>{document.status}</Badge>
+                              <Button variant="outline" size="sm" onClick={() => {
+                                const url = getDocumentUrl(document.id);
+                                if (url) window.open(url, '_blank');
+                              }} disabled={!getDocumentUrl(document.id)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View
+                              </Button>
+                              {[('admin' as const), ('hr_manager' as const)].includes(user?.role as any) && (
+                                <Button variant="outline" size="sm" onClick={() => { setSelectedDocument(document as any); setAssignEmployeeId(''); setAssignReason(''); setAssignModalOpen(true); }}>
+                                  Move / Assign
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          {/* Movement Log */}
+                          <div className="mt-2">
+                            <p className="text-xs font-semibold mb-1">Movement Log:</p>
+                            <ul className="text-xs text-muted-foreground">
+                              {(document.movementLog || []).map((m, idx) => (
+                                <li key={idx}>
+                                  {m.date.slice(0, 19).replace('T', ' ')}: {m.action} {m.to ? `to ${m.to}` : ''} by {m.by}
+                                  {m.reason ? ` (Reason: ${m.reason})` : ''}
+                                  {m.remarks ? ` (Remarks: ${m.remarks})` : ''}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </ul>
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
+          </TabsContent>
+
+          <TabsContent value="registry">
+            <Card>
+              <CardHeader>
+                <CardTitle>Registry</CardTitle>
+                <p className="text-sm text-muted-foreground">All unassigned documents, including those uploaded by employees. They remain manageable here and are also visible in the employee profile.</p>
+              </CardHeader>
+              <CardContent>
+                {registryDocs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No documents in registry.</p>
+                ) : (
+                  <div className="grid gap-4">
+                    {registryDocs.map((document) => (
+                      <Card key={document.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="bg-primary/10 p-2 rounded">
+                                <FileText className="w-5 h-5 text-primary" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium">{document.name}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {document.category} • Uploaded by {document.uploadedBy}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Created at: {document.createdAt || document.uploadDate} • Uploaded by: {document.uploadedBy} • Size: {document.size}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Current Location: {document.assignedToName ? `${document.assignedToName} (${document.assignedToDepartment || '—'})` : 'Registry'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={`status-${document.status}`}>{document.status}</Badge>
+                              <Button variant="outline" size="sm" onClick={() => {
+                                const url = getDocumentUrl(document.id);
+                                if (url) window.open(url, '_blank');
+                              }} disabled={!getDocumentUrl(document.id)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View
+                              </Button>
+                              {[('admin' as const), ('hr_manager' as const)].includes(user?.role as any) && (
+                                <Button variant="outline" size="sm" onClick={() => { setSelectedDocument(document as any); setAssignEmployeeId(''); setAssignReason(''); setAssignModalOpen(true); }}>
+                                  Move / Assign
+                                </Button>
+                              )}
+                              {!document.assignedToEmployeeId && (
+                                <a
+                                  href={getDocumentUrl(document.id) || '#'}
+                                  download={document.name}
+                                  onClick={(e) => { if (!getDocumentUrl(document.id)) e.preventDefault(); }}
+                                >
+                                  <Button variant="outline" size="sm" disabled={!getDocumentUrl(document.id)}>
+                                    <Download className="w-4 h-4" />
+                                  </Button>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                          {/* Movement Log */}
+                          <div className="mt-2">
+                            <p className="text-xs font-semibold mb-1">Movement Log:</p>
+                            <ul className="text-xs text-muted-foreground">
+                              {(document.movementLog || []).map((m, idx) => (
+                                <li key={idx}>
+                                  {m.date.slice(0, 19).replace('T', ' ')}: {m.action} {m.to ? `to ${m.to}` : ''} by {m.by}
+                                  {m.reason ? ` (Reason: ${m.reason})` : ''}
+                                  {m.remarks ? ` (Remarks: ${m.remarks})` : ''}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <>
+          <h2 className="text-xl font-semibold">My document</h2>
+          {filteredDocuments.length === 0 ? (
+            <Card className="mt-2">
+              <CardContent className="p-4 text-sm text-muted-foreground">
+                No documents uploaded yet.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {filteredDocuments.map((document) => {
+                return (
+                  <Card key={document.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-primary/10 p-2 rounded">
+                            <FileText className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">{document.name}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {document.category} • Uploaded by {document.uploadedBy}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Created at: {document.createdAt || document.uploadDate} • Uploaded by: {document.uploadedBy} • Size: {document.size}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Current Location: {document.assignedToName ? `${document.assignedToName} (${document.assignedToDepartment || '—'})` : 'Registry'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={`status-${document.status}`}>{document.status}</Badge>
+                          <Button variant="outline" size="sm" onClick={() => {
+                            const url = getDocumentUrl(document.id);
+                            if (url) window.open(url, '_blank');
+                          }} disabled={!getDocumentUrl(document.id)}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            View
+                          </Button>
+                          {[('admin' as const), ('hr_manager' as const)].includes(user?.role as any) && (
+                            <Button variant="outline" size="sm" onClick={() => { setSelectedDocument(document as any); setAssignEmployeeId(''); setAssignReason(''); setAssignModalOpen(true); }}>
+                              Move / Assign
+                            </Button>
+                          )}
+                          {!document.assignedToEmployeeId && (
+                            <a
+                              href={getDocumentUrl(document.id) || '#'}
+                              download={document.name}
+                              onClick={(e) => { if (!getDocumentUrl(document.id)) e.preventDefault(); }}
+                            >
+                              <Button variant="outline" size="sm" disabled={!getDocumentUrl(document.id)}>
+                                <Download className="w-4 h-4" />
+                              </Button>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      {/* Movement Log */}
+                      <div className="mt-2">
+                        <p className="text-xs font-semibold mb-1">Movement Log:</p>
+                        <ul className="text-xs text-muted-foreground">
+                          {(document.movementLog || []).map((m, idx) => (
+                            <li key={idx}>
+                              {m.date.slice(0, 19).replace('T', ' ')}: {m.action} {m.to ? `to ${m.to}` : ''} by {m.by}
+                              {m.reason ? ` (Reason: ${m.reason})` : ''}
+                              {m.remarks ? ` (Remarks: ${m.remarks})` : ''}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
       {/* Move/Assign Modal */}
       {selectedDocument && (
         <Dialog open={assignModalOpen} onOpenChange={setAssignModalOpen}>

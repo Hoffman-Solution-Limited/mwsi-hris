@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { mockEmployees } from '@/data/mockData';
+import { mockEmployees, Employee } from '@/data/mockData';
 
-export type EmployeeRecord = typeof mockEmployees[number];
+export type EmployeeRecord = Employee;
 
 type EmployeesContextType = {
   employees: EmployeeRecord[];
