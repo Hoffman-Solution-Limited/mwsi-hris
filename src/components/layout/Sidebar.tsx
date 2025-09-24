@@ -4,7 +4,7 @@ import logo from '@/assets/logo.png';
 import {
   LayoutDashboard, Users, UserPlus, GraduationCap, Calendar,
   TrendingUp, FileText, BarChart3, Settings, Search, ShieldPlus, UserCog2, LogsIcon,
-  Building2, User, Briefcase, MapPin, AlertTriangle, List, Activity, DatabaseBackup, UserCheck2, Settings2
+  Building2, User, Briefcase, MapPin, AlertTriangle, List, Activity, DatabaseBackup, UserCheck2, Settings2, Target
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -53,8 +53,12 @@ const navGroups: NavGroup[] = [
       { path: '/Skills', label: 'Skills', icon: <List className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/employment-attributes', label: 'Employment Attributes', icon: <Settings className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/work-stations', label: 'Work Stations', icon: <Building2 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
-      { path: '/documents', label: 'Document Registry', icon: <FileText className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'employee', 'manager'] },
+      { path: '/admin/performance-templates', label: 'Performance Template', icon: <TrendingUp className="w-5 h-5" />, roles: ['admin'] },
+      { path: '/admin/department-goals', label: 'Department Goals', icon: <Target className="w-5 h-5" />, roles: ['admin'] },
+      { path: '/admin/training-management', label: 'Training Management', icon: <GraduationCap className="w-5 h-5" />, roles: ['admin'] },
       { path: '/employee-files', label: 'Employee File Tracking', icon: <FileText className="w-5 h-5" />, roles: ['admin', 'hr_manager', 'hr_staff', 'manager'] },
+      { path: '/admin/requests', label: 'Requests Management', icon: <Activity className="w-5 h-5" />, roles: ['admin'] },
+
 
     ]
   },
@@ -63,13 +67,11 @@ const navGroups: NavGroup[] = [
     items: [
       { path: '/reports', label: 'Reports & Analytics', icon: <BarChart3 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/admin/users', label: 'User Management', icon: <UserCog2 className="w-5 h-5" />, roles: ['admin'] },
-      { path: '/admin/performance-templates', label: 'Performance Template', icon: <TrendingUp className="w-5 h-5" />, roles: ['admin'] },
-      { path: '/admin/training-management', label: 'Training Management', icon: <GraduationCap className="w-5 h-5" />, roles: ['admin'] },
+      
       { path: '/admin/system-logs', label: 'System Logs', icon: <LogsIcon className="w-5 h-5" />, roles: ['admin'] },
       { path: '/admin/data', label: 'Data Management', icon: <DatabaseBackup className="w-5 h-5" />, roles: ['admin'] },
       { path: '/admin/roles', label: 'Role Configuration', icon: <UserCheck2 className="w-5 h-5" />, roles: ['admin'] },
       { path: '/admin/settings', label: 'System Settings', icon: <Settings2 className="w-5 h-5" />, roles: ['admin'] },
-      { path: '/admin/requests', label: 'Requests Management', icon: <Activity className="w-5 h-5" />, roles: ['admin'] },
     ]
   }
 ];

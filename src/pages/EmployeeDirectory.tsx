@@ -194,7 +194,7 @@ const BulkUploadCsvDialog: React.FC = () => {
                   employmentType: "Permanent",
                   jobGroup: undefined as any,
                   ethnicity: undefined as any,
-                  staffNumber: "",
+                  employeeNumber: "",
                   nationalId: "",
                   kraPin: "",
                   children: "",
@@ -233,7 +233,7 @@ const BulkUploadCsvDialog: React.FC = () => {
                     engagementType: data.employmentType,
                     jobGroup: data.jobGroup,
                     ethnicity: data.ethnicity,
-                    staffNumber: data.staffNumber,
+                    employeeNumber: (data as any).employeeNumber,
                     nationalId: data.nationalId,
                     kraPin: data.kraPin,
                     children: data.children,
@@ -442,6 +442,9 @@ const BulkUploadCsvDialog: React.FC = () => {
                             <p className="font-medium">{employee.name}</p>
                             <p className="text-xs text-muted-foreground">
                               ID: {employee.id}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Employee No: {(employee as any).employeeNumber || employee.staffNumber || '—'}
                             </p>
                           </div>
                         </div>
