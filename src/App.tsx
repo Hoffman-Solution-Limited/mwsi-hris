@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LeaveProvider } from "@/contexts/LeaveContext";
 import { DocumentProvider } from "@/contexts/DocumentContext";
 import { PerformanceProvider } from "@/contexts/PerformanceContext";
+import { DepartmentGoalsProvider } from "@/contexts/DepartmentGoalsContext";
 import { TrainingProvider } from "@/contexts/TrainingContext";
 import { UsersProvider } from "@/contexts/UsersContext";
 import { SystemCatalogProvider } from "@/contexts/SystemCatalogContext";
@@ -41,6 +42,7 @@ import RoleConfiguration from '@/pages/AdminRoleConfiguration';
 import SystemSettings from '@/pages/AdminSystemSettings';
 import DataManagement from '@/pages/AdminDataManagement';
 import AdminPerformanceTemplates from '@/pages/AdminPerformanceTemplates';
+import AdminDepartmentGoals from '@/pages/AdminDepartmentGoals';
 import AdminTrainingManagement from '@/pages/AdminTrainingManagement';
 import AdminSystemLogs from '@/pages/AdminSystemLogs';
 import WorkStationsPage from '@/pages/WorkStations';
@@ -70,6 +72,7 @@ const App = () => (
       <SystemLogsProvider>
         <LeaveProvider>
           <DocumentProvider>
+            <DepartmentGoalsProvider>
             <PerformanceProvider>
               <TrainingProvider>
                 <UsersProvider>
@@ -111,6 +114,7 @@ const App = () => (
                           <Route path="/admin/settings" element={<ProtectedRoute><Layout><SystemSettings /></Layout></ProtectedRoute>} />
                           <Route path="/admin/data" element={<ProtectedRoute><Layout><DataManagement /></Layout></ProtectedRoute>} />
                           <Route path="/admin/performance-templates" element={<ProtectedRoute><Layout><AdminPerformanceTemplates /></Layout></ProtectedRoute>} />
+                          <Route path="/admin/department-goals" element={<ProtectedRoute><Layout><AdminDepartmentGoals /></Layout></ProtectedRoute>} />
                           <Route path="/admin/training-management" element={<ProtectedRoute><Layout><AdminTrainingManagement /></Layout></ProtectedRoute>} />
                           <Route path="/admin/system-logs" element={<ProtectedRoute><Layout><AdminSystemLogs /></Layout></ProtectedRoute>} />
                           <Route path="/admin/requests" element={<ProtectedRoute><Layout><RequestsManagementPage /></Layout></ProtectedRoute>} />
@@ -127,6 +131,7 @@ const App = () => (
                 </UsersProvider>
               </TrainingProvider>
             </PerformanceProvider>
+            </DepartmentGoalsProvider>
           </DocumentProvider>
         </LeaveProvider>
       </SystemLogsProvider>

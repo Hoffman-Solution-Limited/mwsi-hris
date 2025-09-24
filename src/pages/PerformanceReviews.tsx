@@ -15,10 +15,12 @@ import { mockEmployees } from '@/data/mockData';
 import { TemplateCriteriaList } from '@/components/performance/TemplateCriteriaList';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePerformance, PerformanceTemplate, PerformanceReview } from '@/contexts/PerformanceContext';
+import { useEmployees } from '@/contexts/EmployeesContext';
 
 export const PerformanceReviews: React.FC = () => {
   const { user } = useAuth();
   const { templates, reviews, createTemplate, createReview, setEmployeeTargets, submitManagerReview, submitHrReview, updateReview } = usePerformance();
+  const { employees } = useEmployees();
   const [activeTab, setActiveTab] = useState('active');
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,9 +91,9 @@ export const PerformanceReviews: React.FC = () => {
   };
 
   // HR Assign: helper to select all employees
-  const handleSelectAllEmployees = (checked: boolean) => {
+  const handleSelectAllEmployees = (checked: boolean, pool: { id: string }[]) => {
     if (checked) {
-      setSelectedEmployees(mockEmployees.map(emp => emp.id));
+      setSelectedEmployees(pool.map(emp => emp.id));
     } else {
       setSelectedEmployees([]);
     }
@@ -134,6 +136,28 @@ export const PerformanceReviews: React.FC = () => {
   // HR Assign: multi-employee selection and deadline
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [deadlineDate, setDeadlineDate] = useState('');
+  // HR Assign: department selection to auto-select employees
+  const departments = useMemo(() => Array.from(new Set(employees.map(e => e.department))), [employees]);
+  const [assignDepartment, setAssignDepartment] = useState<string>('all');
+  const employeesByDept = useMemo(() => assignDepartment === 'all' ? employees : employees.filter(e => e.department === assignDepartment), [employees, assignDepartment]);
+  // Filter templates by department for assignment; allow global (no department) templates when a department is chosen
+  const filteredTemplates = useMemo(() => {
+    if (assignDepartment === 'all') return templates;
+    return templates.filter(t => !t.department || t.department === assignDepartment);
+  }, [templates, assignDepartment]);
+  const selectedTemplate = useMemo(() => templates.find(t => t.id === reviewForm.templateId), [templates, reviewForm.templateId]);
+  const templateDeptMismatch = useMemo(() => {
+    if (assignDepartment === 'all' || !selectedTemplate) return false;
+    return !!(selectedTemplate.department && selectedTemplate.department !== assignDepartment);
+  }, [assignDepartment, selectedTemplate]);
+  useEffect(() => {
+    // when department changes, auto-select all employees in that department
+    if (assignDepartment === 'all') {
+      setSelectedEmployees([]);
+    } else {
+      setSelectedEmployees(employees.filter(e => e.department === assignDepartment).map(e => e.id));
+    }
+  }, [assignDepartment, employees]);
 
   const createNewReview = () => {
     if (!user) return;
@@ -145,11 +169,12 @@ export const PerformanceReviews: React.FC = () => {
     if (employeeIds.length === 0) return;
 
     employeeIds.forEach(empId => {
-      const employee = mockEmployees.find(emp => emp.id === empId);
+      const employee = employees.find(emp => emp.id === empId) || mockEmployees.find(emp => emp.id === empId);
       if (!employee) return;
       createReview({
         employeeId: empId,
         employeeName: employee.name,
+        employeeNumber: (employee as any).employeeNumber,
         templateId: reviewForm.templateId,
         reviewPeriod: reviewForm.reviewPeriod,
         status: 'draft',
@@ -530,14 +555,24 @@ const handleSubmitToManager = () => {
                       <label className="text-sm font-medium">Template</label>
                       <Select value={reviewForm.templateId} onValueChange={(v) => setReviewForm(prev => ({ ...prev, templateId: v }))}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select template" />
+                          <SelectValue placeholder={assignDepartment !== 'all' ? `Templates for ${assignDepartment} (or global)` : 'Select template'} />
                         </SelectTrigger>
                         <SelectContent>
-                          {templates.map(template => (
-                            <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                          {filteredTemplates.map(template => (
+                            <SelectItem key={template.id} value={template.id}>
+                              {template.name}
+                              {template.department && (
+                                <span className="ml-2 text-xs text-muted-foreground">• {template.department}</span>
+                              )}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      {templateDeptMismatch && (
+                        <div className="text-xs text-destructive mt-1">
+                          Selected template is scoped to "{selectedTemplate?.department}" which does not match selected department "{assignDepartment}".
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium">Review Period</label>
@@ -717,19 +752,35 @@ const handleSubmitToManager = () => {
                       />
                     </div>
                   </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Department</label>
+                      <Select value={assignDepartment} onValueChange={setAssignDepartment}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Departments" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Departments</SelectItem>
+                          {departments.map((dept) => (
+                            <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-medium">Select Employees</h4>
                       <div className="flex items-center gap-2">
                         <Checkbox
-                          checked={selectedEmployees.length === mockEmployees.length}
-                          onCheckedChange={handleSelectAllEmployees}
+                          checked={employeesByDept.length > 0 && selectedEmployees.length === employeesByDept.length}
+                          onCheckedChange={(checked) => handleSelectAllEmployees(!!checked, employeesByDept)}
                         />
                         <span className="text-sm">Select All</span>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
-                      {mockEmployees.map((emp) => (
+                      {employeesByDept.map((emp) => (
                         <div key={emp.id} className="flex items-center gap-3 p-3 border rounded-lg">
                           <Checkbox
                             checked={selectedEmployees.includes(emp.id)}
@@ -797,6 +848,7 @@ const handleSubmitToManager = () => {
                             <h4 className="font-medium">{review.employeeName}</h4>
                             <p className="text-sm text-muted-foreground">{review.reviewPeriod} • {template?.name}</p>
                             <p className="text-sm text-muted-foreground">Department: {employee?.department}</p>
+                            <p className="text-sm text-muted-foreground">Employee No: {(employee as any)?.employeeNumber || '-'}</p>
                             {review.deadlineDate && (
                               <p className="text-sm text-muted-foreground">Deadline: {new Date(review.deadlineDate).toLocaleDateString()}</p>
                             )}
