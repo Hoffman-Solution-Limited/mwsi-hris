@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, TrendingUp, Star, Calendar, Eye, Clock, CheckCircle, Users, Target, Edit } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import { usePerformance, PerformanceTemplate, PerformanceReview } from '@/contex
 import { useEmployees } from '@/contexts/EmployeesContext';
 
 export const PerformanceReviews: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { templates, reviews, createTemplate, createReview, setEmployeeTargets, submitManagerReview, submitHrReview, updateReview } = usePerformance();
   const { employees } = useEmployees();
@@ -419,109 +421,7 @@ const handleSubmitToManager = () => {
                 </DialogContent>
               </Dialog>
 
-      {/* View Details Dialog (read-only) */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Review Details</DialogTitle>
-            <DialogDescription>Summary of targets, scores and template criteria.</DialogDescription>
-          </DialogHeader>
-          {selectedReview && (
-            <div className="space-y-4">
-              {(() => {
-                const template = templates.find(t => t.id === selectedReview.templateId);
-                return (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Left: Summary, Template, Targets */}
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="font-medium">Employee: {selectedReview.employeeName}</p>
-                          <p className="text-sm text-muted-foreground">Period: {selectedReview.reviewPeriod}</p>
-                          <p className="text-sm text-muted-foreground capitalize">Status: {selectedReview.status.replace('_',' ')}</p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Template: {template?.name || '-'}</p>
-                          <p className="text-sm text-muted-foreground">Type: {template?.type || '-'}</p>
-                          {selectedReview.overallScore !== undefined && (
-                            <p className="text-sm text-muted-foreground">Overall: {selectedReview.overallScore?.toFixed(1)}/5.0</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {template && <TemplateCriteriaList template={template} />}
-
-                      {selectedReview.employeeTargets && selectedReview.employeeTargets.length > 0 && (
-                        <div>
-                          <p className="font-medium mb-2">Employee Targets</p>
-                          <div className="space-y-2">
-                            {selectedReview.employeeTargets.map((t, idx) => {
-                              const c = template?.criteria.find(c => c.id === t.criteriaId);
-                              return (
-                                <div key={idx} className="bg-muted/30 p-3 rounded">
-                                  <p className="text-sm font-medium">{c?.name || 'Target'}</p>
-                                  <p className="text-sm">{t.target}</p>
-                                  {t.description && <p className="text-xs text-muted-foreground mt-1">{t.description}</p>}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Right: Manager/HR Scores */}
-                    <div className="space-y-4">
-                      {selectedReview.managerScores && selectedReview.managerScores.length > 0 && (
-                        <div>
-                          <p className="font-medium mb-2">Manager Scores</p>
-                          <div className="space-y-2">
-                            {selectedReview.managerScores.map((s, idx) => {
-                              const c = template?.criteria.find(c => c.id === s.criteriaId);
-                              return (
-                                <div key={idx} className="p-3 border rounded">
-                                  <div className="flex justify-between text-sm">
-                                    <span>{c?.name || 'Criteria'}</span>
-                                    <span>{s.score}/5</span>
-                                  </div>
-                                  {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {selectedReview.hrScores && selectedReview.hrScores.length > 0 && (
-                        <div>
-                          <p className="font-medium mb-2">HR Scores</p>
-                          <div className="space-y-2">
-                            {selectedReview.hrScores.map((s, idx) => {
-                              const c = template?.criteria.find(c => c.id === s.criteriaId);
-                              return (
-                                <div key={idx} className="p-3 border rounded">
-                                  <div className="flex justify-between text-sm">
-                                    <span>{c?.name || 'Criteria'}</span>
-                                    <span>{s.score}/5</span>
-                                  </div>
-                                  {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* View Details now handled as a separate route */}
               
               <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
               {["admin"].includes(user?.role) && (
@@ -771,13 +671,19 @@ const handleSubmitToManager = () => {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-medium">Select Employees</h4>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-6">
                         <Checkbox
                           checked={employeesByDept.length > 0 && selectedEmployees.length === employeesByDept.length}
                           onCheckedChange={(checked) => handleSelectAllEmployees(!!checked, employeesByDept)}
                         />
                         <span className="text-sm">Select All</span>
+                          <div>                       <Button onClick={createNewReview} disabled={!reviewForm.templateId || selectedEmployees.length === 0}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Assign to {selectedEmployees.length || 0} Employee{selectedEmployees.length === 1 ? '' : 's'}
+                  </Button></div>
+                        
                       </div>
+
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
                       {employeesByDept.map((emp) => (
@@ -800,10 +706,7 @@ const handleSubmitToManager = () => {
                       ))}
                     </div>
                   </div>
-                  <Button onClick={createNewReview} disabled={!reviewForm.templateId || selectedEmployees.length === 0}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Assign to {selectedEmployees.length || 0} Employee{selectedEmployees.length === 1 ? '' : 's'}
-                  </Button>
+
                 </div>
               </CardContent>
             </Card>
@@ -873,186 +776,18 @@ const handleSubmitToManager = () => {
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium">Manager Score: {review.overallScore?.toFixed(1)}/5.0</p>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="mt-2" onClick={() => {
-                                  setSelectedReview(review);
-                                  setEditComments(review.hrComments || '');
-                                  setEditScore(review.overallScore || '');
-                                  // Initialize HR per-criteria scores from template if available
-                                  const tpl = templates.find(t => t.id === review.templateId);
-                                  if (tpl) {
-                                    const existing = review.hrScores || [];
-                                    setHrScoresDraft(tpl.criteria.map(c => {
-                                      const match = existing.find(s => s.criteriaId === c.id);
-                                      return { criteriaId: c.id, score: match?.score || 0, comments: match?.comments || '' };
-                                    }));
-                                  } else {
-                                    setHrScoresDraft([]);
-                                  }
-                                }}>
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  Review & Approve
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-3xl md:max-w-4xl">
-                                <DialogHeader>
-                                  <DialogTitle>HR Review - {review.employeeName}</DialogTitle>
-                                  <DialogDescription>
-                                    Review the manager's evaluation and provide final HR comments
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <p className="font-medium">Employee: {review.employeeName}</p>
-                                      <p className="text-sm text-muted-foreground">Period: {review.reviewPeriod}</p>
-                                      <p className="text-sm text-muted-foreground">Department: {employee?.department}</p>
-                                    </div>
-                                    <div>
-                                      <p className="font-medium">Manager Score: {review.overallScore?.toFixed(1)}/5.0</p>
-                                      <div className="mt-1">
-                                        <Badge variant="outline" className={dueBadgeClass}>
-                                          {days === undefined
-                                            ? 'No deadline'
-                                            : days < 0
-                                            ? `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'}`
-                                            : days === 0
-                                            ? 'Due today'
-                                            : `Due in ${days} day${days === 1 ? '' : 's'}`}
-                                        </Badge>
-                                      </div>
-                                      {review.deadlineDate && (
-                                        <p className="text-sm text-muted-foreground mt-1">Deadline: {new Date(review.deadlineDate).toLocaleDateString()}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                  {/* Unified template criteria view (collapsible) */}
-                                  <details className="rounded border bg-muted/20">
-                                    <summary className="cursor-pointer px-3 py-2 font-medium">Template Criteria</summary>
-                                    <div className="p-3">
-                                      <TemplateCriteriaList template={template} />
-                                    </div>
-                                  </details>
-
-                                  {/* Manager per-criteria scores (read-only, collapsible) */}
-                                  {review.managerScores && review.managerScores.length > 0 && (
-                                    <details className="rounded border">
-                                      <summary className="cursor-pointer px-3 py-2 font-medium">Manager Scores</summary>
-                                      <div className="space-y-2 p-3">
-                                        {review.managerScores.map((s, idx) => {
-                                          const c = template?.criteria.find(c => c.id === s.criteriaId);
-                                          return (
-                                            <div key={idx} className="p-3 border rounded">
-                                              <div className="flex justify-between text-sm">
-                                                <span>{c?.name || 'Criteria'}</span>
-                                                <span>{s.score}/5</span>
-                                              </div>
-                                              {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </details>
-                                  )}
-
-                                  {/* HR per-criteria scoring (collapsible) */}
-                                  {template && (
-                                    <details open className="rounded border">
-                                      <summary className="cursor-pointer px-3 py-2 font-medium">HR Scores</summary>
-                                      <div className="space-y-3 p-3">
-                                        {template.criteria.map((c, idx) => (
-                                          <div key={c.id} className="grid grid-cols-12 gap-2 items-center">
-                                            <div className="col-span-6 text-sm">{c.name}</div>
-                                            <Input
-                                              className="col-span-2"
-                                              type="number"
-                                              min={1}
-                                              max={5}
-                                              value={hrScoresDraft[idx]?.score ?? 0}
-                                              onChange={(e) => {
-                                                const v = Math.max(0, Math.min(5, Number(e.target.value) || 0));
-                                                setHrScoresDraft(prev => {
-                                                  const copy = [...prev];
-                                                  copy[idx] = { ...copy[idx], criteriaId: c.id, score: v };
-                                                  return copy;
-                                                });
-                                              }}
-                                            />
-                                            <Textarea
-                                              className="col-span-4"
-                                              placeholder="Comments"
-                                              value={hrScoresDraft[idx]?.comments ?? ''}
-                                              onChange={(e) => {
-                                                const v = e.target.value;
-                                                setHrScoresDraft(prev => {
-                                                  const copy = [...prev];
-                                                  copy[idx] = { ...copy[idx], criteriaId: c.id, comments: v, score: copy[idx]?.score ?? 0 };
-                                                  return copy;
-                                                });
-                                              }}
-                                              rows={2}
-                                            />
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </details>
-                                  )}
-                                  
-                                  {review.employeeTargets && review.employeeTargets.length > 0 && (
-                                    <div>
-                                      <p className="font-medium mb-2">Employee Targets:</p>
-                                      <div className="space-y-2">
-                                        {review.employeeTargets.map((target, idx) => {
-                                          const criteria = template?.criteria.find(c => c.id === target.criteriaId);
-                                          return (
-                                            <div key={idx} className="bg-muted/30 p-3 rounded">
-                                              <p className="font-medium text-sm">{criteria?.name}</p>
-                                              <p className="text-sm">{target.target}</p>
-                                              {target.description && <p className="text-xs text-muted-foreground">{target.description}</p>}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {review.managerComments && (
-                                    <div>
-                                      <p className="font-medium mb-2">Manager Comments:</p>
-                                      <div className="bg-muted/30 p-3 rounded">
-                                        <p className="text-sm">{review.managerComments}</p>
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  <div>
-                                    <label className="font-medium block mb-2">HR Final Comments:</label>
-                                    <Textarea 
-                                      value={editComments}
-                                      onChange={(e) => setEditComments(e.target.value)}
-                                      placeholder="Provide final HR review comments..."
-                                      rows={4}
-                                    />
-                                  </div>
-                                </div>
-                                <DialogFooter>
-                                  <Button variant="outline" onClick={() => setSelectedReview(null)}>
-                                    Cancel
-                                  </Button>
-                                  <Button onClick={() => {
-                                    if (selectedReview) {
-                                      submitHrReview(selectedReview.id, hrScoresDraft, editComments);
-                                      setSelectedReview(null);
-                                      setEditComments('');
-                                      setHrScoresDraft([]);
-                                    }
-                                  }}>
-                                    Approve & Complete Review
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
+<div className="text-right">
+  <p className="text-sm font-medium">Manager Score: {review.overallScore?.toFixed(1)}/5.0</p>
+  <Button
+    variant="outline"
+    size="sm"
+    className="mt-2"
+    onClick={() => navigate(`/performance/reviews/${review.id}/hr`)}
+  >
+    <Eye className="w-4 h-4 mr-2" />
+    Review & Approve
+  </Button>
+</div>
                           </div>
                         </div>
                       </div>
@@ -1136,18 +871,12 @@ const handleSubmitToManager = () => {
                           <div className="flex gap-2">
                             <Dialog>
                               <DialogTrigger asChild>
-                                <Button 
-                                  className="bg-green-600 hover:bg-green-700 text-white"
-                                  onClick={() => {
-                                    setSelectedReview(review);
-                                    setEditComments(review.managerComments || '');
-                                    setEditScore(review.overallScore || '');
-                                    setEditMode(true);
-                                  }}
-                                >
-                                  <Edit className="w-4 h-4 mr-2" />
-                                  Review & Score
-                                </Button>
+                              <Button
+  className="bg-blue-600 text-white hover:bg-blue-700"
+  onClick={() => navigate(`/performance/reviews/${review.id}/manager`)}
+>
+  Review & Approve
+</Button>
                               </DialogTrigger>
                               <DialogContent className="max-w-3xl md:max-w-4xl">
                                 <DialogHeader>
@@ -1349,7 +1078,7 @@ const handleSubmitToManager = () => {
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  onClick={() => { setSelectedReview(review); setViewDialogOpen(true); }}
+                                  onClick={() => navigate(`/performance/reviews/${review.id}`)}
                                 >
                                   View Details
                                 </Button>
