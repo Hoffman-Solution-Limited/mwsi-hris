@@ -28,8 +28,7 @@ import {
 } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePerformance } from '@/contexts/PerformanceContext';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { EditProfileForm } from "@/components/EditProfileForm"
+ 
 import { useDocuments } from '@/contexts/DocumentContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
 import { Input } from '@/components/ui/input';
@@ -139,13 +138,12 @@ export const EmployeeProfile: React.FC = () => {
                   <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
                     {employee.status}
                   </Badge>
-                  <Badge variant="outline">ID: {employee.id}</Badge>
                   <Badge variant="outline">Employee No: {(employee as any).employeeNumber || '—'}</Badge>
                   {employee.cadre && (
                     <Badge variant="outline" className="capitalize">{employee.cadre}</Badge>
                   )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-muted-foreground" />
                     <span>{employee.email}</span>
@@ -171,79 +169,10 @@ export const EmployeeProfile: React.FC = () => {
             </div>
             {(['hr_manager', 'hr_staff'].includes(user?.role || '')) && (
               <div className="flex gap-2">
-               <Dialog>
-  <DialogTrigger asChild>
-    <Button variant="outline" size="sm">
-      <Edit className="w-4 h-4 mr-2" />
-      Edit Profile
-    </Button>
-  </DialogTrigger>
-  <DialogContent className="sm:max-w-4xl">
-    <DialogHeader>
-      <DialogTitle>Edit Employee Profile</DialogTitle>
-    </DialogHeader>
-                    <EditProfileForm 
-                      defaultValues={{
-                        name: employee.name,
-                        email: employee.email,
-                        phone: employee.phone,
-                        position: employee.position,
-                        department: employee.department,
-                        gender: employee.gender,
-                        cadre: employee.cadre as any,
-                        employmentType: employee.employmentType,
-                        jobGroup: (employee as any).jobGroup,
-                        ethnicity: (employee as any).ethnicity,
-                        nationalId: employee.nationalId,
-                        kraPin: employee.kraPin,
-                        children: employee.children,
-                        workCounty: employee.workCounty,
-                        homeCounty: employee.homeCounty,
-                        postalAddress: employee.postalAddress,
-                        postalCode: employee.postalCode,
-                        stationName: employee.stationName,
-                        skillLevel: employee.skillLevel,
-                        company: employee.company,
-                        dateOfBirth: employee.dateOfBirth,
-                        hireDate: employee.hireDate,
-                        emergencyContact: employee.emergencyContact,
-                        salary: employee.salary,
-                        status: employee.status
-                      }}
-      onSave={(data) => {
-        // Persist updates to Employees store so they reflect across the app
-        updateEmployee(employee.id, {
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          position: data.position,
-          department: data.department,
-          gender: data.gender,
-          cadre: data.cadre as any,
-          employmentType: data.employmentType,
-          engagementType: data.employmentType,
-          jobGroup: (data as any).jobGroup,
-          ethnicity: (data as any).ethnicity,
-          nationalId: data.nationalId,
-          kraPin: data.kraPin,
-          children: data.children,
-          workCounty: data.workCounty,
-          homeCounty: data.homeCounty,
-          postalAddress: data.postalAddress,
-          postalCode: data.postalCode,
-          stationName: data.stationName,
-          skillLevel: data.skillLevel,
-          company: data.company,
-          dateOfBirth: data.dateOfBirth,
-          hireDate: data.hireDate,
-          emergencyContact: data.emergencyContact,
-          salary: data.salary,
-          status: data.status,
-        });
-      }}
-    />
-  </DialogContent>
-</Dialog>
+                <Button variant="outline" size="sm" onClick={() => navigate(`/employees/${employee.id}/edit`)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
 
                 <Button variant="outline" size="sm">
                   <Download className="w-4 h-4 mr-2" />

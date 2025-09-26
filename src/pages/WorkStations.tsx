@@ -24,7 +24,7 @@ type StationRow = {
 const WorkStationsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [newStation, setNewStation] = useState('');
-  const { stations, addStation } = useSystemCatalog();
+  const { stations, addStation, removeStation } = useSystemCatalog();
   const { employees } = useEmployees();
 
   const allStations: StationRow[] = useMemo(() => {
@@ -101,6 +101,7 @@ const WorkStationsPage: React.FC = () => {
                   <th>Station</th>
                   <th>Employee Count</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -112,6 +113,17 @@ const WorkStationsPage: React.FC = () => {
                       <Badge variant={s.employeeCount > 0 ? 'default' : 'secondary'}>
                         {s.employeeCount > 0 ? 'Active' : 'Unassigned'}
                       </Badge>
+                    </td>
+                    <td>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={s.employeeCount > 0}
+                        onClick={() => removeStation(s.name)}
+                        title={s.employeeCount > 0 ? 'Cannot delete: has employees' : 'Delete station'}
+                      >
+                        Delete
+                      </Button>
                     </td>
                   </tr>
                 ))}
