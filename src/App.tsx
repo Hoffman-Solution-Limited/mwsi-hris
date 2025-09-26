@@ -29,12 +29,18 @@ import { LeaveManagement } from "@/pages/LeaveManagement";
 import { PerformanceReviews } from "@/pages/PerformanceReviews";
 import { Documents } from "@/pages/Documents";
 import { Reports } from "@/pages/Reports";
+import AddEmployeePage from "@/pages/AddEmployee";
+import EditEmployeePage from "@/pages/EditEmployee";
+import PerformanceReviewDetails from "@/pages/PerformanceReviewDetails";
+import HrReviewPage from "@/pages/HrReviewPage";
+import ManagerReviewPage from "@/pages/ManagerReviewPage";
 import { Admin } from "@/pages/Admin";
 import { DesignationPage } from "@/pages/Designation";
 import {SkillsPage} from "@/pages/Skills";
+import { EmployeeByCounty } from "@/pages/EmployeeByCounty";
 import ApplyLeave from "@/pages/ApplyLeave";
 import ManagerApplyLeave from "@/pages/ManagerApplyLeave";
-import { EmployeeByCounty } from "@/pages/EmployeeByCounty";
+ 
 import { DisciplinaryCases } from "@/pages/DisciplinaryCases";
 import { ForgotPasswordPage } from "@/components/auth/ForgotPasswordPage";
 import AdminUserManagement from '@/pages/AdminUserManagement';
@@ -91,11 +97,16 @@ const App = () => (
                           <Route path="/search" element={<ProtectedRoute><Layout><GlobalSearch /></Layout></ProtectedRoute>} />
                           <Route path="/employees" element={<ProtectedRoute><Layout><EmployeeDirectory /></Layout></ProtectedRoute>} />
                           <Route path="/employees/:id" element={<ProtectedRoute><Layout><EmployeeProfile /></Layout></ProtectedRoute>} />
+                          <Route path="/employees/new" element={<ProtectedRoute><Layout><AddEmployeePage /></Layout></ProtectedRoute>} />
+                          <Route path="/employees/:id/edit" element={<ProtectedRoute><Layout><EditEmployeePage /></Layout></ProtectedRoute>} />
                           <Route path="/profile" element={<ProtectedRoute><Layout><EmployeeProfile /></Layout></ProtectedRoute>} />
                           <Route path="/recruitment" element={<ProtectedRoute><Layout><Recruitment /></Layout></ProtectedRoute>} />
                           <Route path="/training" element={<ProtectedRoute><Layout><Training /></Layout></ProtectedRoute>} />
                           <Route path="/leave" element={<ProtectedRoute><Layout><LeaveManagement /></Layout></ProtectedRoute>} />
                           <Route path="/performance" element={<ProtectedRoute><Layout><PerformanceReviews /></Layout></ProtectedRoute>} />
+                          <Route path="/performance/reviews/:id" element={<ProtectedRoute><Layout><PerformanceReviewDetails /></Layout></ProtectedRoute>} />
+                          <Route path="/performance/reviews/:id/hr" element={<ProtectedRoute><Layout><HrReviewPage /></Layout></ProtectedRoute>} />
+                          <Route path="/performance/reviews/:id/manager" element={<ProtectedRoute><Layout><ManagerReviewPage /></Layout></ProtectedRoute>} />
                           <Route path="/hr-performance-filled" element={<ProtectedRoute><Layout><HRPerformanceFilledList /></Layout></ProtectedRoute>} />
                           <Route path="/documents" element={<ProtectedRoute><Layout><Documents /></Layout></ProtectedRoute>} />
                           <Route path="/employee-files" element={<ProtectedRoute><Layout><DocumentTrackingPage /></Layout></ProtectedRoute>} />

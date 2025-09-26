@@ -298,8 +298,20 @@ export function EmployeeForm({
             </div>
 
             <div>
-              <Label htmlFor="department">Department *</Label>
-              <Input id="department" {...register("department", { required: "Department is required" })} />
+              <Label htmlFor="department">Department (Work Station) *</Label>
+              <Select
+                value={watch("department")}
+                onValueChange={(value) => setValue("department", value, { shouldValidate: true })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Work Station" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stations.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.department && <p className="text-destructive text-sm">{errors.department.message}</p>}
             </div>
 
@@ -383,23 +395,6 @@ export function EmployeeForm({
                 </SelectContent>
               </Select>
               {errors.skillLevel && <p className="text-destructive text-sm">{errors.skillLevel.message}</p>}
-            </div>
-
-            <div>
-              <Label htmlFor="stationName">Station Name</Label>
-              <Select
-                value={watch("stationName")}
-                onValueChange={(value) => setValue("stationName", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select station" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stations.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </div>
