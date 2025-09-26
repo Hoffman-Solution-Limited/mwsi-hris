@@ -79,24 +79,44 @@ const RequestsManagementPage: React.FC = () => {
             <div className="text-sm text-muted-foreground">No pending requests.</div>
           ) : (
             <div className="space-y-2">
-              {filtered.map(r => (
-                <div key={r.id} className="p-3 border rounded flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">Employee File: {r.employeeId}</div>
-                    <div className="text-xs text-muted-foreground">Requested by {r.requestedByName} • {r.createdAt.slice(0,19).replace('T',' ')}</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={`status-${r.status}`}>{r.status}</Badge>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      const requester = employees.find(e => e.id === r.requestedByUserId) || employees.find(e => e.name === r.requestedByName);
-                      const suggested = requester?.stationName || 'Registry Office';
-                      setApproveModal({ open: true, requestId: r.id, toLocation: suggested, comment: '' });
-                    }}>Approve</Button>
-                    <Button size="sm" variant="outline" onClick={() => setRejectModal({ open: true, requestId: r.id, reason: '' })}>Reject</Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                {filtered.map(r => {
+                  const emp = employees.find(e => e.id === r.employeeId);
+                  const empNo = (emp as any)?.employeeNumber || r.employeeId;
+                  return (
+                    <div key={r.id} className="p-3 border rounded flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">Employee File: {empNo}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Requested by {r.requestedByName} • {r.createdAt.slice(0,19).replace('T',' ')}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={`status-${r.status}`}>{r.status}</Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const requester =
+                              employees.find(e => e.id === r.requestedByUserId) ||
+                              employees.find(e => e.name === r.requestedByName);
+                            const suggested = requester?.stationName || 'Registry Office';
+                            setApproveModal({ open: true, requestId: r.id, toLocation: suggested, comment: '' });
+                          }}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setRejectModal({ open: true, requestId: r.id, reason: '' })}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+                            </div>
           )}
         </CardContent>
       </Card>
