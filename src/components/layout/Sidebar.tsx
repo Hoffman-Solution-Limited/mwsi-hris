@@ -33,7 +33,7 @@ const navGroups: NavGroup[] = [
       { path: '/', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
       { path: '/search', label: 'Global Search', icon: <Search className="w-5 h-5" /> },
       { path: '/profile', label: 'My Profile', icon: <User className="w-5 h-5" />, roles: ['employee', 'manager'] },
-      { path: '/my-files', label: 'My Files', icon: <FileText className="w-5 h-5" />, roles: ['employee'] },
+      { path: '/my-files', label: 'My Files', icon: <FileText className="w-5 h-5" />, roles: ['employee', 'manager'] },
       { path: '/manager-apply-leave', label: 'Apply for Leave', icon: (<Calendar className='w-5 h-5' />), roles: ['manager' ,'employee']},
       { path: '/training', label: 'Training & CPD', icon: <GraduationCap className="w-5 h-5" />, roles: [ 'manager'] },
 
@@ -55,11 +55,16 @@ const navGroups: NavGroup[] = [
       { path: '/work-stations', label: 'Work Stations', icon: <Building2 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/admin/performance-templates', label: 'Performance Template', icon: <TrendingUp className="w-5 h-5" />, roles: ['admin'] },
       { path: '/admin/department-goals', label: 'Department Goals', icon: <Target className="w-5 h-5" />, roles: ['admin'] },
-      { path: '/admin/training-management', label: 'Training Management', icon: <GraduationCap className="w-5 h-5" />, roles: ['admin'] },
+      { path: '/admin/training-management', label: 'Training Management', icon: <GraduationCap className="w-5 h-5" />, roles: ['admin'] }
+
+
+    ]
+  },
+  {
+    title: "Document",
+    items: [
       { path: '/employee-files', label: 'Employee File Tracking', icon: <FileText className="w-5 h-5" />, roles: ['admin', 'hr_manager', 'hr_staff', 'manager'] },
       { path: '/admin/requests', label: 'File Requests Management', icon: <Activity className="w-5 h-5" />, roles: ['admin'] },
-
-
     ]
   },
   {
@@ -100,6 +105,12 @@ const groupTitleMap: Record<string, Record<string, string>> = {
     hr_manager: "Reports",
     hr_staff: "Reports",
     admin: "System Administration"
+  },
+  "Document":{
+    admin: "File Management",
+    manager: "File Management",
+    hr_manager: "File Management",
+    hr_staff: "File Management"
   }
 };
 
