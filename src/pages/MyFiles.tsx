@@ -4,14 +4,18 @@ import { useFileTracking } from '@/contexts/FileTrackingContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useEmployees } from '@/contexts/EmployeesContext';
 
 const MyFilesPage: React.FC = () => {
   const { user } = useAuth();
   const { getFileByEmployeeId } = useFileTracking();
+  const { employees } = useEmployees();
 
   if (!user) return null;
 
   const myFile = getFileByEmployeeId(user.id);
+  const emp = employees.find(e => e.id === myFile?.employeeId);
+  const empNo = emp?.employeeNumber || myFile?.employeeId;
 
   return (
     <div className="space-y-6">
@@ -37,7 +41,7 @@ const MyFilesPage: React.FC = () => {
                 <div className="space-y-3">
                   <div className="p-3 border rounded flex items-center justify-between">
                     <div>
-                      <div className="font-medium">Employee File: {myFile.employeeId}</div>
+                      <div className="font-medium">Employee File: {empNo}</div>
                       <div className="text-xs text-muted-foreground">Current Location: {myFile.currentLocation} {myFile.assignedUserName ? `• Holder: ${myFile.assignedUserName}` : ''}</div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -45,10 +49,10 @@ const MyFilesPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="p-3 border rounded">
-                    <div className="text-sm font-medium mb-1">Default Documents (placeholders)</div>
+                    <div className="text-sm font-medium mb-1">Default Documents</div>
                     <ul className="list-disc list-inside text-sm text-muted-foreground">
                       {myFile.defaultDocuments.map((d) => (
-                        <li key={d}>{`${myFile.employeeId}_${d}`}</li>
+                        <li key={d}>{empNo}_{d}</li>
                       ))}
                     </ul>
                   </div>
@@ -75,3 +79,4 @@ const MyFilesPage: React.FC = () => {
 };
 
 export default MyFilesPage;
+
