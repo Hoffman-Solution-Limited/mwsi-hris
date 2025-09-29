@@ -89,7 +89,7 @@ const DocumentTrackingPage: React.FC = () => {
         <div className="md:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>Find Employee</CardTitle>
+              <CardTitle>Find Employee to see file location</CardTitle>
             </CardHeader>
             <CardContent>
               <Input placeholder="Search by Employee ID, Name, or Employee No" value={employeeFilter} onChange={e => setEmployeeFilter(e.target.value)} />
@@ -149,7 +149,7 @@ const DocumentTrackingPage: React.FC = () => {
                               </div>
                             </div>
                             <div className="p-3 border rounded">
-                              <div className="text-sm font-medium mb-1">Default Documents (placeholders)</div>
+                              <div className="text-sm font-medium mb-1">Default Documents</div>
                               <ul className="list-disc list-inside text-sm text-muted-foreground">
                                 {file.defaultDocuments.map((d) => {
                                   const emp = employees.find(e => e.id === file.employeeId);

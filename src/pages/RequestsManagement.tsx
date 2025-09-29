@@ -62,7 +62,7 @@ const RequestsManagementPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Requests Management</h1>
+          <h1 className="text-3xl font-bold">File Requests Management</h1>
           <p className="text-muted-foreground">Pending employee file requests. Approve and route files to destinations.</p>
         </div>
         <div className="w-64">
