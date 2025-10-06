@@ -105,6 +105,32 @@ const ManagerReviewPage: React.FC = () => {
             </div>
           )}
 
+          {review.employeeScores && review.employeeScores.length > 0 && (
+            <div className="space-y-2">
+              <p className="font-medium">Employee Self-Appraisal Scores</p>
+              <div className="space-y-2">
+                {review.employeeScores.map((s, idx) => {
+                  const c = template?.criteria.find(c => c.id === s.criteriaId);
+                  return (
+                    <div key={idx} className="p-3 border rounded bg-blue-50">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium">{c?.name || 'Criteria'}</span>
+                        <span className="font-semibold text-blue-700">{s.score}/5</span>
+                      </div>
+                      {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
+                    </div>
+                  );
+                })}
+                {review.employeeSelfComments && (
+                  <div className="p-3 bg-blue-50 rounded">
+                    <p className="text-sm font-medium">Employee Overall Comments</p>
+                    <p className="text-sm">{review.employeeSelfComments}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-3">
             <p className="font-medium">Per-criteria Manager Scores</p>
             <div className="space-y-2">

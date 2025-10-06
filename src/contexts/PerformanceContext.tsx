@@ -30,6 +30,7 @@ export interface PerformanceReview {
     | 'draft'
     | 'targets_set'
     | 'manager_review'
+    | 'employee_ack'
     | 'hr_review'
     | 'in_review'
     | 'completed';
@@ -49,6 +50,11 @@ export interface PerformanceReview {
 
   // ✅ Added for self-appraisal comments
   employeeSelfComments?: string;
+
+  // ✅ Employee acknowledgment of manager review
+  employeeAckStatus?: 'accepted' | 'declined';
+  employeeAckComments?: string;
+  employeeAckDate?: string;
 
   managerScores?: {
     criteriaId: string;
@@ -90,6 +96,11 @@ type PerformanceContextType = {
   submitHrReview: (
     reviewId: string,
     scores: PerformanceReview['hrScores'],
+    comments: string
+  ) => void;
+  submitEmployeeAcknowledgment: (
+    reviewId: string,
+    status: 'accepted' | 'declined',
     comments: string
   ) => void;
 };
@@ -181,6 +192,19 @@ export const PerformanceProvider: React.FC<{ children: React.ReactNode }> = ({
       managerScores: scores,
       managerComments: comments,
       overallScore,
+      status: 'employee_ack',
+    });
+  };
+
+  const submitEmployeeAcknowledgment = (
+    reviewId: string,
+    status: 'accepted' | 'declined',
+    comments: string
+  ) => {
+    updateReview(reviewId, {
+      employeeAckStatus: status,
+      employeeAckComments: comments,
+      employeeAckDate: new Date().toISOString(),
       status: 'hr_review',
     });
   };
@@ -226,6 +250,7 @@ export const PerformanceProvider: React.FC<{ children: React.ReactNode }> = ({
       setEmployeeTargets,
       submitManagerReview,
       submitHrReview,
+      submitEmployeeAcknowledgment,
     }),
     [templates, reviews]
   );

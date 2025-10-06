@@ -21,7 +21,7 @@ import { useEmployees } from '@/contexts/EmployeesContext';
 export const PerformanceReviews: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { templates, reviews, createTemplate, createReview, setEmployeeTargets, submitManagerReview, submitHrReview, updateReview } = usePerformance();
+  const { templates, reviews, createTemplate, createReview, setEmployeeTargets, submitManagerReview, submitHrReview, updateReview, submitEmployeeAcknowledgment } = usePerformance();
   const { employees } = useEmployees();
   const [activeTab, setActiveTab] = useState('active');
 
@@ -72,7 +72,7 @@ export const PerformanceReviews: React.FC = () => {
 
   // Performance metrics
   const completedReviews = reviews.filter(review => review.status === 'completed');
-  const inProgressReviews = reviews.filter(review => ['targets_set', 'manager_review', 'hr_review'].includes(review.status));
+  const inProgressReviews = reviews.filter(review => ['targets_set', 'manager_review', 'employee_ack', 'hr_review'].includes(review.status));
   const draftReviews = reviews.filter(review => review.status === 'draft');
 
   const performanceMetrics = {
@@ -80,7 +80,8 @@ export const PerformanceReviews: React.FC = () => {
       ? completedReviews.reduce((sum, review) => sum + (review.overallScore || 0), 0) / completedReviews.length 
       : 0,
     completionRate: reviews.length > 0 ? (completedReviews.length / reviews.length) * 100 : 0,
-    pendingManager: reviews.filter(r => r.status === 'targets_set').length,
+    pendingManager: reviews.filter(r => r.status === 'manager_review').length,
+    pendingEmployee: reviews.filter(r => r.status === 'employee_ack').length,
     pendingHr: reviews.filter(r => r.status === 'hr_review').length
   };
 
@@ -1069,7 +1070,7 @@ const handleSubmitToManager = () => {
                   if (activeEmployeeFilter === 'all') return true;
                   if (activeEmployeeFilter === 'new') return r.status === 'new' || r.status === 'draft';
                   // active
-                  return ['manager_review', 'employee_ack', 'hr_review', 'targets_set'].includes(r.status as any);
+                  return ['manager_review', 'employee_ack', 'hr_review', 'targets_set'].includes(r.status);
                 })
                 .map((review) => {
                   const template = templates.find(t => t.id === review.templateId);
@@ -1087,6 +1088,9 @@ const handleSubmitToManager = () => {
                             ) : null}
                             {review.status === 'manager_review' ? (
                               <Badge variant="outline" className="bg-yellow-50 text-yellow-700">Awaiting Manager</Badge>
+                            ) : null}
+                            {review.status === 'employee_ack' ? (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700">Pending Your Response</Badge>
                             ) : null}
                             {review.status === 'hr_review' ? (
                               <Badge variant="outline" className="bg-purple-50 text-purple-700">Awaiting HR</Badge>
@@ -1173,6 +1177,45 @@ const handleSubmitToManager = () => {
                                   )}
                                 </div>
                               </div>
+
+                              {review.status === 'employee_ack' && (
+                                <div className="space-y-3 border rounded p-3 bg-blue-50">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-semibold">Manager Review Completed</span>
+                                    <Badge variant="outline" className="bg-green-100 text-green-700">
+                                      Score: {review.overallScore?.toFixed(1)}/5
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm">Your manager has completed your performance review. Please review and respond.</p>
+                                  <Button
+                                    className="bg-blue-600 text-white hover:bg-blue-700"
+                                    onClick={() => navigate(`/performance/reviews/${review.id}/acknowledge`)}
+                                  >
+                                    Review & Respond
+                                  </Button>
+                                </div>
+                              )}
+
+                              {review.employeeAckStatus && (
+                                <div className={`space-y-2 border rounded p-3 ${review.employeeAckStatus === 'accepted' ? 'bg-green-50' : 'bg-red-50'}`}>
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-semibold">Your Response</span>
+                                    <Badge variant="outline" className={review.employeeAckStatus === 'accepted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                                      {review.employeeAckStatus === 'accepted' ? 'Accepted' : 'Declined'}
+                                    </Badge>
+                                  </div>
+                                  {review.employeeAckComments && (
+                                    <div className="text-sm">
+                                      <strong>Your Comments:</strong> {review.employeeAckComments}
+                                    </div>
+                                  )}
+                                  {review.employeeAckDate && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Responded on: {new Date(review.employeeAckDate).toLocaleDateString()}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                               {review.status === 'completed' && review.overallScore && (
                                 <div className="space-y-3 border rounded p-3 bg-green-50">
                                   <div className="flex items-center justify-between">
