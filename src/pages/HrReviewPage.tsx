@@ -131,22 +131,43 @@ const HrReviewPage: React.FC = () => {
                 {review.employeeScores.map((s, idx) => {
                   const c = template?.criteria.find(c => c.id === s.criteriaId);
                   return (
-                    <div key={idx} className="p-3 border rounded">
+                    <div key={idx} className="p-3 border rounded bg-blue-50">
                       <div className="flex justify-between text-sm">
-                        <span>{c?.name || 'Criteria'}</span>
-                        <span>{s.score}/5</span>
+                        <span className="font-medium">{c?.name || 'Criteria'}</span>
+                        <span className="font-semibold text-blue-700">{s.score}/5</span>
                       </div>
                       {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
                     </div>
                   );
                 })}
                 {review.employeeSelfComments && (
-                  <div className="p-3 bg-muted/30 rounded">
+                  <div className="p-3 bg-blue-50 rounded">
                     <p className="text-sm font-medium">Employee Overall Comments</p>
                     <p className="text-sm">{review.employeeSelfComments}</p>
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {review.employeeAckStatus && (
+            <div className={`space-y-2 p-4 rounded border-2 ${review.employeeAckStatus === 'accepted' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+              <div className="flex items-center justify-between">
+                <p className="font-medium">Employee Acknowledgment</p>
+                <Badge variant="outline" className={review.employeeAckStatus === 'accepted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                  {review.employeeAckStatus === 'accepted' ? 'Accepted' : 'Declined'}
+                </Badge>
+              </div>
+              {review.employeeAckComments && (
+                <div className="text-sm">
+                  <strong>Employee Response:</strong> {review.employeeAckComments}
+                </div>
+              )}
+              {review.employeeAckDate && (
+                <div className="text-xs text-muted-foreground">
+                  Responded on: {new Date(review.employeeAckDate).toLocaleDateString()}
+                </div>
+              )}
             </div>
           )}
 
