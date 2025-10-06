@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+// Removed HR per-criteria scoring inputs
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { TemplateCriteriaList } from "@/components/performance/TemplateCriteriaList";
@@ -18,18 +18,11 @@ const HrReviewPage: React.FC = () => {
   const template = useMemo(() => review ? templates.find(t => t.id === review.templateId) : undefined, [templates, review]);
 
   const [comments, setComments] = useState<string>("");
-  const [scores, setScores] = useState<{ criteriaId: string; score: number; comments: string }[]>([]);
 
   useEffect(() => {
     if (!review) return;
     setComments(review.hrComments || "");
-    if (template) {
-      const existing = review.hrScores || [];
-      setScores(template.criteria.map(c => {
-        const m = existing.find(s => s.criteriaId === c.id);
-        return { criteriaId: c.id, score: m?.score || 0, comments: m?.comments || "" };
-      }));
-    }
+    // HR cannot score; no per-criteria state
   }, [review, template]);
 
   if (!review) {
@@ -131,48 +124,33 @@ const HrReviewPage: React.FC = () => {
             </div>
           )}
 
-          <div className="space-y-3">
-            <p className="font-medium">Per-criteria HR Scores</p>
+          {review.employeeScores && review.employeeScores.length > 0 && (
             <div className="space-y-2">
-              {template?.criteria.map((c, idx) => (
-                <div key={c.id} className="grid grid-cols-12 gap-2 items-center">
-                  <div className="col-span-5">
-                    <div className="text-sm font-medium">{c.name}</div>
-                    <div className="text-xs text-muted-foreground">Weight: {c.weight}%</div>
+              <p className="font-medium">Employee Self-Appraisal</p>
+              <div className="space-y-2">
+                {review.employeeScores.map((s, idx) => {
+                  const c = template?.criteria.find(c => c.id === s.criteriaId);
+                  return (
+                    <div key={idx} className="p-3 border rounded">
+                      <div className="flex justify-between text-sm">
+                        <span>{c?.name || 'Criteria'}</span>
+                        <span>{s.score}/5</span>
+                      </div>
+                      {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
+                    </div>
+                  );
+                })}
+                {review.employeeSelfComments && (
+                  <div className="p-3 bg-muted/30 rounded">
+                    <p className="text-sm font-medium">Employee Overall Comments</p>
+                    <p className="text-sm">{review.employeeSelfComments}</p>
                   </div>
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={5}
-                      value={scores[idx]?.score ?? 0}
-                      onChange={(e) => {
-                        const v = Math.max(0, Math.min(5, Number(e.target.value) || 0));
-                        setScores(prev => {
-                          const copy = [...prev];
-                          copy[idx] = { ...copy[idx], score: v };
-                          return copy;
-                        });
-                      }}
-                    />
-                  </div>
-                  <Textarea
-                    className="col-span-5"
-                    placeholder="Comments"
-                    value={scores[idx]?.comments ?? ''}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setScores(prev => {
-                        const copy = [...prev];
-                        copy[idx] = { ...copy[idx], comments: v };
-                        return copy;
-                      });
-                    }}
-                  />
-                </div>
-              ))}
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* HR scoring removed: HR can only provide overall comments */}
 
           <div className="space-y-2">
             <p className="font-medium">HR Overall Comments</p>
@@ -181,7 +159,7 @@ const HrReviewPage: React.FC = () => {
 
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
-            <Button onClick={() => { submitHrReview(review.id, scores, comments); navigate(-1); }}>Submit HR Review</Button>
+            <Button onClick={() => { submitHrReview(review.id, [], comments); navigate(-1); }}>Submit & Close</Button>
           </div>
         </CardContent>
       </Card>
