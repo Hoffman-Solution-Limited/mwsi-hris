@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EditProfileForm } from "@/components/EditProfileForm";
 import { useEmployees } from "@/contexts/EmployeesContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
@@ -11,10 +12,11 @@ const EditEmployeePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { employees, updateEmployee } = useEmployees();
   const { user } = useAuth();
+  const { can } = usePermissions();
   const navigate = useNavigate();
 
   const employee = employees.find((e) => e.id === id);
-  const canEdit = ["hr_manager", "hr_staff"].includes(user?.role || "");
+  const canEdit = can(user?.role, 'employee.edit');
 
   if (!employee) {
     return (

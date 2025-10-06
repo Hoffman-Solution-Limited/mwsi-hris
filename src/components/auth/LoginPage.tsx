@@ -53,6 +53,7 @@ export const LoginPage: React.FC = () => {
     { email: 'hr@mwsi.com', role: 'HR Manager', password: 'demo123' },
     { email: 'david.manager@mwsi.com', role: 'Manager', password: 'demo123' },
     { email: 'employee@mwsi.com', role: 'Employee', password: 'demo123' },
+     { email: 'registry@mwsi.com', role: 'Registry', password: 'demo123' },
   ];
 
   const showForgotPassword = ['hr@mwsi.com', 'employee@mwsi.com'].includes(email);
