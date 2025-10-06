@@ -101,13 +101,22 @@ export interface PerformanceReview {
   employeeNumber?: string;
     templateId?: string;
   reviewPeriod: string;
-  status: 'draft' | 'targets_set' | 'manager_review' | 'hr_review' | 'completed';
+  employeeSelfComments?: string;
+  employeeAckStatus?: 'declined' | 'accepted';
+  employeeAckComments?: string;
+  employeeAckDate?: string;
+  status: 'draft' | 'targets_set' | 'manager_review' | 'employee_ack' | 'hr_review' | 'completed';
     employeeTargets?: {
     criteriaId: string;
     target: string;
     description: string;
   }[];
     managerScores?: {
+    criteriaId: string;
+    score: number;
+    comments: string;
+  }[];
+  employeeScores?: {
     criteriaId: string;
     score: number;
     comments: string;
@@ -502,37 +511,77 @@ export const mockEmployees: Employee[] = [
   },
   {
     id: '6',
-    name: 'David Manager',
-    email: 'manager@mwsi.com',
-    position: 'Engineering Manager',
+    name: 'Jane Smith',
+    email: 'jane.smith@mwsi.com',
+    position: 'Senior Developer',
     department: 'Engineering',
-    hireDate: '2020-05-10',
+    manager: 'David Manager',
+    hireDate: '2021-08-15',
     status: 'active',
-    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=DM',
-    phone: '+254-700-777777',
-    emergencyContact: 'Jane Manager (+254-700-777778)',
-    salary: 110000,
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=JS2',
+    phone: '+254-700-666666',
+    emergencyContact: 'John Smith (+254-700-666667)',
+    salary: 85000,
     skills: [
-      { name: 'Leadership', level: 'Advanced' },
-      { name: 'Architecture', level: 'Advanced' }
+      { name: 'Python', level: 'Expert' },
+      { name: 'Django', level: 'Advanced' },
+      { name: 'PostgreSQL', level: 'Advanced' }
     ],
-    gender: 'male',
+    gender: 'female',
+    cadre: 'Technical',
     employmentType: 'Permanent',
     engagementType: 'Permanent',
     jobGroup: 'I',
-    ethnicity: 'Luhya',
-    employeeNumber: '202005106',
-    nationalId: '19876543',
-    kraPin: 'A012345683Z',
+    ethnicity: 'Kikuyu',
+    employeeNumber: '20210815001',
+    nationalId: '33445566',
+    kraPin: 'A012345685Z',
     children: '1',
     workCounty: 'Nairobi',
-    homeCounty: 'Nairobi',
-    postalAddress: 'P.O. Box 22446',
+    homeCounty: 'Nyeri',
+    postalAddress: 'P.O. Box 44556',
     postalCode: '00100',
     stationName: 'Engineering Department - Head Office',
-    skillLevel: 'Masters (Engineering Management)',
+    skillLevel: 'Degree (Computer Science)',
     company: 'Ministry of Water, Sanitation and Irrigation',
-    dateOfBirth: '1983-04-19'
+    dateOfBirth: '1988-05-20'
+  },
+  {
+    id: '7',
+    name: 'Robert Chen',
+    email: 'robert.chen@mwsi.com',
+    position: 'DevOps Engineer',
+    department: 'Engineering',
+    manager: 'David Manager',
+    hireDate: '2022-03-01',
+    status: 'active',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=RC',
+    phone: '+254-700-555555',
+    emergencyContact: 'Lisa Chen (+254-700-555556)',
+    salary: 80000,
+    skills: [
+      { name: 'Docker', level: 'Advanced' },
+      { name: 'Kubernetes', level: 'Intermediate' },
+      { name: 'AWS', level: 'Advanced' }
+    ],
+    gender: 'male',
+    cadre: 'Technical',
+    employmentType: 'Permanent',
+    engagementType: 'Permanent',
+    jobGroup: 'H',
+    ethnicity: 'Luo',
+    employeeNumber: '20220301002',
+    nationalId: '34556677',
+    kraPin: 'A012345686Z',
+    children: '0',
+    workCounty: 'Nairobi',
+    homeCounty: 'Kisumu',
+    postalAddress: 'P.O. Box 55667',
+    postalCode: '00100',
+    stationName: 'Engineering Department - Head Office',
+    skillLevel: 'Degree (Information Technology)',
+    company: 'Ministry of Water, Sanitation and Irrigation',
+    dateOfBirth: '1992-11-08'
   },
   {
     id: '12',
@@ -898,19 +947,29 @@ export const mockPerformanceReviews: PerformanceReview[] = [
       { criteriaId: 'c2', target: 'Monthly townhalls', description: 'Improve transparency' },
       { criteriaId: 'c3', target: 'Implement 2 process improvements', description: 'Lean practices' }
     ],
+    employeeScores: [
+      { criteriaId: 'c1', score: 5, comments: 'Successfully delivered all Q2 OKRs ahead of schedule' },
+      { criteriaId: 'c2', score: 4, comments: 'Conducted monthly townhalls with high attendance and engagement' },
+      { criteriaId: 'c3', score: 4, comments: 'Implemented 2 major process improvements that increased efficiency' }
+    ],
+    employeeSelfComments: 'Strong quarter with successful execution of all operational goals and team engagement initiatives.',
     managerScores: [
       { criteriaId: 'c1', score: 5, comments: 'Exceeded plan delivery' },
       { criteriaId: 'c2', score: 4, comments: 'Clear communication cadence' },
       { criteriaId: 'c3', score: 4, comments: 'Strong improvements' }
     ],
+    managerComments: 'Excellent leadership and team management.',
+    employeeAckStatus: 'accepted',
+    employeeAckComments: 'Thank you for the feedback. I appreciate the recognition of the team\'s efforts.',
+    employeeAckDate: '2025-07-05',
     hrScores: [
       { criteriaId: 'c1', score: 5, comments: 'Outstanding execution' },
       { criteriaId: 'c2', score: 4, comments: 'Positive feedback from staff' },
       { criteriaId: 'c3', score: 5, comments: 'High impact changes' }
     ],
-    overallScore: 4.7,
-    managerComments: 'Excellent leadership and team management.',
     hrComments: 'Consistently exceeds expectations.',
+    overallScore: 4.7,
+    score: 4.7,
     nextReviewDate: '2025-12-01',
     createdBy: 'HR System',
     createdAt: '2025-06-30'
@@ -942,19 +1001,29 @@ export const mockPerformanceReviews: PerformanceReview[] = [
       { criteriaId: 'c2', target: 'Mentor junior developers', description: 'Weekly mentorship sessions.' },
       { criteriaId: 'c3', target: 'Improve code review process', description: 'Document and share best practices.' }
     ],
+    employeeScores: [
+      { criteriaId: 'c1', score: 5, comments: 'Successfully completed React migration with zero production issues' },
+      { criteriaId: 'c2', score: 4, comments: 'Conducted weekly mentorship sessions with 2 junior developers' },
+      { criteriaId: 'c3', score: 4, comments: 'Created comprehensive code review guidelines and improved team practices' }
+    ],
+    employeeSelfComments: 'Excellent performance this quarter. Strong technical skills and great team collaboration.',
     managerScores: [
       { criteriaId: 'c1', score: 5, comments: 'Migration completed successfully' },
       { criteriaId: 'c2', score: 4, comments: 'Active mentorship observed' },
       { criteriaId: 'c3', score: 4, comments: 'Better review coverage' }
     ],
+    managerComments: 'Outstanding technical delivery and team leadership.',
+    employeeAckStatus: 'accepted',
+    employeeAckComments: 'Thank you for the positive feedback. Looking forward to the next quarter.',
+    employeeAckDate: '2024-04-10',
     hrScores: [
       { criteriaId: 'c1', score: 4, comments: 'Delivery met expectations' },
       { criteriaId: 'c2', score: 4, comments: 'Positive peer feedback' },
       { criteriaId: 'c3', score: 5, comments: 'Process improved' }
     ],
+    hrComments: 'Approved. Excellent performance across all criteria.',
     overallScore: 4.5,
-    managerComments: '',
-    hrComments: '',
+    score: 4.5,
     nextReviewDate: '2024-06-30',
     createdBy: 'Sarah Johnson',
     createdAt: '2025-09-01',
@@ -1026,17 +1095,25 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     employeeName: 'Michael Davis',
     templateId: 'template-1',
     reviewPeriod: 'Q1 2025',
-    status: 'manager_review',
+    status: 'employee_ack',
     employeeTargets: [
       { criteriaId: 'c1', target: 'Ship v2 API', description: 'Stability and performance targets' },
+      { criteriaId: 'c2', target: 'Improve team collaboration', description: 'Weekly sync meetings' },
       { criteriaId: 'c3', target: 'Propose 2 automation ideas', description: 'CI/CD improvements' }
     ],
-    managerScores: [
-      { criteriaId: 'c1', score: 4, comments: 'Delivered with good quality' },
-      { criteriaId: 'c2', score: 3, comments: 'Collaborates with team' },
-      { criteriaId: 'c3', score: 4, comments: 'Shows initiative' }
+    employeeScores: [
+      { criteriaId: 'c1', score: 4, comments: 'Successfully shipped v2 API with 99.9% uptime' },
+      { criteriaId: 'c2', score: 4, comments: 'Led weekly team syncs and knowledge sharing sessions' },
+      { criteriaId: 'c3', score: 5, comments: 'Proposed and implemented 3 automation improvements' }
     ],
-    managerComments: 'Strong quarter with tangible outcomes.',
+    employeeSelfComments: 'Exceeded targets this quarter with strong technical delivery and team collaboration.',
+    managerScores: [
+      { criteriaId: 'c1', score: 4, comments: 'Delivered with good quality and met deadlines' },
+      { criteriaId: 'c2', score: 3, comments: 'Good collaboration, could improve cross-team communication' },
+      { criteriaId: 'c3', score: 4, comments: 'Shows initiative and proactive problem-solving' }
+    ],
+    managerComments: 'Strong quarter with tangible outcomes. Keep up the good work on technical delivery.',
+    overallScore: 3.7,
     nextReviewDate: '2025-06-30',
     createdBy: 'Sarah Johnson',
     createdAt: '2025-03-31'
@@ -1049,15 +1126,27 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     reviewPeriod: 'Q2 2025',
     status: 'hr_review',
     employeeTargets: [
-      { criteriaId: 'c1', target: 'Improve performance tests', description: 'Add load tests to CI' }
+      { criteriaId: 'c1', target: 'Improve performance tests', description: 'Add load tests to CI' },
+      { criteriaId: 'c2', target: 'Mentor junior developers', description: 'Weekly 1-on-1 sessions' },
+      { criteriaId: 'c3', target: 'Reduce technical debt', description: 'Refactor legacy code' }
     ],
+    employeeScores: [
+      { criteriaId: 'c1', score: 5, comments: 'Added comprehensive load tests to CI pipeline' },
+      { criteriaId: 'c2', score: 4, comments: 'Mentored 2 junior developers with positive feedback' },
+      { criteriaId: 'c3', score: 3, comments: 'Made progress on refactoring, ongoing work' }
+    ],
+    employeeSelfComments: 'Strong quarter focused on quality and team development.',
     managerScores: [
-      { criteriaId: 'c1', score: 4, comments: 'Improved performance tests' },
-      { criteriaId: 'c2', score: 4, comments: 'Good team player' },
-      { criteriaId: 'c3', score: 3, comments: 'Some initiative shown' }
+      { criteriaId: 'c1', score: 4, comments: 'Improved performance tests significantly' },
+      { criteriaId: 'c2', score: 4, comments: 'Good team player and mentor' },
+      { criteriaId: 'c3', score: 3, comments: 'Some initiative shown on technical debt' }
     ],
+    managerComments: 'Ready for HR finalization. Good progress on quality initiatives.',
+    overallScore: 3.7,
+    employeeAckStatus: 'accepted',
+    employeeAckComments: 'Thank you for the feedback. I agree with the assessment and will continue focusing on technical debt reduction in the next quarter.',
+    employeeAckDate: '2025-07-05',
     hrScores: [],
-    managerComments: 'Ready for HR finalization.',
     nextReviewDate: '2025-09-30',
     createdBy: 'HR System',
     createdAt: '2025-06-30'
@@ -1069,20 +1158,34 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     templateId: 'template-1',
     reviewPeriod: 'Q3 2025',
     status: 'completed',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Maintain code quality', description: 'Focus on best practices' },
+      { criteriaId: 'c2', target: 'Team collaboration', description: 'Regular sync meetings' },
+      { criteriaId: 'c3', target: 'Process improvements', description: 'Identify and implement improvements' }
+    ],
+    employeeScores: [
+      { criteriaId: 'c1', score: 4, comments: 'Maintained high code quality standards' },
+      { criteriaId: 'c2', score: 4, comments: 'Excellent team collaboration' },
+      { criteriaId: 'c3', score: 4, comments: 'Implemented several process improvements' }
+    ],
+    employeeSelfComments: 'Solid quarter with consistent performance across all areas.',
     managerScores: [
       { criteriaId: 'c1', score: 4, comments: 'Consistent quality' },
       { criteriaId: 'c2', score: 4, comments: 'Great collaboration' },
       { criteriaId: 'c3', score: 4, comments: 'Proactive' }
     ],
+    managerComments: 'Well rounded quarter',
+    employeeAckStatus: 'accepted',
+    employeeAckComments: 'Appreciate the feedback. Will continue maintaining these standards.',
+    employeeAckDate: '2025-10-05',
     hrScores: [
       { criteriaId: 'c1', score: 4, comments: 'Meets standards' },
       { criteriaId: 'c2', score: 4, comments: 'Positive feedback from peers' },
       { criteriaId: 'c3', score: 4, comments: 'Initiatives recognized' }
     ],
+    hrComments: 'Approved',
     overallScore: 4.0,
     score: 4.0,
-    managerComments: 'Well rounded quarter',
-    hrComments: 'Approved',
     nextReviewDate: '2025-12-31',
     createdBy: 'HR System',
     createdAt: '2025-09-30'
@@ -1109,16 +1212,25 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     employeeName: 'David Manager',
     templateId: 'template-1',
     reviewPeriod: 'Q1 2026',
-    status: 'manager_review',
+    status: 'employee_ack',
     employeeTargets: [
-      { criteriaId: 'c1', target: 'Department OKRs on track', description: 'Track weekly' }
+      { criteriaId: 'c1', target: 'Department OKRs on track', description: 'Track weekly and report monthly' },
+      { criteriaId: 'c2', target: 'Improve team engagement', description: 'Monthly team building activities' },
+      { criteriaId: 'c3', target: 'Process optimization', description: 'Streamline approval workflows' }
     ],
+    employeeScores: [
+      { criteriaId: 'c1', score: 5, comments: 'All department OKRs met or exceeded' },
+      { criteriaId: 'c2', score: 4, comments: 'Team engagement scores improved by 15%' },
+      { criteriaId: 'c3', score: 4, comments: 'Reduced approval time by 30%' }
+    ],
+    employeeSelfComments: 'Successful quarter with strong team performance and operational improvements.',
     managerScores: [
-      { criteriaId: 'c1', score: 4, comments: 'High quality execution' },
-      { criteriaId: 'c2', score: 4, comments: 'Clear communication' },
-      { criteriaId: 'c3', score: 4, comments: 'Strong initiative' }
+      { criteriaId: 'c1', score: 4, comments: 'High quality execution on departmental goals' },
+      { criteriaId: 'c2', score: 4, comments: 'Clear communication and team leadership' },
+      { criteriaId: 'c3', score: 4, comments: 'Strong initiative on process improvements' }
     ],
-    managerComments: 'Submitting to HR.',
+    managerComments: 'Excellent leadership and execution. Ready for HR review.',
+    overallScore: 4.0,
     nextReviewDate: '2026-06-30',
     createdBy: 'HR System',
     createdAt: '2026-03-31'
@@ -1130,22 +1242,140 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     templateId: 'template-1',
     reviewPeriod: 'Q2 2026',
     status: 'completed',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Strategic planning', description: 'Q3-Q4 roadmap' },
+      { criteriaId: 'c2', target: 'Team development', description: 'Leadership training program' },
+      { criteriaId: 'c3', target: 'Innovation initiatives', description: 'Launch 2 new projects' }
+    ],
+    employeeScores: [
+      { criteriaId: 'c1', score: 5, comments: 'Completed comprehensive strategic plan' },
+      { criteriaId: 'c2', score: 4, comments: 'Launched leadership training with 95% participation' },
+      { criteriaId: 'c3', score: 5, comments: 'Successfully launched 3 innovation projects' }
+    ],
+    employeeSelfComments: 'Exceptional quarter with strategic achievements and team growth.',
     managerScores: [
-      { criteriaId: 'c1', score: 5, comments: 'Outstanding leadership' },
-      { criteriaId: 'c2', score: 4, comments: 'Excellent communication' },
-      { criteriaId: 'c3', score: 4, comments: 'Proactively drives improvements' }
+      { criteriaId: 'c1', score: 5, comments: 'Outstanding leadership and strategic vision' },
+      { criteriaId: 'c2', score: 4, comments: 'Excellent communication and team development' },
+      { criteriaId: 'c3', score: 4, comments: 'Proactively drives improvements and innovation' }
     ],
-    hrScores: [
-      { criteriaId: 'c1', score: 5, comments: 'Exemplary performance' },
-      { criteriaId: 'c2', score: 4, comments: 'Consistently clear' },
-      { criteriaId: 'c3', score: 4, comments: 'Recognized initiatives' }
-    ],
+    managerComments: 'Top performance. Exemplary leadership this quarter.',
     overallScore: 4.5,
+    employeeAckStatus: 'accepted',
+    employeeAckComments: 'Appreciate the recognition. Looking forward to continuing the momentum in Q3.',
+    employeeAckDate: '2026-07-02',
+    hrScores: [
+      { criteriaId: 'c1', score: 5, comments: 'Exemplary performance and strategic thinking' },
+      { criteriaId: 'c2', score: 4, comments: 'Consistently clear and effective leadership' },
+      { criteriaId: 'c3', score: 4, comments: 'Recognized initiatives and innovation' }
+    ],
+    hrComments: 'Approved and recorded. Outstanding performance across all criteria.',
     score: 4.5,
-    managerComments: 'Top performance',
-    hrComments: 'Approved and recorded',
     nextReviewDate: '2026-09-30',
     createdBy: 'HR System',
     createdAt: '2026-06-30'
+  },
+  // Test scenarios for David Manager as a manager reviewing team submissions
+  {
+    id: 'PR112',
+    employeeId: '6',
+    employeeName: 'Jane Smith',
+    employeeNumber: '20210815001',
+    templateId: 'template-1',
+    reviewPeriod: 'Q3 2025',
+    status: 'manager_review',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Optimize database queries', description: 'Reduce query time by 40%' },
+      { criteriaId: 'c2', target: 'Mentor junior developers', description: 'Weekly code review sessions' },
+      { criteriaId: 'c3', target: 'Implement caching layer', description: 'Redis implementation for API' }
+    ],
+    employeeScores: [
+      { criteriaId: 'c1', score: 5, comments: 'Reduced query time by 45% through indexing and optimization' },
+      { criteriaId: 'c2', score: 4, comments: 'Conducted weekly sessions, positive feedback from team' },
+      { criteriaId: 'c3', score: 5, comments: 'Successfully implemented Redis, improved response time by 60%' }
+    ],
+    employeeSelfComments: 'Exceeded performance targets and contributed significantly to team development.',
+    nextReviewDate: '2025-12-31',
+    createdBy: 'HR System',
+    createdAt: '2025-09-15'
+  },
+  {
+    id: 'PR113',
+    employeeId: '7',
+    employeeName: 'Robert Chen',
+    employeeNumber: '20220301002',
+    templateId: 'template-1',
+    reviewPeriod: 'Q3 2025',
+    status: 'manager_review',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Automate deployment pipeline', description: 'CI/CD for all services' },
+      { criteriaId: 'c2', target: 'Infrastructure monitoring', description: 'Set up comprehensive monitoring' },
+      { criteriaId: 'c3', target: 'Cost optimization', description: 'Reduce cloud costs by 20%' }
+    ],
+    employeeScores: [
+      { criteriaId: 'c1', score: 4, comments: 'Automated 80% of deployment pipeline, remaining 20% in progress' },
+      { criteriaId: 'c2', score: 5, comments: 'Implemented full monitoring with Prometheus and Grafana' },
+      { criteriaId: 'c3', score: 4, comments: 'Reduced costs by 22% through resource optimization' }
+    ],
+    employeeSelfComments: 'Strong quarter with significant infrastructure improvements and cost savings.',
+    nextReviewDate: '2025-12-31',
+    createdBy: 'HR System',
+    createdAt: '2025-09-15'
+  },
+  {
+    id: 'PR114',
+    employeeId: '3',
+    employeeName: 'Michael Davis',
+    employeeNumber: '20221234569',
+    templateId: 'template-1',
+    reviewPeriod: 'Q4 2025',
+    status: 'manager_review',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Refactor authentication system', description: 'Implement OAuth 2.0' },
+      { criteriaId: 'c2', target: 'Code review participation', description: 'Review 50+ PRs per month' },
+      { criteriaId: 'c3', target: 'Technical documentation', description: 'Document all API endpoints' }
+    ],
+    employeeScores: [
+      { criteriaId: 'c1', score: 5, comments: 'Successfully implemented OAuth 2.0 with comprehensive testing' },
+      { criteriaId: 'c2', score: 5, comments: 'Reviewed 65+ PRs per month, excellent feedback quality' },
+      { criteriaId: 'c3', score: 4, comments: 'Documented 90% of endpoints with examples and use cases' }
+    ],
+    employeeSelfComments: 'Highly productive quarter with focus on security and code quality.',
+    nextReviewDate: '2026-03-31',
+    createdBy: 'HR System',
+    createdAt: '2025-12-15'
+  },
+  // New test scenario: Employee declined manager review
+  {
+    id: 'PR111',
+    employeeId: '3',
+    employeeName: 'Michael Davis',
+    templateId: 'template-1',
+    reviewPeriod: 'Q3 2025 (Test - Declined)',
+    status: 'hr_review',
+    employeeTargets: [
+      { criteriaId: 'c1', target: 'Lead migration project', description: 'Migrate legacy system to new platform' },
+      { criteriaId: 'c2', target: 'Improve documentation', description: 'Create comprehensive API docs' },
+      { criteriaId: 'c3', target: 'Code quality initiatives', description: 'Increase test coverage to 80%' }
+    ],
+    employeeScores: [
+      { criteriaId: 'c1', score: 5, comments: 'Successfully led migration with zero downtime' },
+      { criteriaId: 'c2', score: 5, comments: 'Created comprehensive documentation with examples' },
+      { criteriaId: 'c3', score: 4, comments: 'Increased test coverage from 60% to 85%' }
+    ],
+    employeeSelfComments: 'Exceeded all targets with significant impact on team productivity and code quality.',
+    managerScores: [
+      { criteriaId: 'c1', score: 3, comments: 'Migration completed but with some delays' },
+      { criteriaId: 'c2', score: 3, comments: 'Documentation is adequate but could be more detailed' },
+      { criteriaId: 'c3', score: 3, comments: 'Test coverage improved but still needs work' }
+    ],
+    managerComments: 'Satisfactory performance. Need to work on meeting deadlines and attention to detail.',
+    overallScore: 3.0,
+    employeeAckStatus: 'declined',
+    employeeAckComments: 'I respectfully disagree with this assessment. The migration was completed ahead of the revised timeline we agreed upon after scope changes. The documentation received positive feedback from the team. I would like to discuss the specific concerns about delays and detail, as I believe there may be a misunderstanding about the project scope and deliverables.',
+    employeeAckDate: '2025-10-05',
+    hrScores: [],
+    nextReviewDate: '2025-12-31',
+    createdBy: 'HR System',
+    createdAt: '2025-09-30'
   }
 ];
