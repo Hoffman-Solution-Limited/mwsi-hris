@@ -21,7 +21,7 @@ import { useEmployees } from '@/contexts/EmployeesContext';
 export const PerformanceReviews: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { templates, reviews, createTemplate, createReview, setEmployeeTargets, submitManagerReview, submitHrReview, updateReview } = usePerformance();
+  const { templates, reviews, createTemplate, createReview, setEmployeeTargets, submitManagerReview, submitHrReview, updateReview, employeeAcknowledge } = usePerformance();
   const { employees } = useEmployees();
   const [activeTab, setActiveTab] = useState('active');
 
@@ -29,7 +29,6 @@ export const PerformanceReviews: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [targetDialogOpen, setTargetDialogOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState<PerformanceReview | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editComments, setEditComments] = useState('');
@@ -37,6 +36,8 @@ export const PerformanceReviews: React.FC = () => {
   const [managerScoresDraft, setManagerScoresDraft] = useState<{ criteriaId: string; score: number; comments: string }[]>([]);
   const [hrScoresDraft, setHrScoresDraft] = useState<{ criteriaId: string; score: number; comments: string }[]>([]);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [ackComments, setAckComments] = useState<Record<string, string>>({});
+  const [activeEmployeeFilter, setActiveEmployeeFilter] = useState<'all' | 'new' | 'active'>('all');
 
   // Set default tab based on role
   useEffect(() => {
@@ -200,11 +201,12 @@ export const PerformanceReviews: React.FC = () => {
 
   // Target setting
   const [targets, setTargets] = useState<{ criteriaId: string; target: string; description: string }[]>([]);
+  const [selfScores, setSelfScores] = useState<{ criteriaId: string; score: number; comments: string }[]>([]);
+  const [selfOverallComments, setSelfOverallComments] = useState<string>('');
 
   const handleSetTargets = () => {
     if (!selectedReview) return;
     setEmployeeTargets(selectedReview.id, targets);
-    setTargetDialogOpen(false);
     setTargets([]);
   };
 
@@ -213,9 +215,10 @@ export const PerformanceReviews: React.FC = () => {
     if (!selectedReview) return;
     updateReview(selectedReview.id, {
       employeeTargets: targets,
+      employeeScores: selfScores,
+      employeeSelfComments: selfOverallComments,
       status: 'draft'
     });
-    setTargetDialogOpen(false);
   };
 
   // Submit targets to manager for review
@@ -223,9 +226,10 @@ export const PerformanceReviews: React.FC = () => {
     if (!selectedReview) return;
     updateReview(selectedReview.id, {
       employeeTargets: targets,
+      employeeScores: selfScores,
+      employeeSelfComments: selfOverallComments,
       status: 'manager_review'
     });
-    setTargetDialogOpen(false);
   };
 
   const openTargetDialog = (review: PerformanceReview) => {
@@ -237,8 +241,14 @@ export const PerformanceReviews: React.FC = () => {
         target: '',
         description: ''
       })));
+      // initialize self scores from existing or blank
+      const existing = review.employeeScores || [];
+      setSelfScores(template.criteria.map(c => {
+        const m = existing.find(s => s.criteriaId === c.id);
+        return { criteriaId: c.id, score: m?.score ?? 0, comments: m?.comments ?? '' };
+      }));
     }
-    setTargetDialogOpen(true);
+    setSelfOverallComments(review.employeeSelfComments || '');
   };
    // ✅ Unified state for editing/saving/submitting employee review
   //const [selectedReview, setSelectedReview] = useState<PerformanceReview | null>(null);
@@ -867,6 +877,31 @@ const handleSubmitToManager = () => {
                               </div>
                             </div>
                           )}
+                          {review.employeeScores && review.employeeScores.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-sm mt-4 mb-2">Employee Self-Appraisal</h4>
+                              <div className="space-y-2">
+                                {review.employeeScores.map((s, idx) => {
+                                  const c = template?.criteria.find(c => c.id === s.criteriaId);
+                                  return (
+                                    <div key={idx} className="p-3 border rounded">
+                                      <div className="flex justify-between text-sm">
+                                        <span>{c?.name || 'Criteria'}</span>
+                                        <span>{s.score}/5</span>
+                                      </div>
+                                      {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
+                                    </div>
+                                  );
+                                })}
+                                {review.employeeSelfComments && (
+                                  <div className="p-3 bg-muted/30 rounded">
+                                    <p className="text-sm font-medium">Employee Overall Comments</p>
+                                    <p className="text-sm">{review.employeeSelfComments}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                           
                           <div className="flex gap-2">
                             <Dialog>
@@ -1008,6 +1043,19 @@ const handleSubmitToManager = () => {
 
         <TabsContent value="active">
           <div className="space-y-4">
+            <div className="flex items-center justify-end gap-3">
+              <label className="text-sm text-muted-foreground">Filter:</label>
+              <Select value={activeEmployeeFilter} onValueChange={(v: any) => setActiveEmployeeFilter(v)}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {reviews.filter(r => r.employeeId === user?.id && r.status !== "completed").length === 0 ? (
               <Card>
                 <CardContent className="p-6 text-center text-muted-foreground">
@@ -1017,15 +1065,37 @@ const handleSubmitToManager = () => {
             ) : (
               reviews
                 .filter(r => r.employeeId === user?.id && r.status !== "completed")
+                .filter(r => {
+                  if (activeEmployeeFilter === 'all') return true;
+                  if (activeEmployeeFilter === 'new') return r.status === 'new' || r.status === 'draft';
+                  // active
+                  return ['manager_review', 'employee_ack', 'hr_review', 'targets_set'].includes(r.status as any);
+                })
                 .map((review) => {
                   const template = templates.find(t => t.id === review.templateId);
 
                   return (
                     <Card key={review.id}>
                       <CardHeader>
-                        <CardTitle>
-                          {review.reviewPeriod} {template ? `- ${template.name}` : ""}
-                        </CardTitle>
+                        <div className="flex items-center justify-between">
+                          <CardTitle>
+                            {review.reviewPeriod} {template ? `- ${template.name}` : ""}
+                          </CardTitle>
+                          <div className="flex items-center gap-2">
+                            {review.status === 'new' || review.status === 'draft' ? (
+                              <Badge variant="outline" className="bg-gray-100">New</Badge>
+                            ) : null}
+                            {review.status === 'manager_review' ? (
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700">Awaiting Manager</Badge>
+                            ) : null}
+                            {review.status === 'employee_ack' ? (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700">Awaiting Your Ack</Badge>
+                            ) : null}
+                            {review.status === 'hr_review' ? (
+                              <Badge variant="outline" className="bg-purple-50 text-purple-700">Awaiting HR</Badge>
+                            ) : null}
+                          </div>
+                        </div>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
@@ -1040,7 +1110,7 @@ const handleSubmitToManager = () => {
                               </p>
                               <Button
                                 className="bg-blue-600 text-white hover:bg-blue-700"
-                                onClick={() => openTargetDialog(review)}
+                                onClick={() => navigate(`/performance/reviews/${review.id}/self`)}
                               >
                                 Set Targets
                               </Button>
@@ -1072,7 +1142,7 @@ const handleSubmitToManager = () => {
                               <div className="flex gap-2">
                                 <Button
                                   className="bg-blue-600 text-white hover:bg-blue-700"
-                                  onClick={() => openTargetDialog(review)}
+                                  onClick={() => navigate(`/performance/reviews/${review.id}/self`)}
                                 >
                                   Edit Targets
                                 </Button>
@@ -1106,6 +1176,38 @@ const handleSubmitToManager = () => {
                                   )}
                                 </div>
                               </div>
+                              {review.status === 'employee_ack' && (
+                                <div className="space-y-3 border rounded p-3 bg-blue-50">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-semibold">Manager Feedback:</span>
+                                    <Badge variant="outline">Awaiting Your Acknowledgement</Badge>
+                                  </div>
+                                  <div className="text-sm">{review.managerComments || 'No feedback.'}</div>
+                                  <div>
+                                    <label className="font-medium block mb-1">Your Comments (optional)</label>
+                                    <Textarea
+                                      rows={3}
+                                      placeholder="Add comments if you disagree"
+                                      value={ackComments[review.id] || ''}
+                                      onChange={(e) => setAckComments(prev => ({ ...prev, [review.id]: e.target.value }))}
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      className="bg-green-600 text-white hover:bg-green-700"
+                                      onClick={() => employeeAcknowledge(review.id, true, ackComments[review.id] || '')}
+                                    >
+                                      Accept Appraisal
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      onClick={() => employeeAcknowledge(review.id, false, ackComments[review.id] || '')}
+                                    >
+                                      Dispute & Send to HR
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
                               <div>
                                 <span className="font-semibold">Manager Feedback:</span>{" "}
                                 {review.managerComments || "No feedback."}
@@ -1264,7 +1366,7 @@ const handleSubmitToManager = () => {
                           <h4 className="font-medium">{review.reviewPeriod}</h4>
                           <p className="text-sm text-muted-foreground">{template?.name}</p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => openTargetDialog(review)}>
+                        <Button variant="outline" size="sm" onClick={() => navigate(`/performance/reviews/${review.id}/self`)}>
                           <Target className="w-4 h-4 mr-2" />
                           Set Targets
                         </Button>
@@ -1350,50 +1452,7 @@ const handleSubmitToManager = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Target Setting Dialog */}
-      <Dialog open={targetDialogOpen} onOpenChange={setTargetDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Set Performance Targets</DialogTitle>
-            <DialogDescription>Define your targets for this review period.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            {targets.map((target, index) => {
-              const criteria = selectedReview ? templates.find(t => t.id === selectedReview.templateId)?.criteria.find(c => c.id === target.criteriaId) : null;
-              return (
-                <div key={target.criteriaId} className="space-y-2">
-                  <label className="text-sm font-medium">{criteria?.name}</label>
-                  <p className="text-xs text-muted-foreground">{criteria?.description}</p>
-                  <Input
-                    placeholder="Your target for this criteria"
-                    value={target.target}
-                    onChange={(e) => {
-                      const newTargets = [...targets];
-                      newTargets[index].target = e.target.value;
-                      setTargets(newTargets);
-                    }}
-                  />
-                  <Textarea
-                    placeholder="Describe how you plan to achieve this target"
-                    value={target.description}
-                    onChange={(e) => {
-                      const newTargets = [...targets];
-                      newTargets[index].description = e.target.value;
-                      setTargets(newTargets);
-                    }}
-                    rows={2}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTargetDialogOpen(false)}>Cancel</Button>
-            <Button variant="secondary" onClick={handleSaveTargetsDraft}>Save Draft</Button>
-            <Button onClick={handleSubmitTargetsToManager} className="bg-blue-600 text-white hover:bg-blue-700">Submit to Manager</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Target Setting Dialog removed in favor of standalone self-appraisal page */}
     </div>
   );
 };
