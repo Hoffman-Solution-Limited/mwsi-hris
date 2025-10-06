@@ -44,7 +44,8 @@ import {SkillsPage} from "@/pages/Skills";
 import { EmployeeByCounty } from "@/pages/EmployeeByCounty";
 import ApplyLeave from "@/pages/ApplyLeave";
 import ManagerApplyLeave from "@/pages/ManagerApplyLeave";
- 
+ import ReviewDetails from '@/pages/ReviewDetails';
+
 import { DisciplinaryCases } from "@/pages/DisciplinaryCases";
 import { ForgotPasswordPage } from "@/components/auth/ForgotPasswordPage";
 import AdminUserManagement from '@/pages/AdminUserManagement';
@@ -121,6 +122,7 @@ const App = () => (
                           <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
                           <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />
                           <Route path="/manager-apply-leave" element={<ProtectedRoute><Layout><ManagerApplyLeave /></Layout></ProtectedRoute>} />
+                          <Route path="/performance/reviews/:id" element={<ReviewDetails />} />
 
                           {/* ✅ Wrap Designations same way */}
                           <Route path="/Designation" element={<ProtectedRoute><Layout><DesignationPage /></Layout></ProtectedRoute>} />
