@@ -1,4 +1,3 @@
-import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { TemplateCriteriaList } from "@/components/performance/TemplateCriteriaL
 import { usePerformance } from "@/contexts/PerformanceContext";
 import { ArrowLeft } from "lucide-react";
 
-const PerformanceReviewDetails: React.FC = () => {
+const PerformanceReviewDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { reviews, templates } = usePerformance();
@@ -84,6 +83,32 @@ const PerformanceReviewDetails: React.FC = () => {
             </div>
 
             <div className="space-y-4">
+              {review.employeeScores && review.employeeScores.length > 0 && (
+                <div>
+                  <p className="font-medium mb-2">Employee Self-Appraisal Scores</p>
+                  <div className="space-y-2">
+                    {review.employeeScores.map((s, idx) => {
+                      const c = template?.criteria.find((c) => c.id === s.criteriaId);
+                      return (
+                        <div key={idx} className="p-3 border rounded bg-blue-50">
+                          <div className="flex justify-between text-sm">
+                            <span className="font-medium">{c?.name || 'Criteria'}</span>
+                            <span className="font-semibold text-blue-700">{s.score}/5</span>
+                          </div>
+                          {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
+                        </div>
+                      );
+                    })}
+                    {review.employeeSelfComments && (
+                      <div className="p-3 bg-blue-50 rounded">
+                        <p className="text-sm font-medium">Employee Overall Comments</p>
+                        <p className="text-sm">{review.employeeSelfComments}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {review.managerScores && review.managerScores.length > 0 && (
                 <div>
                   <p className="font-medium mb-2">Manager Scores</p>
@@ -91,16 +116,43 @@ const PerformanceReviewDetails: React.FC = () => {
                     {review.managerScores.map((s, idx) => {
                       const c = template?.criteria.find((c) => c.id === s.criteriaId);
                       return (
-                        <div key={idx} className="p-3 border rounded">
+                        <div key={idx} className="p-3 border rounded bg-green-50">
                           <div className="flex justify-between text-sm">
-                            <span>{c?.name || 'Criteria'}</span>
-                            <span>{s.score}/5</span>
+                            <span className="font-medium">{c?.name || 'Criteria'}</span>
+                            <span className="font-semibold text-green-700">{s.score}/5</span>
                           </div>
                           {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
                         </div>
                       );
                     })}
+                    {review.managerComments && (
+                      <div className="p-3 bg-green-50 rounded">
+                        <p className="text-sm font-medium">Manager Overall Comments</p>
+                        <p className="text-sm">{review.managerComments}</p>
+                      </div>
+                    )}
                   </div>
+                </div>
+              )}
+
+              {review.employeeAckStatus && (
+                <div className={`p-4 rounded border-2 ${review.employeeAckStatus === 'accepted' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-medium">Employee Acknowledgment</p>
+                    <Badge variant="outline" className={review.employeeAckStatus === 'accepted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                      {review.employeeAckStatus === 'accepted' ? 'Accepted' : 'Declined'}
+                    </Badge>
+                  </div>
+                  {review.employeeAckComments && (
+                    <div className="text-sm mb-1">
+                      <strong>Employee Response:</strong> {review.employeeAckComments}
+                    </div>
+                  )}
+                  {review.employeeAckDate && (
+                    <div className="text-xs text-muted-foreground">
+                      Responded on: {new Date(review.employeeAckDate).toLocaleDateString()}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -120,6 +172,12 @@ const PerformanceReviewDetails: React.FC = () => {
                         </div>
                       );
                     })}
+                    {review.hrComments && (
+                      <div className="p-3 bg-purple-50 rounded">
+                        <p className="text-sm font-medium">HR Overall Comments</p>
+                        <p className="text-sm">{review.hrComments}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
