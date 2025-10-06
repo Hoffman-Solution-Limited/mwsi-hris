@@ -21,9 +21,9 @@ const RequestsManagementPage: React.FC = () => {
   const [approveModal, setApproveModal] = useState<{ open: boolean; requestId?: string; toLocation: string; comment: string }>({ open: false, toLocation: '', comment: '' });
   const [rejectModal, setRejectModal] = useState<{ open: boolean; requestId?: string; reason: string }>({ open: false, reason: '' });
 
-  if (!user || user.role !== 'admin') {
+  if (!user || (user.role !== 'admin' && user.role !== 'registry_manager')) {
     return (
-      <div className="text-sm text-muted-foreground p-6">Admin access only.</div>
+      <div className="text-sm text-muted-foreground p-6">You do not have permission to access this page.</div>
     );
   }
 

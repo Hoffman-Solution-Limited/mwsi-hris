@@ -21,7 +21,7 @@ import { useEmployees } from '@/contexts/EmployeesContext';
 export const PerformanceReviews: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { templates, reviews, createTemplate, createReview, setEmployeeTargets, submitManagerReview, submitHrReview, updateReview, employeeAcknowledge } = usePerformance();
+  const { templates, reviews, createTemplate, createReview, setEmployeeTargets, submitManagerReview, submitHrReview, updateReview } = usePerformance();
   const { employees } = useEmployees();
   const [activeTab, setActiveTab] = useState('active');
 
@@ -1088,9 +1088,6 @@ const handleSubmitToManager = () => {
                             {review.status === 'manager_review' ? (
                               <Badge variant="outline" className="bg-yellow-50 text-yellow-700">Awaiting Manager</Badge>
                             ) : null}
-                            {review.status === 'employee_ack' ? (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700">Awaiting Your Ack</Badge>
-                            ) : null}
                             {review.status === 'hr_review' ? (
                               <Badge variant="outline" className="bg-purple-50 text-purple-700">Awaiting HR</Badge>
                             ) : null}
@@ -1176,36 +1173,18 @@ const handleSubmitToManager = () => {
                                   )}
                                 </div>
                               </div>
-                              {review.status === 'employee_ack' && (
-                                <div className="space-y-3 border rounded p-3 bg-blue-50">
+                              {review.status === 'completed' && review.overallScore && (
+                                <div className="space-y-3 border rounded p-3 bg-green-50">
                                   <div className="flex items-center justify-between">
-                                    <span className="font-semibold">Manager Feedback:</span>
-                                    <Badge variant="outline">Awaiting Your Acknowledgement</Badge>
+                                    <span className="font-semibold">Review Completed</span>
+                                    <Badge variant="outline" className="bg-green-100 text-green-700">Final Score: {review.overallScore.toFixed(1)}/5</Badge>
                                   </div>
-                                  <div className="text-sm">{review.managerComments || 'No feedback.'}</div>
-                                  <div>
-                                    <label className="font-medium block mb-1">Your Comments (optional)</label>
-                                    <Textarea
-                                      rows={3}
-                                      placeholder="Add comments if you disagree"
-                                      value={ackComments[review.id] || ''}
-                                      onChange={(e) => setAckComments(prev => ({ ...prev, [review.id]: e.target.value }))}
-                                    />
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <Button
-                                      className="bg-green-600 text-white hover:bg-green-700"
-                                      onClick={() => employeeAcknowledge(review.id, true, ackComments[review.id] || '')}
-                                    >
-                                      Accept Appraisal
-                                    </Button>
-                                    <Button
-                                      variant="destructive"
-                                      onClick={() => employeeAcknowledge(review.id, false, ackComments[review.id] || '')}
-                                    >
-                                      Dispute & Send to HR
-                                    </Button>
-                                  </div>
+                                  {review.hrComments && (
+                                    <div className="text-sm"><strong>HR Comments:</strong> {review.hrComments}</div>
+                                  )}
+                                  {review.managerComments && (
+                                    <div className="text-sm"><strong>Manager Comments:</strong> {review.managerComments}</div>
+                                  )}
                                 </div>
                               )}
                               <div>
@@ -1220,6 +1199,12 @@ const handleSubmitToManager = () => {
                                 <span className="font-semibold">Next Review Date:</span>{" "}
                                 {review.nextReviewDate}
                               </div>
+                              <Button
+                                variant="outline"
+                                onClick={() => navigate(`/performance/reviews/${review.id}`)}
+                              >
+                                View Full Details
+                              </Button>
                             </>
                           )}
                         </div>

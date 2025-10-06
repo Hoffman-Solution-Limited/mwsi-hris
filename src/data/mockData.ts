@@ -534,6 +534,42 @@ export const mockEmployees: Employee[] = [
     company: 'Ministry of Water, Sanitation and Irrigation',
     dateOfBirth: '1983-04-19'
   },
+  {
+    id: '12',
+    name: 'Rita Registry',
+    email: 'registry@mwsi.com',
+    position: 'Registry Manager',
+    department: 'Registry',
+    hireDate: '2021-08-15',
+    status: 'active',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=RR',
+    phone: '+254-700-888888',
+    emergencyContact: 'Paul Registry (+254-700-888889)',
+    salary: 80000,
+    skills: [
+      { name: 'Document Management', level: 'Expert' },
+      { name: 'Record Keeping', level: 'Advanced' },
+      { name: 'Compliance', level: 'Advanced' },
+    ],
+    gender: 'female',
+    cadre: 'Management',
+    employmentType: 'Permanent',
+    engagementType: 'Permanent',
+    jobGroup: 'J',
+    ethnicity: 'Luhya',
+    employeeNumber: '20211234572',
+    nationalId: '30987654',
+    kraPin: 'A012345684Z',
+    children: '2',
+    workCounty: 'Nairobi',
+    homeCounty: 'Kakamega',
+    postalAddress: 'P.O. Box 33556',
+    postalCode: '00100',
+    stationName: 'Registry Department - Head Office',
+    skillLevel: 'Degree (Records Management)',
+    company: 'Ministry of Water, Sanitation and Irrigation',
+    dateOfBirth: '1986-09-12'
+  },
 ];
 
 export const mockDocuments: Document[] = [
