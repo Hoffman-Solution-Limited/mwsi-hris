@@ -14,7 +14,6 @@ const AdminDepartmentGoals: React.FC = () => {
   const { goals, getDepartments, getGoalsByDepartment, addGoal, updateGoal, removeGoal } = useDepartmentGoals();
 
   const [department, setDepartment] = useState<string>('Engineering');
-  const [newDept, setNewDept] = useState('');
 
   const departments = useMemo(() => {
     const base = getDepartments();
@@ -33,7 +32,7 @@ const AdminDepartmentGoals: React.FC = () => {
     if (!canManage) return;
     if (!form.title || form.weight <= 0) return;
     addGoal({
-      department: newDept || department,
+      department: department,
       title: form.title,
       description: form.description,
       weight: form.weight,
@@ -41,7 +40,6 @@ const AdminDepartmentGoals: React.FC = () => {
       createdBy: user?.name || 'System',
     });
     setForm({ title: '', description: '', weight: 0 });
-    if (newDept) setDepartment(newDept);
   };
 
   const startEdit = (id: string) => {
@@ -71,7 +69,7 @@ const AdminDepartmentGoals: React.FC = () => {
           <CardTitle>Manage Goals</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium">Department</label>
               <Select value={department} onValueChange={setDepartment}>
@@ -84,10 +82,6 @@ const AdminDepartmentGoals: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Or add new department</label>
-              <Input placeholder="Department name" value={newDept} onChange={(e) => setNewDept(e.target.value)} />
             </div>
             <div className="flex items-end">
               <Badge variant={totalWeight === 100 ? 'default' : 'secondary'}>
