@@ -50,10 +50,10 @@ const mockUsers: Record<string, User> = {
     department: 'Engineering',
     position: 'Software Developer'
   },
-  'manager@mwsi.com': {
-    id: '6',
+  'david.manager@mwsi.com': {
+    id: '10',
     name: 'David Manager',
-    email: 'manager@mwsi.com',
+    email: 'david.manager@mwsi.com',
     role: 'manager',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=DM',
     department: 'Engineering',
