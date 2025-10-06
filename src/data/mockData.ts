@@ -121,11 +121,6 @@ export interface PerformanceReview {
     score: number;
     comments: string;
   }[];
-    hrScores?: {
-    criteriaId: string;
-    score: number;
-    comments: string;
-  }[];
   overallScore?: number;
   score?: number;
   managerComments?: string;
@@ -962,11 +957,6 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     employeeAckStatus: 'accepted',
     employeeAckComments: 'Thank you for the feedback. I appreciate the recognition of the team\'s efforts.',
     employeeAckDate: '2025-07-05',
-    hrScores: [
-      { criteriaId: 'c1', score: 5, comments: 'Outstanding execution' },
-      { criteriaId: 'c2', score: 4, comments: 'Positive feedback from staff' },
-      { criteriaId: 'c3', score: 5, comments: 'High impact changes' }
-    ],
     hrComments: 'Consistently exceeds expectations.',
     overallScore: 4.7,
     score: 4.7,
@@ -1016,11 +1006,6 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     employeeAckStatus: 'accepted',
     employeeAckComments: 'Thank you for the positive feedback. Looking forward to the next quarter.',
     employeeAckDate: '2024-04-10',
-    hrScores: [
-      { criteriaId: 'c1', score: 4, comments: 'Delivery met expectations' },
-      { criteriaId: 'c2', score: 4, comments: 'Positive peer feedback' },
-      { criteriaId: 'c3', score: 5, comments: 'Process improved' }
-    ],
     hrComments: 'Approved. Excellent performance across all criteria.',
     overallScore: 4.5,
     score: 4.5,
@@ -1042,7 +1027,6 @@ export const mockPerformanceReviews: PerformanceReview[] = [
       { criteriaId: 'c2', target: 'Document new features', description: 'Write user guides.' }
     ],
     managerScores: [],
-    hrScores: [],
     managerComments: '',
     hrComments: '',
     nextReviewDate: '2024-12-31',
@@ -1064,7 +1048,6 @@ export const mockPerformanceReviews: PerformanceReview[] = [
       { criteriaId: 'c3', target: 'Propose 1 new feature', description: 'Identify and present new ideas.' }
     ],
     managerScores: [],
-    hrScores: [],
     managerComments: '',
     hrComments: '',
     nextReviewDate: '2024-09-30',
@@ -1146,7 +1129,6 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     employeeAckStatus: 'accepted',
     employeeAckComments: 'Thank you for the feedback. I agree with the assessment and will continue focusing on technical debt reduction in the next quarter.',
     employeeAckDate: '2025-07-05',
-    hrScores: [],
     nextReviewDate: '2025-09-30',
     createdBy: 'HR System',
     createdAt: '2025-06-30'
@@ -1178,11 +1160,6 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     employeeAckStatus: 'accepted',
     employeeAckComments: 'Appreciate the feedback. Will continue maintaining these standards.',
     employeeAckDate: '2025-10-05',
-    hrScores: [
-      { criteriaId: 'c1', score: 4, comments: 'Meets standards' },
-      { criteriaId: 'c2', score: 4, comments: 'Positive feedback from peers' },
-      { criteriaId: 'c3', score: 4, comments: 'Initiatives recognized' }
-    ],
     hrComments: 'Approved',
     overallScore: 4.0,
     score: 4.0,
@@ -1263,11 +1240,6 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     employeeAckStatus: 'accepted',
     employeeAckComments: 'Appreciate the recognition. Looking forward to continuing the momentum in Q3.',
     employeeAckDate: '2026-07-02',
-    hrScores: [
-      { criteriaId: 'c1', score: 5, comments: 'Exemplary performance and strategic thinking' },
-      { criteriaId: 'c2', score: 4, comments: 'Consistently clear and effective leadership' },
-      { criteriaId: 'c3', score: 4, comments: 'Recognized initiatives and innovation' }
-    ],
     hrComments: 'Approved and recorded. Outstanding performance across all criteria.',
     score: 4.5,
     nextReviewDate: '2026-09-30',
@@ -1373,7 +1345,6 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     employeeAckStatus: 'declined',
     employeeAckComments: 'I respectfully disagree with this assessment. The migration was completed ahead of the revised timeline we agreed upon after scope changes. The documentation received positive feedback from the team. I would like to discuss the specific concerns about delays and detail, as I believe there may be a misunderstanding about the project scope and deliverables.',
     employeeAckDate: '2025-10-05',
-    hrScores: [],
     nextReviewDate: '2025-12-31',
     createdBy: 'HR System',
     createdAt: '2025-09-30'
