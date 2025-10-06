@@ -62,12 +62,6 @@ export interface PerformanceReview {
     comments: string;
   }[];
 
-  hrScores?: {
-    criteriaId: string;
-    score: number;
-    comments: string;
-  }[];
-
   overallScore?: number;
   score?: number;
   managerComments?: string;
@@ -95,7 +89,6 @@ type PerformanceContextType = {
   ) => void;
   submitHrReview: (
     reviewId: string,
-    scores: PerformanceReview['hrScores'],
     comments: string
   ) => void;
   submitEmployeeAcknowledgment: (
@@ -211,7 +204,6 @@ export const PerformanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const submitHrReview = (
     reviewId: string,
-    scores: PerformanceReview['hrScores'],
     comments: string
   ) => {
     const review = reviews.find((r) => r.id === reviewId);
@@ -222,18 +214,10 @@ export const PerformanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
     let totalScore = 0;
     let totalWeight = 0;
-    scores.forEach((score) => {
-      const criteria = template.criteria.find((c) => c.id === score.criteriaId);
-      if (criteria) {
-        totalScore += score.score * criteria.weight;
-        totalWeight += criteria.weight;
-      }
-    });
 
     const overallScore = totalWeight > 0 ? totalScore / totalWeight : 0;
 
     updateReview(reviewId, {
-      hrScores: scores,
       hrComments: comments,
       overallScore,
       status: 'completed',
