@@ -550,25 +550,12 @@ export const EmployeeProfile: React.FC = () => {
                               </div>
                             )}
 
-                            {/* HR Scores mapped to criteria */}
-                            {review.hrScores && review.hrScores.length > 0 && (
+                            {/* HR Comments */}
+                            {review.hrComments && (
                               <div>
-                                <p className="font-medium mb-1">HR Scores</p>
-                                <div className="space-y-2">
-                                  {review.hrScores.map((s, idx) => {
-                                    const c = template?.criteria.find(c => c.id === s.criteriaId);
-                                    return (
-                                      <div key={idx} className="p-3 border rounded">
-                                        <div className="flex justify-between text-sm">
-                                          <span>{c?.name || s.criteriaId}</span>
-                                          <span>{s.score}/5</span>
-                                        </div>
-                                        {s.comments && (
-                                          <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
+                                <p className="font-medium mb-1">HR Comments</p>
+                                <div className="p-3 border rounded">
+                                  <p className="text-sm">{review.hrComments}</p>
                                 </div>
                               </div>
                             )}
