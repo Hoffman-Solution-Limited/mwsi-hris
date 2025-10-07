@@ -2,7 +2,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { PerformanceProvider } from '@/contexts/PerformanceContext';
 import { EmployeesProvider } from '@/contexts/EmployeesContext';
-import PerformanceReviews from '@/pages/PerformanceReviews';
+import { PerformanceReviews } from '@/pages/PerformanceReviews';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, Clock, Users } from 'lucide-react';
