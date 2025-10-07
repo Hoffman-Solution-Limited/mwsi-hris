@@ -254,6 +254,8 @@ export const DisciplinaryCases: React.FC = () => {
                 <th className="text-left p-3">Date</th>
                 <th className="text-left p-3">Description</th>
                 <th className="text-left p-3">Actions</th>
+                <th className="text-left p-3">Case Status</th>
+
               </tr>
             </thead>
             <tbody>
@@ -292,13 +294,10 @@ export const DisciplinaryCases: React.FC = () => {
                     >
                       Update Status
                     </Button>
-                    {c.updates && c.updates.length > 0 && (
-                      <UpdateHistoryButton updates={c.updates} />
-                    )}
-                    {c.status === "closed" && c.verdict && (
-                      <VerdictButton verdict={c.verdict} />
-                    )}
                   </td>
+                  <td className="p-3">{c.updates && c.updates.length > 0 && (
+                      <UpdateHistoryButton updates={c.updates} />
+                    )}</td>
                 </tr>
               ))}
             </tbody>
@@ -395,20 +394,4 @@ const UpdateHistoryButton: React.FC<{ updates: { timestamp: string; text: string
   );
 };
 
-// Small inline component to view verdict in a dialog
-const VerdictButton: React.FC<{ verdict: string }> = ({ verdict }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="secondary">View Verdict</Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Case Verdict</DialogTitle>
-        </DialogHeader>
-        <div className="text-sm whitespace-pre-wrap">{verdict}</div>
-      </DialogContent>
-    </Dialog>
-  );
-};
+
