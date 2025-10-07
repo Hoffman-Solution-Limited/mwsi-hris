@@ -293,7 +293,7 @@ export const DisciplinaryCases: React.FC = () => {
                       Update Status
                     </Button>
                     {c.updates && c.updates.length > 0 && (
-                      <LatestUpdateButton latest={c.updates[c.updates.length - 1]} />
+                      <UpdateHistoryButton updates={c.updates} />
                     )}
                     {c.status === "closed" && c.verdict && (
                       <VerdictButton verdict={c.verdict} />
@@ -362,23 +362,33 @@ export const DisciplinaryCases: React.FC = () => {
   );
 };
 
-// Small inline component to view latest status update in a dialog
-const LatestUpdateButton: React.FC<{ latest: { timestamp: string; text: string } }> = ({ latest }) => {
+// Component to view all status updates in chronological order
+const UpdateHistoryButton: React.FC<{ updates: { timestamp: string; text: string }[] }> = ({ updates }) => {
   const [open, setOpen] = useState(false);
-  const dt = new Date(latest.timestamp);
-  const formatted = isNaN(dt.getTime()) ? latest.timestamp : dt.toLocaleString();
+  
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="ghost">Latest Update</Button>
+        <Button size="sm" variant="ghost">
+          View History ({updates.length})
+        </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Latest Update</DialogTitle>
+          <DialogTitle>Status Update History</DialogTitle>
         </DialogHeader>
-        <div className="text-sm space-y-2">
-          <div className="text-muted-foreground">{formatted}</div>
-          <div className="whitespace-pre-wrap">{latest.text}</div>
+        <div className="space-y-4">
+          {updates.map((update, idx) => {
+            const dt = new Date(update.timestamp);
+            const formatted = isNaN(dt.getTime()) ? update.timestamp : dt.toLocaleString();
+            return (
+              <div key={idx} className="border-l-2 border-primary pl-4 pb-4 relative">
+                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary" />
+                <div className="text-xs text-muted-foreground mb-1">{formatted}</div>
+                <div className="text-sm whitespace-pre-wrap bg-muted p-3 rounded-md">{update.text}</div>
+              </div>
+            );
+          })}
         </div>
       </DialogContent>
     </Dialog>

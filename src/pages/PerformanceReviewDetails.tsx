@@ -156,28 +156,11 @@ const PerformanceReviewDetails = () => {
                 </div>
               )}
 
-              {review.hrScores && review.hrScores.length > 0 && (
+              {review.hrComments && (
                 <div>
-                  <p className="font-medium mb-2">HR Scores</p>
-                  <div className="space-y-2">
-                    {review.hrScores.map((s, idx) => {
-                      const c = template?.criteria.find((c) => c.id === s.criteriaId);
-                      return (
-                        <div key={idx} className="p-3 border rounded">
-                          <div className="flex justify-between text-sm">
-                            <span>{c?.name || 'Criteria'}</span>
-                            <span>{s.score}/5</span>
-                          </div>
-                          {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
-                        </div>
-                      );
-                    })}
-                    {review.hrComments && (
-                      <div className="p-3 bg-purple-50 rounded">
-                        <p className="text-sm font-medium">HR Overall Comments</p>
-                        <p className="text-sm">{review.hrComments}</p>
-                      </div>
-                    )}
+                  <p className="font-medium mb-2">HR Comments</p>
+                  <div className="p-3 border rounded">
+                    <p className="text-sm">{review.hrComments}</p>
                   </div>
                 </div>
               )}

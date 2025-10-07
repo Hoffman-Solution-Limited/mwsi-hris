@@ -180,7 +180,7 @@ const HrReviewPage: React.FC = () => {
 
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
-            <Button onClick={() => { submitHrReview(review.id, [], comments); navigate(-1); }}>Submit & Close</Button>
+            <Button onClick={() => { submitHrReview(review.id, comments); navigate(-1); }}>Submit & Close</Button>
           </div>
         </CardContent>
       </Card>
