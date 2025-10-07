@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useSystemCatalog } from "@/contexts/SystemCatalogContext"
+import { useUsers } from "@/contexts/UsersContext"
 
 export type EmployeeFormData = {
   name: string
@@ -14,7 +16,10 @@ export type EmployeeFormData = {
   department: string
   gender?: 'male' | 'female' | 'other'
   employmentType?: string
-  staffNumber?: string
+  jobGroup?: string
+  engagementType?: string
+  ethnicity?: string
+  employeeNumber: string
   nationalId?: string
   kraPin?: string
   children?: string
@@ -30,6 +35,7 @@ export type EmployeeFormData = {
   emergencyContact?: string
   salary?: number
   status?: 'active' | 'inactive' | 'terminated'
+  cadre?: 'Support' | 'Technical' | 'Management'
 }
 
 export function EmployeeForm({
@@ -41,13 +47,16 @@ export function EmployeeForm({
   onSave: (data: EmployeeFormData) => void
   mode?: "add" | "edit"
 }) {
+  const { designations, skillLevels, stations, jobGroups, engagementTypes, ethnicities } = useSystemCatalog()
+  const { findByEmail } = useUsers()
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
     setValue,
-    watch
+    watch,
+    setError
   } = useForm<EmployeeFormData>({
     defaultValues: {
       company: "Ministry of Water, Sanitation and Irrigation",
@@ -59,9 +68,47 @@ export function EmployeeForm({
 
   const watchedGender = watch("gender")
   const watchedEmploymentType = watch("employmentType")
+  const watchedJobGroup = watch("jobGroup")
+  const watchedEngagementType = watch("engagementType")
+  const watchedEthnicity = watch("ethnicity")
   const watchedStatus = watch("status")
+  const watchedCadre = watch("cadre")
+
+  // Kenyan counties list (47)
+  const counties = [
+    "Mombasa","Kwale","Kilifi","Tana River","Lamu","Taita-Taveta",
+    "Garissa","Wajir","Mandera","Marsabit","Isiolo","Meru","Tharaka-Nithi",
+    "Embu","Kitui","Machakos","Makueni","Nyandarua","Nyeri","Kirinyaga",
+    "Murang'a","Kiambu","Turkana","West Pokot","Samburu","Trans Nzoia",
+    "Uasin Gishu","Elgeyo-Marakwet","Nandi","Baringo","Laikipia","Nakuru",
+    "Narok","Kajiado","Kericho","Bomet","Kakamega","Vihiga","Bungoma",
+    "Busia","Siaya","Kisumu","Homa Bay","Migori","Kisii","Nyamira",
+    "Nairobi"
+  ]
+
+  // Phone dial code selection - default to Kenya (+254) regardless of current phone value
+  const [phoneDial, setPhoneDial] = React.useState<string>("+254")
 
   const handleSave = (data: EmployeeFormData) => {
+    // Required validations for system-selected fields
+    if (!data.position) {
+      setError("position", { type: "required", message: "Position is required" });
+      return;
+    }
+    if (!data.skillLevel) {
+      setError("skillLevel", { type: "required", message: "Skill level is required" });
+      return;
+    }
+    if (!data.stationName) {
+      setError("stationName", { type: "required", message: "Station is required" });
+      return;
+    }
+    // Enforce mapping: email must exist in system users (created by Admin)
+    const u = findByEmail(data.email || '')
+    if (!u) {
+      alert('No matching user account found for this email. Please ensure Admin has created the user first.');
+      return;
+    }
     onSave(data)
     if (mode === "add") reset() // only reset on add
   }
@@ -88,7 +135,67 @@ export function EmployeeForm({
 
             <div>
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" {...register("phone")} />
+              {/* Hidden input holds the composed E.164 value for validation and submission */}
+              <input
+                type="hidden"
+                id="phone"
+                {...register("phone", {
+                  validate: (v) => {
+                    if (!v) return true
+                    const e164 = /^\+[1-9]\d{6,14}$/
+                    return e164.test(v) || "Enter a valid phone in international format"
+                  },
+                })}
+              />
+              {(() => {
+                // Lightweight country list with dial codes and flags
+                const countries = [
+                  { code: 'KE', name: 'Kenya', dial: '+254', flag: '🇰🇪' },
+                  { code: 'UG', name: 'Uganda', dial: '+256', flag: '🇺🇬' },
+                  { code: 'TZ', name: 'Tanzania', dial: '+255', flag: '🇹🇿' },
+                  { code: 'RW', name: 'Rwanda', dial: '+250', flag: '🇷🇼' },
+                  { code: 'SS', name: 'South Sudan', dial: '+211', flag: '🇸🇸' },
+                  { code: 'ET', name: 'Ethiopia', dial: '+251', flag: '🇪🇹' },
+                  { code: 'SO', name: 'Somalia', dial: '+252', flag: '🇸🇴' },
+                  { code: 'BI', name: 'Burundi', dial: '+257', flag: '🇧🇮' },
+                  { code: 'US', name: 'United States', dial: '+1', flag: '🇺🇸' },
+                  { code: 'GB', name: 'United Kingdom', dial: '+44', flag: '🇬🇧' },
+                  { code: 'IN', name: 'India', dial: '+91', flag: '🇮🇳' },
+                ]
+                const raw = watch('phone') || ''
+                const digitsOnly = raw.replace(/\D/g, '')
+                const dialDigits = phoneDial.replace('+','')
+                const local = digitsOnly.startsWith(dialDigits) ? digitsOnly.slice(dialDigits.length) : digitsOnly
+                const setPhone = (dial: string, localDigits: string) => {
+                  const digits = (localDigits || '').replace(/\D/g, '')
+                  setPhoneDial(dial)
+                  setValue('phone', digits ? `${dial}${digits}` : dial, { shouldValidate: true })
+                }
+                return (
+                  <div className="flex gap-2">
+                    <Select value={phoneDial} onValueChange={(dial) => setPhone(dial, local)}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countries.map((c) => (
+                          <SelectItem key={c.code} value={c.dial}>
+                            {c.flag} {c.name} ({c.dial})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="7XXXXXXXX"
+                      value={local}
+                      onChange={(e) => setPhone(phoneDial, e.target.value)}
+                    />
+                  </div>
+                )
+              })()}
+              {errors.phone && <p className="text-destructive text-sm">{errors.phone.message as any}</p>}
             </div>
 
             <div>
@@ -107,9 +214,29 @@ export function EmployeeForm({
             </div>
 
             <div>
+              <Label htmlFor="ethnicity">Ethnicity</Label>
+              <Select value={watchedEthnicity} onValueChange={(value) => setValue("ethnicity", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select ethnicity" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ethnicities.map((e) => (
+                    <SelectItem key={e} value={e}>{e}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
               <Label htmlFor="dateOfBirth">Date of Birth *</Label>
               <Input id="dateOfBirth" type="date" {...register("dateOfBirth", { required: "Date of birth is required" })} />
               {errors.dateOfBirth && <p className="text-destructive text-sm">{errors.dateOfBirth.message}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="employeeNumber">Employee Number *</Label>
+              <Input id="employeeNumber" {...register("employeeNumber", { required: "Employee Number is required" })} />
+              {errors as any && (errors as any).employeeNumber && <p className="text-destructive text-sm">{(errors as any).employeeNumber.message as any}</p>}
             </div>
 
             <div>
@@ -138,14 +265,53 @@ export function EmployeeForm({
             <h3 className="text-lg font-semibold mb-4">Employment Information</h3>
 
             <div>
+              <Label htmlFor="cadre">Cadre *</Label>
+              <Select value={watchedCadre} onValueChange={(value: 'Support' | 'Technical' | 'Management') => setValue("cadre", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select cadre" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Support">Support</SelectItem>
+                  <SelectItem value="Technical">Technical</SelectItem>
+                  <SelectItem value="Management">Management</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.cadre && <p className="text-destructive text-sm">{(errors as any).cadre?.message}</p>}
+            </div>
+
+            <div>
               <Label htmlFor="position">Position *</Label>
-              <Input id="position" {...register("position", { required: "Position is required" })} />
+              <Select
+                value={watch("position")}
+                onValueChange={(value) => setValue("position", value, { shouldValidate: true })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select position" />
+                </SelectTrigger>
+                <SelectContent>
+                  {designations.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.position && <p className="text-destructive text-sm">{errors.position.message}</p>}
             </div>
 
             <div>
-              <Label htmlFor="department">Department *</Label>
-              <Input id="department" {...register("department", { required: "Department is required" })} />
+              <Label htmlFor="department">Department (Work Station) *</Label>
+              <Select
+                value={watch("department")}
+                onValueChange={(value) => setValue("department", value, { shouldValidate: true })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Work Station" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stations.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.department && <p className="text-destructive text-sm">{errors.department.message}</p>}
             </div>
 
@@ -156,19 +322,30 @@ export function EmployeeForm({
                   <SelectValue placeholder="Select employment type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Permanent">Permanent</SelectItem>
-                  <SelectItem value="Contract">Contract</SelectItem>
-                  <SelectItem value="Temporary">Temporary</SelectItem>
-                  <SelectItem value="Internship">Internship</SelectItem>
+                  {engagementTypes.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {errors.employmentType && <p className="text-destructive text-sm">{errors.employmentType.message}</p>}
             </div>
 
             <div>
-              <Label htmlFor="staffNumber">Staff Number</Label>
-              <Input id="staffNumber" {...register("staffNumber")} />
+              <Label htmlFor="jobGroup">Job Group</Label>
+              <Select value={watchedJobGroup} onValueChange={(value) => setValue("jobGroup", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select job group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {jobGroups.map((g) => (
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
+
+            {/* Removed Staff Number for consistency with Employee Number */}
 
             <div>
               <Label htmlFor="hireDate">Date of Joining *</Label>
@@ -204,12 +381,20 @@ export function EmployeeForm({
 
             <div>
               <Label htmlFor="skillLevel">Skill Level</Label>
-              <Input id="skillLevel" {...register("skillLevel")} />
-            </div>
-
-            <div>
-              <Label htmlFor="stationName">Station Name</Label>
-              <Input id="stationName" {...register("stationName")} />
+              <Select
+                value={watch("skillLevel")}
+                onValueChange={(value) => setValue("skillLevel", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select skill level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {skillLevels.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.skillLevel && <p className="text-destructive text-sm">{errors.skillLevel.message}</p>}
             </div>
           </div>
         </div>
@@ -218,12 +403,30 @@ export function EmployeeForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
           <div>
             <Label htmlFor="workCounty">Work County</Label>
-            <Input id="workCounty" {...register("workCounty")} />
+            <Select value={watch("workCounty")} onValueChange={(value) => setValue("workCounty", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select county" />
+              </SelectTrigger>
+              <SelectContent>
+                {counties.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <Label htmlFor="homeCounty">Home County</Label>
-            <Input id="homeCounty" {...register("homeCounty")} />
+            <Select value={watch("homeCounty")} onValueChange={(value) => setValue("homeCounty", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select county" />
+              </SelectTrigger>
+              <SelectContent>
+                {counties.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>

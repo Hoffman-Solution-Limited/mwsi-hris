@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type UserRole = 'admin' | 'hr_manager' | 'hr_staff' | 'employee' | 'manager';
+export type UserRole = 'admin' | 'hr_manager' | 'hr_staff' | 'employee' | 'manager' | 'registry_manager';
 
 export interface User {
   id: string;
@@ -23,15 +23,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Mock users for demo
 const mockUsers: Record<string, User> = {
-  'david.manager@mwsi.com': {
-    id: '10',
-    name: 'David Manager',
-    email: 'david.manager@mwsi.com',
-    role: 'manager',
-    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=DM',
-    department: 'Operations',
-    position: 'Operations Manager'
-  },
   'admin@mwsi.com': {
     id: '1',
     name: 'John Smith',
@@ -59,14 +50,23 @@ const mockUsers: Record<string, User> = {
     department: 'Engineering',
     position: 'Software Developer'
   },
-  'manager@mwsi.com': {
-    id: '6',
+  'david.manager@mwsi.com': {
+    id: '10',
     name: 'David Manager',
-    email: 'manager@mwsi.com',
+    email: 'david.manager@mwsi.com',
     role: 'manager',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=DM',
     department: 'Engineering',
     position: 'Engineering Manager'
+  },
+  'registry@mwsi.com': {
+    id: '12',
+    name: 'Rita Registry',
+    email: 'registry@mwsi.com',
+    role: 'registry_manager',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=RR',
+    department: 'Registry',
+    position: 'Registry Manager'
   }
 };
 
@@ -89,18 +89,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
-    
+
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const user = mockUsers[email];
-    if (user && password === 'demo123') {
-      setUser(user);
-      localStorage.setItem('hris-user', JSON.stringify(user));
+
+    const found = mockUsers[email];
+    if (found && password === 'demo123') {
+      setUser(found);
+      localStorage.setItem('hris-user', JSON.stringify(found));
     } else {
+      setIsLoading(false);
       throw new Error('Invalid credentials');
     }
-    
+
     setIsLoading(false);
   };
 

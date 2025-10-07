@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+
 import { Search, Filter, User, FileText, Calendar, Building } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,26 +8,82 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { mockEmployees, mockDocuments, mockLeaveRequests } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export const GlobalSearch: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  // Filter results based on search query
-  const employeeResults = mockEmployees.filter(emp => 
+  // Determine role-based visibility scopes
+  const { scopedEmployees, scopedDocuments, scopedLeaveRequests } = useMemo(() => {
+    if (!user) {
+      return { scopedEmployees: [] as typeof mockEmployees, scopedDocuments: [] as typeof mockDocuments, scopedLeaveRequests: [] as typeof mockLeaveRequests };
+    }
+
+    const isHR = user.role === 'hr_manager' || user.role === 'hr_staff' || user.role === 'admin';
+
+    // HR/Admin see all
+    if (isHR) {
+      return {
+        scopedEmployees: mockEmployees,
+        scopedDocuments: mockDocuments,
+        scopedLeaveRequests: mockLeaveRequests,
+      };
+    }
+
+    // Employee sees self only
+    if (user.role === 'employee') {
+      const selfEmployees = mockEmployees.filter(e => e.email === user.email || e.id === user.id || e.name === user.name);
+      const selfDocs = mockDocuments.filter(doc => doc.uploadedBy === user.name);
+      const selfLeave = mockLeaveRequests.filter(l => l.employeeId === user.id || l.employeeName === user.name);
+      return {
+        scopedEmployees: selfEmployees,
+        scopedDocuments: selfDocs,
+        scopedLeaveRequests: selfLeave,
+      };
+    }
+
+    // Manager sees self + direct reports (by matching employee.manager === manager.name)
+    if (user.role === 'manager') {
+      const teamEmployees = mockEmployees.filter(e => e.manager === user.name || e.id === user.id || e.email === user.email || e.name === user.name);
+      const teamNames = new Set(teamEmployees.map(e => e.name).concat([user.name]));
+      const teamIds = new Set(teamEmployees.map(e => e.id).concat([user.id]));
+
+      const teamDocs = mockDocuments.filter(doc => teamNames.has(doc.uploadedBy));
+      const teamLeave = mockLeaveRequests.filter(l => teamIds.has(l.employeeId) || teamNames.has(l.employeeName));
+
+      return {
+        scopedEmployees: teamEmployees,
+        scopedDocuments: teamDocs,
+        scopedLeaveRequests: teamLeave,
+      };
+    }
+
+    // Default fallback: nothing
+    return { scopedEmployees: [], scopedDocuments: [], scopedLeaveRequests: [] };
+  }, [user]);
+
+  // Filter results based on search query within scoped datasets
+  const employeeResults = scopedEmployees.filter(emp => 
     emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.position.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const documentResults = mockDocuments.filter(doc => 
+  // Documents scoped above by role
+  const baseDocuments = scopedDocuments;
+
+  const documentResults = baseDocuments.filter(doc => 
     doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.uploadedBy.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const leaveResults = mockLeaveRequests.filter(leave => 
+  const leaveResults = scopedLeaveRequests.filter(leave => 
     leave.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     leave.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
     leave.reason.toLowerCase().includes(searchQuery.toLowerCase())
@@ -100,7 +157,7 @@ export const GlobalSearch: React.FC = () => {
                     Employees ({employeeResults.length})
                   </h3>
                   {employeeResults.map((employee) => (
-                    <Card key={employee.id} className="cursor-pointer hover:bg-muted/50">
+                    <Card key={employee.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/employees/${employee.id}`)}>
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
                           <Avatar>
@@ -132,7 +189,7 @@ export const GlobalSearch: React.FC = () => {
                     Documents ({documentResults.length})
                   </h3>
                   {documentResults.map((document) => (
-                    <Card key={document.id} className="cursor-pointer hover:bg-muted/50">
+                    <Card key={document.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate('/documents')}>
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
                           <div className="bg-primary/10 p-2 rounded">
@@ -165,7 +222,7 @@ export const GlobalSearch: React.FC = () => {
                     Leave Requests ({leaveResults.length})
                   </h3>
                   {leaveResults.map((leave) => (
-                    <Card key={leave.id} className="cursor-pointer hover:bg-muted/50">
+                    <Card key={leave.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate('/leave')}>
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
                           <div className="bg-warning/10 p-2 rounded">
@@ -205,7 +262,7 @@ export const GlobalSearch: React.FC = () => {
 
             <TabsContent value="employees" className="space-y-4">
               {employeeResults.map((employee) => (
-                <Card key={employee.id} className="cursor-pointer hover:bg-muted/50">
+                <Card key={employee.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/employees/${employee.id}`)}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                       <Avatar>
@@ -230,7 +287,7 @@ export const GlobalSearch: React.FC = () => {
 
             <TabsContent value="documents" className="space-y-4">
               {documentResults.map((document) => (
-                <Card key={document.id} className="cursor-pointer hover:bg-muted/50">
+                <Card key={document.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate('/documents')}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                       <div className="bg-primary/10 p-2 rounded">
@@ -256,7 +313,7 @@ export const GlobalSearch: React.FC = () => {
 
             <TabsContent value="leave" className="space-y-4">
               {leaveResults.map((leave) => (
-                <Card key={leave.id} className="cursor-pointer hover:bg-muted/50">
+                <Card key={leave.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate('/leave')}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                       <div className="bg-warning/10 p-2 rounded">
