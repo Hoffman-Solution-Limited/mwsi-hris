@@ -9,7 +9,6 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import RequirePermission from "@/components/auth/RequirePermission";
 import { LeaveProvider } from "@/contexts/LeaveContext";
-import { DocumentProvider } from "@/contexts/DocumentContext";
 import { PerformanceProvider } from "@/contexts/PerformanceContext";
 import { DepartmentGoalsProvider } from "@/contexts/DepartmentGoalsContext";
 import { TrainingProvider } from "@/contexts/TrainingContext";
@@ -29,7 +28,6 @@ import Recruitment from "@/pages/Recruitment";
 import { Training } from "@/pages/Training";
 import { LeaveManagement } from "@/pages/LeaveManagement";
 import { PerformanceReviews } from "@/pages/PerformanceReviews";
-import { Documents } from "@/pages/Documents";
 import { Reports } from "@/pages/Reports";
 import AddEmployeePage from "@/pages/AddEmployee";
 import EditEmployeePage from "@/pages/EditEmployee";
@@ -63,6 +61,7 @@ import DocumentTrackingPage from "@/pages/Document";
 import MyFilesPage from "@/pages/MyFiles";
 import RequestsManagementPage from "@/pages/RequestsManagement";
 import EmploymentAttributesPage from "@/pages/EmploymentAttributes";
+import DocumentTypesPage from "@/pages/DocumentTypes";
 
 const queryClient = new QueryClient();
 
@@ -83,7 +82,6 @@ const App = () => (
       <NotificationsProvider>
       <SystemLogsProvider>
         <LeaveProvider>
-          <DocumentProvider>
             <DepartmentGoalsProvider>
             <PerformanceProvider>
               <TrainingProvider>
@@ -116,7 +114,7 @@ const App = () => (
                           <Route path="/performance/reviews/:id/self" element={<ProtectedRoute><Layout><EmployeeSelfAppraisalPage /></Layout></ProtectedRoute>} />
                           <Route path="/performance/reviews/:id/acknowledge" element={<ProtectedRoute><Layout><EmployeeAcknowledgmentPage /></Layout></ProtectedRoute>} />
                           <Route path="/hr-performance-filled" element={<ProtectedRoute><Layout><HRPerformanceFilledList /></Layout></ProtectedRoute>} />
-                          <Route path="/documents" element={<ProtectedRoute><Layout><Documents /></Layout></ProtectedRoute>} />
+                          {/* Documents page removed - route deprecated */}
                           <Route path="/employee-files" element={<ProtectedRoute><RequirePermission permission="page.employee-files"><Layout><DocumentTrackingPage /></Layout></RequirePermission></ProtectedRoute>} />
                           <Route path="/my-files" element={<ProtectedRoute><Layout><MyFilesPage /></Layout></ProtectedRoute>} />
                           <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
@@ -138,6 +136,7 @@ const App = () => (
                           <Route path="/admin/training-management" element={<ProtectedRoute><RequirePermission permission="page.admin.training-management"><Layout><AdminTrainingManagement /></Layout></RequirePermission></ProtectedRoute>} />
                           <Route path="/admin/system-logs" element={<ProtectedRoute><RequirePermission permission="page.admin.system-logs"><Layout><AdminSystemLogs /></Layout></RequirePermission></ProtectedRoute>} />
                           <Route path="/registry/requests" element={<ProtectedRoute><RequirePermission permission="page.registry.requests"><Layout><RequestsManagementPage /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/registry/documents" element={<ProtectedRoute><RequirePermission permission="page.registry.requests"><Layout><DocumentTypesPage /></Layout></RequirePermission></ProtectedRoute>} />
                           <Route path="/employment-attributes" element={<ProtectedRoute><Layout><EmploymentAttributesPage /></Layout></ProtectedRoute>} />
                           <Route path="/work-stations" element={<ProtectedRoute><Layout><WorkStationsPage /></Layout></ProtectedRoute>} />
                           <Route path="/change-password" element={<ProtectedRoute><Layout><ChangePassword /></Layout></ProtectedRoute>} />
@@ -152,7 +151,6 @@ const App = () => (
               </TrainingProvider>
             </PerformanceProvider>
             </DepartmentGoalsProvider>
-          </DocumentProvider>
         </LeaveProvider>
       </SystemLogsProvider>
       </NotificationsProvider>

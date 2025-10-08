@@ -208,35 +208,6 @@ export interface Employee {
   company?: string;
   dateOfBirth?: string;
 }
-
-
-export interface Document {
-  id: string;
-  name: string;
-  type: 'contract' | 'certificate' | 'policy' | 'form' | 'report';
-  uploadDate: string;
-  size: string;
-  status: 'pending' | 'approved' | 'rejected' | 'draft';
-  uploadedBy: string;
-  category: string;
-  createdAt?: string;
-  // Assignment fields (temporary assignment to an employee)
-  assignedToEmployeeId?: string;
-  assignedToName?: string;
-  assignedToEmail?: string;
-  assignedToDepartment?: string;
-  assignedDate?: string;
-  // Movement log entries
-  movementLog?: {
-    action: 'assigned' | 'returned' | 'moved';
-    by: string; // actor name
-    to?: string; // destination name when moved/assigned
-    date: string; // ISO timestamp
-    reason?: string;
-    remarks?: string;
-  }[];
-}
-
 export type Position = {
   id: string
   title: string
@@ -614,63 +585,6 @@ export const mockEmployees: Employee[] = [
     company: 'Ministry of Water, Sanitation and Irrigation',
     dateOfBirth: '1986-09-12'
   },
-];
-
-export const mockDocuments: Document[] = [
-  {
-    id: '1',
-    name: 'Employee Handbook 2024.pdf',
-    type: 'policy',
-    uploadDate: '2024-01-15',
-    createdAt: '2024-01-10',
-    size: '2.3 MB',
-    status: 'approved',
-    uploadedBy: 'Sarah Johnson',
-    category: 'Policies & Procedures'
-  },
-  {
-    id: '2',
-    name: 'Training Certificate - Data Protection.pdf',
-    type: 'certificate',
-    uploadDate: '2024-02-20',
-    createdAt: '2024-02-18',
-    size: '856 KB',
-    status: 'approved',
-    uploadedBy: 'Michael Davis',
-    category: 'Training Records'
-  },
-  {
-    id: '3',
-    name: 'Performance Review Q1 2024.docx',
-    type: 'form',
-    uploadDate: '2024-03-10',
-    size: '1.2 MB',
-    status: 'pending',
-    uploadedBy: 'John Smith',
-    category: 'Performance Management'
-  },
-  {
-    id: '4',
-    name: 'Employment Contract - Emily Chen.pdf',
-    type: 'contract',
-    uploadDate: '2024-02-14',
-    size: '945 KB',
-    status: 'approved',
-    uploadedBy: 'Sarah Johnson',
-    category: 'Contracts'
-  },
-  // Testing document uploaded by an employee (unassigned -> should be under Registry)
-  {
-    id: 'TEST-EMP-1',
-    name: 'Test Upload from Employee.pdf',
-    type: 'form',
-    uploadDate: '2025-09-22',
-    createdAt: '2025-09-22',
-    size: '123 KB',
-    status: 'pending',
-    uploadedBy: 'Michael Davis',
-    category: 'Employee Uploads'
-  }
 ];
 
 export const mockPositions: Position[] = [
@@ -1348,5 +1262,87 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     nextReviewDate: '2025-12-31',
     createdBy: 'HR System',
     createdAt: '2025-09-30'
+  }
+];
+
+// Disciplinary case type shared with UI
+export interface DisciplinaryCaseMock {
+  id: number;
+  employeeId: string;
+  employeeName: string;
+  caseType: string;
+  status: "open" | "closed" | "pending";
+  date: string;
+  description: string;
+  verdict?: string;
+  updates?: { timestamp: string; text: string }[];
+}
+
+// Mock disciplinary cases for testing — includes comments/updates and statuses
+export const mockDisciplinaryCases: DisciplinaryCaseMock[] = [
+  {
+    id: 1,
+    employeeId: '1',
+    employeeName: 'John Smith',
+    caseType: 'Absenteeism',
+    status: 'open',
+    date: '2025-07-12',
+    description: 'Missed work for 3 consecutive days without notice.',
+    updates: [
+      { timestamp: '2025-07-13T10:15:00Z', text: 'HR reached out to employee for explanation.' },
+      { timestamp: '2025-07-14T08:30:00Z', text: 'Employee provided medical certificate; manager asked for formal leave application.' }
+    ]
+  },
+  {
+    id: 2,
+    employeeId: '3',
+    employeeName: 'Michael Davis',
+    caseType: 'Misconduct',
+    status: 'pending',
+    date: '2025-08-01',
+    description: 'Unprofessional behavior towards a colleague.',
+    updates: [
+      { timestamp: '2025-08-03T09:00:00Z', text: 'Waiting disciplinary committee update.' },
+      { timestamp: '2025-08-10T12:00:00Z', text: 'Committee requested witness statements; interviews scheduled.' }
+    ]
+  },
+  {
+    id: 3,
+    employeeId: '4',
+    employeeName: 'Emily Chen',
+    caseType: 'Performance',
+    status: 'closed',
+    date: '2025-06-20',
+    description: 'Repeatedly failed to meet deadlines.',
+    verdict: 'Final warning issued; performance improvement plan for 60 days.',
+    updates: [
+      { timestamp: '2025-06-15T14:30:00Z', text: 'Final meeting held with the employee and manager.' },
+      { timestamp: '2025-06-20T16:00:00Z', text: 'Case closed with final warning issued.' }
+    ]
+  },
+  {
+    id: 4,
+    employeeId: '6',
+    employeeName: 'Jane Smith',
+    caseType: 'Policy Violation',
+    status: 'pending',
+    date: '2025-09-01',
+    description: 'Breach of information security policy by sharing credentials.',
+    updates: [
+      { timestamp: '2025-09-02T11:00:00Z', text: 'IT suspended affected accounts; investigation underway.' },
+      { timestamp: '2025-09-05T09:45:00Z', text: 'Employee interviewed; awaiting committee findings.' }
+    ]
+  },
+  {
+    id: 5,
+    employeeId: '7',
+    employeeName: 'Robert Chen',
+    caseType: 'Health & Safety',
+    status: 'open',
+    date: '2025-10-01',
+    description: 'Unsafe conduct in the workplace that endangered others.',
+    updates: [
+      { timestamp: '2025-10-02T08:00:00Z', text: 'Safety officer filed incident report and recommended suspension pending review.' }
+    ]
   }
 ];
