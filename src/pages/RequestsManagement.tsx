@@ -32,8 +32,20 @@ const RequestsManagementPage: React.FC = () => {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return pending;
-    return pending.filter(r => r.employeeId.toLowerCase().includes(q) || r.requestedByName.toLowerCase().includes(q));
-  }, [pending, search]);
+    return pending.filter(r => {
+      const emp = employees.find(e => e.id === r.employeeId);
+      const empNo = (emp as any)?.employeeNumber || '';
+      const reqDoc = (r.documentType || '').toString();
+      const remarks = (r.remarks || '').toString();
+      return (
+        (r.employeeId || '').toLowerCase().includes(q) ||
+        empNo.toLowerCase().includes(q) ||
+        (r.requestedByName || '').toLowerCase().includes(q) ||
+        reqDoc.toLowerCase().includes(q) ||
+        remarks.toLowerCase().includes(q)
+      );
+    });
+  }, [pending, search, employees]);
 
   const submitApprove = () => {
     if (!approveModal.requestId || !approveModal.toLocation) return;
@@ -165,7 +177,15 @@ const RequestsManagementPage: React.FC = () => {
                     <ul className="list-disc list-inside text-sm text-muted-foreground">
                       {(() => {
                         const empNo = (owner as any)?.employeeNumber || file.employeeId;
-                        return file.defaultDocuments.map((d) => (
+                        // Show the specifically requested document first (if any)
+                        const reqDoc = req?.documentType;
+                        const docs: string[] = [];
+                        if (reqDoc) docs.push(reqDoc);
+                        // then include default documents as fallback
+                        docs.push(...file.defaultDocuments);
+                        // Make unique preserving order
+                        const uniq = Array.from(new Set(docs));
+                        return uniq.map((d) => (
                           <li key={d}>{`${empNo}_${d}`}</li>
                         ));
                       })()}
