@@ -61,6 +61,7 @@ const navGroups: NavGroup[] = [
     items: [
       { path: '/employee-files', label: 'Employee File Tracking', icon: <FileText className="w-5 h-5" />, roles: ['registry_manager'] },
       { path: '/registry/requests', label: 'Registry Requests', icon: <Activity className="w-5 h-5" />, roles: ['registry_manager'] },
+      { path: '/registry/documents', label: 'Document Types', icon: <List className="w-5 h-5" />, roles: ['registry_manager'] },
     ]
   },
   {
