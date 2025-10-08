@@ -11,61 +11,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useEmployees } from "@/contexts/EmployeesContext";
+import { DisciplinaryCaseMock, mockDisciplinaryCases } from "@/data/mockData";
 
 // Mock disciplinary cases data
-interface DisciplinaryCase {
-  id: number;
-  employeeId: string; // mapped to EmployeesContext
-  employeeName: string; // denormalized for quick display
-  caseType: string;
-  status: "open" | "closed" | "pending";
-  date: string;
-  description: string;
-  verdict?: string; // set when status becomes closed
-  updates?: { timestamp: string; text: string }[]; // chronological log of status update comments
-}
-
-const mockCases: DisciplinaryCase[] = [
-  {
-    id: 1,
-    employeeId: "1",
-    employeeName: "John Smith",
-    caseType: "Absenteeism",
-    status: "open",
-    date: "2025-07-12",
-    description: "Missed work for 3 consecutive days without notice.",
-    updates: [
-      { timestamp: "2025-07-13T10:15:00Z", text: "HR reached out to employee for explanation." }
-    ]
-  },
-  {
-    id: 2,
-    employeeId: "3",
-    employeeName: "Michael Davis",
-    caseType: "Misconduct",
-    status: "pending",
-    date: "2025-08-01",
-    description: "Unprofessional behavior towards a colleague.",
-    updates: [
-      { timestamp: "2025-08-03T09:00:00Z", text: "Waiting disciplinary committee update." }
-    ]
-  },
-  {
-    id: 3,
-    employeeId: "4",
-    employeeName: "Emily Chen",
-    caseType: "Performance",
-    status: "closed",
-    date: "2025-06-20",
-    description: "Repeatedly failed to meet deadlines.",
-    verdict: "Final warning issued; performance improvement plan for 60 days.",
-    updates: [
-      { timestamp: "2025-06-15T14:30:00Z", text: "Final meeting held with the employee and manager." },
-      { timestamp: "2025-06-20T16:00:00Z", text: "Case closed with final warning issued." }
-    ]
-  },
-];
+// Use centralized mock data for disciplinary cases
+type DisciplinaryCase = DisciplinaryCaseMock;
+const mockCases: DisciplinaryCase[] = mockDisciplinaryCases;
 
 export const DisciplinaryCases: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -79,25 +33,27 @@ export const DisciplinaryCases: React.FC = () => {
 
   // Add Case form state (controlled)
   const [newCase, setNewCase] = useState<{
-    employeeId: string;
+    employeeNumber: string; // user-visible employee number used for lookup
     employeeName: string;
     caseType: string;
     status: "open" | "closed" | "pending";
     date: string;
     description: string;
-  }>({ employeeId: "", employeeName: "", caseType: "", status: "open", date: "", description: "" });
+  }>({ employeeNumber: "", employeeName: "", caseType: "", status: "open", date: "", description: "" });
 
   // Resolve employee name when employeeId is entered
   const resolvedEmployeeName = useMemo(() => {
-    const e = employees.find(emp => emp.id === newCase.employeeId.trim());
+    // resolve by employeeNumber (human-facing) instead of internal id
+    const e = employees.find(emp => ((emp as any)?.employeeNumber || "").toString() === newCase.employeeNumber.trim());
     return e?.name || "";
-  }, [employees, newCase.employeeId]);
+  }, [employees, newCase.employeeNumber]);
 
   // Add new case (mapped to employee by ID)
   const handleAddCase = () => {
-    const employee = employees.find(e => e.id === newCase.employeeId.trim());
+    // Lookup by employeeNumber and use the internal employee.id when creating the case
+    const employee = employees.find(e => ((e as any)?.employeeNumber || "").toString() === newCase.employeeNumber.trim());
     if (!employee) {
-      alert("Employee ID not found. Please enter a valid Employee ID.");
+      alert("Employee number not found. Please enter a valid Employee Number.");
       return;
     }
     const caseWithId: DisciplinaryCase = {
@@ -110,7 +66,7 @@ export const DisciplinaryCases: React.FC = () => {
       description: newCase.description,
     };
     setCases(prev => [...prev, caseWithId]);
-    setNewCase({ employeeId: "", employeeName: "", caseType: "", status: "open", date: "", description: "" });
+    setNewCase({ employeeNumber: "", employeeName: "", caseType: "", status: "open", date: "", description: "" });
   };
 
   // Complete case handler
@@ -184,21 +140,28 @@ export const DisciplinaryCases: React.FC = () => {
               <DialogTitle>New Disciplinary Case</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
+              <label className="block font-medium">Employee Number</label>
               <Input
-                placeholder="Employee ID"
-                value={newCase.employeeId}
-                onChange={(e) => setNewCase((s) => ({ ...s, employeeId: e.target.value }))}
+                placeholder="Employee Number"
+                value={newCase.employeeNumber}
+                onChange={(e) => setNewCase((s) => ({ ...s, employeeNumber: e.target.value }))}
               />
+                            <label className="block font-medium">Employee Name</label>
+
               <Input
                 placeholder="Employee Name"
                 value={resolvedEmployeeName}
                 readOnly
               />
+                            <label className="block font-medium">Case Type</label>
+
               <Input
                 placeholder="Case Type"
                 value={newCase.caseType}
                 onChange={(e) => setNewCase((s) => ({ ...s, caseType: e.target.value }))}
               />
+                            <label className="block font-medium">Status</label>
+
               <select
                 className="w-full border rounded p-2"
                 value={newCase.status}
@@ -208,11 +171,32 @@ export const DisciplinaryCases: React.FC = () => {
                 <option value="pending">Pending</option>
                 <option value="closed">Closed</option>
               </select>
-              <Input
-                placeholder="Date (YYYY-MM-DD)"
-                value={newCase.date}
-                onChange={(e) => setNewCase((s) => ({ ...s, date: e.target.value }))}
-              />
+                            <label className="block font-medium">Date</label>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Input
+                    placeholder="Date (YYYY-MM-DD)"
+                    value={newCase.date}
+                    readOnly
+                    className="cursor-pointer"
+                  />
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={newCase.date ? new Date(newCase.date) : undefined}
+                    onSelect={(d) => {
+                      if (d instanceof Date && !isNaN(d.getTime())) {
+                        const iso = d.toISOString().slice(0, 10);
+                        setNewCase((s) => ({ ...s, date: iso }));
+                      }
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+                            <label className="block font-medium">Description</label>
+
               <Input
                 placeholder="Description"
                 value={newCase.description}
