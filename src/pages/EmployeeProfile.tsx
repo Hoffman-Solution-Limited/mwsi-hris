@@ -29,7 +29,6 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { usePerformance } from '@/contexts/PerformanceContext';
  
-import { useDocuments } from '@/contexts/DocumentContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
 import { Input } from '@/components/ui/input';
 // Removed Select import used only by document upload UI
@@ -43,7 +42,6 @@ export const EmployeeProfile: React.FC = () => {
   const { templates } = usePerformance();
   const { updateEmployee } = useEmployees();
   const [activeTab, setActiveTab] = useState('personal');
-  const { documents, getDocumentUrl } = useDocuments();
 
   // For testing, always use Michael Davis (id: '3') as the target employee
     // If on /profile route, show current user's profile
@@ -67,10 +65,6 @@ export const EmployeeProfile: React.FC = () => {
   const canAccessProfile = isMyProfile || 
     ['admin', 'hr_manager', 'hr_staff'].includes(user?.role || '') ||
     (user?.role === 'manager' && (user?.id === targetEmployeeId || (employee && employee.manager === user?.name)));
-  const employeeDocuments = useMemo(() => {
-    if (!employee) return [];
-    return documents.filter(doc => doc.uploadedBy === employee.name);
-  }, [documents, employee]);
     const employeeTrainings = mockTrainingRecords.filter(training => 
       training.employeeId === targetEmployeeId
     );
@@ -426,49 +420,6 @@ export const EmployeeProfile: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {employeeDocuments.map((document) => (
-                  <div key={document.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-primary/10 p-2 rounded">
-                        <FileText className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{document.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {document.category} • {document.uploadDate} • {document.size}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={`status-${document.status}`}>
-                        {document.status}
-                      </Badge>
-                      <Button variant="outline" size="sm" onClick={() => {
-                        const url = getDocumentUrl(document.id);
-                        if (url) window.open(url, '_blank');
-                      }} disabled={!getDocumentUrl(document.id)}>
-                        View
-                      </Button>
-                      <a
-                        href={getDocumentUrl(document.id) || '#'}
-                        download={document.name}
-                        onClick={(e) => { if (!getDocumentUrl(document.id)) e.preventDefault(); }}
-                      >
-                        <Button variant="outline" size="sm" disabled={!getDocumentUrl(document.id)}>
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      </a>
-                    </div>
-                  </div>
-                ))}
-                {employeeDocuments.length === 0 && (
-                  <div className="text-center py-8">
-                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No documents available</p>
-                  </div>
-                )}
-              </div>
             </CardContent> 
           </Card>
         </TabsContent>

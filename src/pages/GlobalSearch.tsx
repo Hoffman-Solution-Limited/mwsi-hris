@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockEmployees, mockDocuments, mockLeaveRequests } from '@/data/mockData';
+import { mockEmployees, mockLeaveRequests } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,9 +18,9 @@ export const GlobalSearch: React.FC = () => {
   const navigate = useNavigate();
 
   // Determine role-based visibility scopes
-  const { scopedEmployees, scopedDocuments, scopedLeaveRequests } = useMemo(() => {
+  const { scopedEmployees, scopedLeaveRequests } = useMemo(() => {
     if (!user) {
-      return { scopedEmployees: [] as typeof mockEmployees, scopedDocuments: [] as typeof mockDocuments, scopedLeaveRequests: [] as typeof mockLeaveRequests };
+      return { scopedEmployees: [] as typeof mockEmployees, scopedLeaveRequests: [] as typeof mockLeaveRequests };
     }
 
     const isHR = user.role === 'hr_manager' || user.role === 'hr_staff' || user.role === 'admin';
@@ -29,20 +29,7 @@ export const GlobalSearch: React.FC = () => {
     if (isHR) {
       return {
         scopedEmployees: mockEmployees,
-        scopedDocuments: mockDocuments,
         scopedLeaveRequests: mockLeaveRequests,
-      };
-    }
-
-    // Employee sees self only
-    if (user.role === 'employee') {
-      const selfEmployees = mockEmployees.filter(e => e.email === user.email || e.id === user.id || e.name === user.name);
-      const selfDocs = mockDocuments.filter(doc => doc.uploadedBy === user.name);
-      const selfLeave = mockLeaveRequests.filter(l => l.employeeId === user.id || l.employeeName === user.name);
-      return {
-        scopedEmployees: selfEmployees,
-        scopedDocuments: selfDocs,
-        scopedLeaveRequests: selfLeave,
       };
     }
 
@@ -52,18 +39,16 @@ export const GlobalSearch: React.FC = () => {
       const teamNames = new Set(teamEmployees.map(e => e.name).concat([user.name]));
       const teamIds = new Set(teamEmployees.map(e => e.id).concat([user.id]));
 
-      const teamDocs = mockDocuments.filter(doc => teamNames.has(doc.uploadedBy));
       const teamLeave = mockLeaveRequests.filter(l => teamIds.has(l.employeeId) || teamNames.has(l.employeeName));
 
       return {
         scopedEmployees: teamEmployees,
-        scopedDocuments: teamDocs,
         scopedLeaveRequests: teamLeave,
       };
     }
 
     // Default fallback: nothing
-    return { scopedEmployees: [], scopedDocuments: [], scopedLeaveRequests: [] };
+    return { scopedEmployees: [], scopedLeaveRequests: [] };
   }, [user]);
 
   // Filter results based on search query within scoped datasets
@@ -74,14 +59,7 @@ export const GlobalSearch: React.FC = () => {
     emp.position.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Documents scoped above by role
-  const baseDocuments = scopedDocuments;
 
-  const documentResults = baseDocuments.filter(doc => 
-    doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.uploadedBy.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const leaveResults = scopedLeaveRequests.filter(leave => 
     leave.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -89,14 +67,14 @@ export const GlobalSearch: React.FC = () => {
     leave.reason.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalResults = employeeResults.length + documentResults.length + leaveResults.length;
+  const totalResults = employeeResults.length + leaveResults.length;
 
   return (
     <div className="space-y-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Global Search</h1>
         <p className="text-muted-foreground">
-          Search across employees, documents, and HR records
+          Search across employees, and HR records
         </p>
       </div>
 
@@ -107,7 +85,7 @@ export const GlobalSearch: React.FC = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
-                placeholder="Search for employees, documents, leave requests, or any HR record..."
+                placeholder="Search for employees, leave requests, or any HR record..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 text-base"
@@ -140,9 +118,6 @@ export const GlobalSearch: React.FC = () => {
               <TabsTrigger value="employees">
                 Employees ({employeeResults.length})
               </TabsTrigger>
-              <TabsTrigger value="documents">
-                Documents ({documentResults.length})
-              </TabsTrigger>
               <TabsTrigger value="leave">
                 Leave ({leaveResults.length})
               </TabsTrigger>
@@ -173,39 +148,6 @@ export const GlobalSearch: React.FC = () => {
                           </div>
                           <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
                             {employee.status}
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-
-              {/* Documents */}
-              {documentResults.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    Documents ({documentResults.length})
-                  </h3>
-                  {documentResults.map((document) => (
-                    <Card key={document.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate('/documents')}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-4">
-                          <div className="bg-primary/10 p-2 rounded">
-                            <FileText className="w-5 h-5 text-primary" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium">{document.name}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {document.category} • Uploaded by {document.uploadedBy}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {document.uploadDate} • {document.size}
-                            </p>
-                          </div>
-                          <Badge className={`status-${document.status}`}>
-                            {document.status}
                           </Badge>
                         </div>
                       </CardContent>
@@ -278,32 +220,6 @@ export const GlobalSearch: React.FC = () => {
                       </div>
                       <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
                         {employee.status}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
-
-            <TabsContent value="documents" className="space-y-4">
-              {documentResults.map((document) => (
-                <Card key={document.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate('/documents')}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-primary/10 p-2 rounded">
-                        <FileText className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium">{document.name}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {document.category} • Uploaded by {document.uploadedBy}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {document.uploadDate} • {document.size}
-                        </p>
-                      </div>
-                      <Badge className={`status-${document.status}`}>
-                        {document.status}
                       </Badge>
                     </div>
                   </CardContent>
