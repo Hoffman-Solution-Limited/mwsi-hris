@@ -61,6 +61,7 @@ import DocumentTrackingPage from "@/pages/Document";
 import MyFilesPage from "@/pages/MyFiles";
 import RequestsManagementPage from "@/pages/RequestsManagement";
 import EmploymentAttributesPage from "@/pages/EmploymentAttributes";
+import DocumentTypesPage from "@/pages/DocumentTypes";
 
 const queryClient = new QueryClient();
 
@@ -135,6 +136,7 @@ const App = () => (
                           <Route path="/admin/training-management" element={<ProtectedRoute><RequirePermission permission="page.admin.training-management"><Layout><AdminTrainingManagement /></Layout></RequirePermission></ProtectedRoute>} />
                           <Route path="/admin/system-logs" element={<ProtectedRoute><RequirePermission permission="page.admin.system-logs"><Layout><AdminSystemLogs /></Layout></RequirePermission></ProtectedRoute>} />
                           <Route path="/registry/requests" element={<ProtectedRoute><RequirePermission permission="page.registry.requests"><Layout><RequestsManagementPage /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/registry/documents" element={<ProtectedRoute><RequirePermission permission="page.registry.requests"><Layout><DocumentTypesPage /></Layout></RequirePermission></ProtectedRoute>} />
                           <Route path="/employment-attributes" element={<ProtectedRoute><Layout><EmploymentAttributesPage /></Layout></ProtectedRoute>} />
                           <Route path="/work-stations" element={<ProtectedRoute><Layout><WorkStationsPage /></Layout></ProtectedRoute>} />
                           <Route path="/change-password" element={<ProtectedRoute><Layout><ChangePassword /></Layout></ProtectedRoute>} />
