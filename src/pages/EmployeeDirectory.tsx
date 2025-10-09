@@ -33,7 +33,7 @@ export const EmployeeDirectory: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("all")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const navigate = useNavigate()
-  const { employees, addEmployee } = useEmployees()
+  const { users: employees, addUser } = useUsers() // Use users as employees
   const { users } = useUsers()
 
   // Get logged-in user (manager) from context
@@ -43,7 +43,7 @@ export const EmployeeDirectory: React.FC = () => {
   // Scope employees by role (manager sees only direct reports; others see all)
   const canonical = mapRole(user?.role)
   const baseEmployees = canonical === 'manager'
-    ? employees.filter(e => (e.managerId && e.managerId === user.id) || e.manager === user.name)
+    ? user ? employees.filter(e => e.managerId === user.id) : []
     : employees;
 
   // Unique departments based on scoped employees

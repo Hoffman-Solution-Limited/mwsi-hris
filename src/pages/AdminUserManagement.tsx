@@ -41,7 +41,7 @@ export default function AdminUserManagement() {
   }
 
   const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState<'All' | 'Admin' | 'HR' | 'Employee' | 'Manager'>('All')
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'hr_manager' | 'employee' | 'manager'>('all')
   const [editingUser, setEditingUser] = useState<AppUser | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [addOpen, setAddOpen] = useState(false)
@@ -54,7 +54,7 @@ export default function AdminUserManagement() {
     const matchesSearch =
       user.name.toLowerCase().includes(search.toLowerCase()) ||
       user.email.toLowerCase().includes(search.toLowerCase())
-    const matchesRole = roleFilter === 'All' || user.role === roleFilter
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter
     return matchesSearch && matchesRole
   })
 
@@ -72,7 +72,7 @@ export default function AdminUserManagement() {
       alert('This email does not match any employee record. Please ask HR to create the employee record first.')
       return
     }
-    addUser({ name: data.name, email: data.email, role: data.role as any })
+    addUser({ ...data, hireDate: new Date().toISOString() })
   }
 
   const handleResendInvite = (user: AppUser) => {
@@ -112,11 +112,11 @@ export default function AdminUserManagement() {
             onChange={e => setRoleFilter(e.target.value as any)}
             className="border px-3 py-2 rounded w-full sm:w-1/4"
           >
-            <option value="All">All Roles</option>
-            <option value="Admin">Admin</option>
-            <option value="HR">HR</option>
-            <option value="Employee">Employee</option>
-            <option value="Manager">Manager</option>
+            <option value="all">All Roles</option>
+            <option value="admin">Admin</option>
+            <option value="hr_manager">HR</option>
+            <option value="employee">Employee</option>
+            <option value="manager">Manager</option>
           </select>
         </div>
 
@@ -140,10 +140,17 @@ export default function AdminUserManagement() {
               defaultValues={{
                 name: '',
                 email: '',
-                role: 'Employee',
+                role: 'employee',
               }}
               onSave={data => {
-                handleAddEmployee({ name: data.name, email: data.email, role: data.role as any })
+                const userData = { 
+                  ...data, 
+                  name: data.name || data.email, // Use email as name if not provided
+                  position: 'N/A', 
+                  department: 'N/A', 
+                  hireDate: new Date().toISOString() 
+                };
+                handleAddEmployee(userData)
                 // TODO: integrate with backend to send invitation email using temp password
                 if (data.sendInvite) {
                   console.log('Send invite enabled. Temp password:', data.tempPassword)
@@ -313,7 +320,7 @@ export default function AdminUserManagement() {
                       setImportRows(revalidated);
                       const good = revalidated.filter(r => !r.error);
                       good.forEach(r => {
-                        addUser({ name: r.name, email: r.email, role: r.role as any });
+                        addUser({ name: r.name, email: r.email, role: r.role as any, position: 'Imported', department: 'Imported', hireDate: new Date().toISOString() });
                         if (r.role === 'Manager') {
                           // create minimal employee record for manager
                           addEmployee({ name: r.name || (r.email || ''), email: r.email, position: 'Manager', department: 'Unassigned' } as any)
@@ -352,7 +359,7 @@ export default function AdminUserManagement() {
                 <td className="px-4 py-2">
                   <span
                     className={`px-2 py-1 rounded text-sm ${
-                      user.status === 'Active'
+                      user.status === 'active'
                         ? 'bg-green-100 text-green-700'
                         : 'bg-red-100 text-red-700'
                     }`}
@@ -365,8 +372,8 @@ export default function AdminUserManagement() {
                     <Button size="sm" variant="outline" onClick={() => handleEdit(user)}>
                       <EditIcon className="w-4 h-4 mr-1" /> Edit
                     </Button>
-                    <Button size="sm" variant={user.status === 'Active' ? 'secondary' : 'default'} onClick={() => toggleStatus(user.id)}>
-                      {user.status === 'Active' ? 'Deactivate' : 'Activate'}
+                    <Button size="sm" variant={user.status === 'active' ? 'secondary' : 'default'} onClick={() => toggleStatus(user.id)}>
+                      {user.status === 'active' ? 'Deactivate' : 'Activate'}
                     </Button>
                     {user.password ? (
                       <Button size="sm" variant="ghost" onClick={() => handleResendInvite(user)}>
@@ -411,7 +418,7 @@ export default function AdminUserManagement() {
               Update user information or change account password for Admins.
             </DialogDescription>
           </DialogHeader>
-          {editingUser && editingUser.role === 'Admin' ? (
+          {editingUser && editingUser.role === 'admin' ? (
             <div className="space-y-4">
               <p className="mb-2">This is a pure Admin account. You can only change the password here.</p>
               <form onSubmit={(e) => {
