@@ -18,7 +18,7 @@ import { Copy } from "lucide-react"
 export type UserFormData = {
   name?: string
   email: string
-  role: "admin" | "hr_manager" | "employee" | "manager"
+  role: "admin" | "hr_manager" | "employee" | "manager" | "registry_manager"
   sendInvite?: boolean
   tempPassword?: string
 }
@@ -136,7 +136,7 @@ export function UserForm({
               <Label htmlFor="role">Role *</Label>
               <Select
                 value={watchedRole}
-                onValueChange={(value: "admin" | "hr_manager" | "employee" | "manager") =>
+                onValueChange={(value: "admin" | "hr_manager" | "employee" | "manager" | "registry_manager") =>
                   setValue("role", value)
                 }
               >
@@ -146,6 +146,7 @@ export function UserForm({
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="hr_manager">HR</SelectItem>
+                  <SelectItem value="registry_manager">Registry</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="employee">Employee</SelectItem>
                 </SelectContent>
