@@ -24,7 +24,8 @@ import { Progress } from '@/components/ui/progress';
 import { 
   mockTrainingRecords,
   mockPerformanceReviews,
-  mockLeaveRequests 
+  mockLeaveRequests,
+  mockEmployees
 } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePerformance } from '@/contexts/PerformanceContext';
@@ -53,10 +54,36 @@ export const EmployeeProfile: React.FC = () => {
     const isMyProfile = location.pathname === '/profile';
     // For manager, allow viewing/editing their own profile
     const targetEmployeeId = isMyProfile ? user?.id : id;
-    const { employees } = useEmployees();
-    const employee = employees.find(emp => emp.id === targetEmployeeId);
+  const { employees } = useEmployees();
+  // Try to find the employee in EmployeesContext first; if not found, fall back to UsersContext
+  let employee = employees.find(emp => String(emp.id) === String(targetEmployeeId));
     const { updateUser } = useAuth();
     const { users, changePassword, findByEmail } = useUsers();
+    if (!employee && targetEmployeeId) {
+      const fallback = users.find(u => String(u.id) === String(targetEmployeeId) || String(u.email) === String(targetEmployeeId));
+      if (fallback) {
+        // Treat the user record as an employee-like object for profile rendering and access checks
+        employee = fallback as any;
+      }
+    }
+    // Last-resort fallback to seeded mockEmployees (handles localStorage drift)
+    if (!employee && targetEmployeeId) {
+      const seedFallback = mockEmployees.find(m => String(m.id) === String(targetEmployeeId) || String(m.email) === String(targetEmployeeId));
+      if (seedFallback) {
+        employee = seedFallback as any;
+      }
+    }
+
+    // If we found an EmployeesContext record but it lacks manager info, try to enrich it
+    if (employee && !(employee.managerId || employee.manager) && targetEmployeeId) {
+      const enrichFromUsers = users.find(u => String(u.id) === String(targetEmployeeId) || String(u.email) === String(targetEmployeeId));
+      const enrichFromSeed = mockEmployees.find(m => String(m.id) === String(targetEmployeeId) || String(m.email) === String(targetEmployeeId));
+      const enrich = enrichFromUsers || enrichFromSeed;
+      if (enrich) {
+        // merge missing fields (do not persist back to context/localStorage here)
+        employee = { ...employee, ...(enrich.manager ? { manager: enrich.manager } : {}), ...(enrich.managerId ? { managerId: enrich.managerId } : {}) } as any;
+      }
+    }
     // If the target is not an employee but corresponds to a pure Admin account in UsersContext,
     // show a simplified admin account view instead of the full employee profile.
     const adminUser = targetEmployeeId ? users.find(u => u.id === targetEmployeeId || u.email === targetEmployeeId) : undefined;
@@ -189,10 +216,23 @@ export const EmployeeProfile: React.FC = () => {
   // Managers can view/edit their own profile and direct reports
   const canonical = mapRole(user?.role);
   const isManager = canonical === 'manager';
-  const showPersonalInfo = !isManager || isMyProfile;
+  // Only show full personal info to HR/admin or the owner; managers do not see personal info for reports
+  const showPersonalInfo = (!isManager && canonical !== 'unknown') || isMyProfile || user?.role === 'hr_manager' || user?.role === 'admin';
+
+  // If Personal info is not allowed, ensure the active tab is not 'personal'
+  useEffect(() => {
+    if (!showPersonalInfo && activeTab === 'personal') {
+      setActiveTab('performance');
+    }
+  }, [showPersonalInfo, activeTab]);
+
+  // Robust direct-report check: compare IDs as strings (handles number/string mismatches)
+  const isDirectReport = !!(employee && String(employee.managerId || '') === String(user?.id || ''));
+  const isManagerByName = !!(employee && employee.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
+
+  // Only admin/hr or the profile owner may view a full profile. Managers are limited to the directory only.
   const canAccessProfile = isMyProfile ||
-    canonical === 'admin' || canonical === 'hr' ||
-    (canonical === 'manager' && (user?.id === targetEmployeeId || (employee && ((employee.managerId && employee.managerId === user.id) || employee.manager === user?.name))));
+    canonical === 'admin' || canonical === 'hr';
     const employeeTrainings = mockTrainingRecords.filter(training => 
       training.employeeId === targetEmployeeId
     );
@@ -209,6 +249,7 @@ export const EmployeeProfile: React.FC = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
           <p className="text-muted-foreground mb-4">You don't have permission to view this profile.</p>
+          
           <Button onClick={() => navigate('/')}>
             Back to Dashboard
           </Button>
@@ -388,7 +429,8 @@ export const EmployeeProfile: React.FC = () => {
         </TabsList>
 
         {/* Personal Information */}
-        <TabsContent value="personal">
+        {showPersonalInfo && (
+          <TabsContent value="personal">
           <Card>
             <CardContent className="p-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
@@ -612,7 +654,8 @@ export const EmployeeProfile: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+          </TabsContent>
+        )}
 
         {/* Documents */}
   {(isMyProfile || mapRole(user?.role) === 'admin' || mapRole(user?.role) === 'hr') && (
