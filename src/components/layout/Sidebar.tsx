@@ -38,8 +38,6 @@ const navGroups: NavGroup[] = [
       { path: '/profile', label: 'My Profile', icon: <User className="w-5 h-5" />, roles: ['employee', 'manager', 'hr_manager', 'registry_manager'] },
       { path: '/my-files', label: 'My Files', icon: <FileText className="w-5 h-5" />, roles: ['employee', 'manager', 'hr_manager', 'registry_manager'] },
       { path: '/manager-apply-leave', label: 'Apply for Leave', icon: <Calendar className='w-5 h-5' />, roles: ['manager', 'employee', 'hr_manager', 'registry_manager'] },
-      { path: '/hr/my-tasks', label: 'My HR Tasks', icon: <GraduationCap className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
-
     ]
   },
   {
