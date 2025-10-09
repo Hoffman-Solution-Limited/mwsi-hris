@@ -55,12 +55,128 @@ export const EmployeeProfile: React.FC = () => {
     const targetEmployeeId = isMyProfile ? user?.id : id;
     const { employees } = useEmployees();
     const employee = employees.find(emp => emp.id === targetEmployeeId);
+    const { updateUser } = useAuth();
     const { users, changePassword, findByEmail } = useUsers();
     // If the target is not an employee but corresponds to a pure Admin account in UsersContext,
     // show a simplified admin account view instead of the full employee profile.
     const adminUser = targetEmployeeId ? users.find(u => u.id === targetEmployeeId || u.email === targetEmployeeId) : undefined;
     const { getUserNotifications, markAllRead, markRead } = useNotifications();
     const notifications = targetEmployeeId ? getUserNotifications(targetEmployeeId) : [];
+
+    // Helper: resize/compress image to target max size (bytes)
+    const resizeImageToMaxSize = (file: File, maxBytes = 1_000_000): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = () => {
+          img.onload = async () => {
+            try {
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              if (!ctx) return reject(new Error('Canvas not supported'));
+
+              // Start with natural size, then scale down if needed
+              let [w, h] = [img.naturalWidth, img.naturalHeight];
+              // Limit longest side to 1024px to avoid huge images
+              const maxSide = 1024;
+              if (Math.max(w, h) > maxSide) {
+                const scale = maxSide / Math.max(w, h);
+                w = Math.round(w * scale);
+                h = Math.round(h * scale);
+              }
+
+              canvas.width = w;
+              canvas.height = h;
+              ctx.clearRect(0, 0, w, h);
+              ctx.drawImage(img, 0, 0, w, h);
+
+              // Iteratively attempt to get under maxBytes by lowering quality
+              let quality = 0.92;
+              let dataUrl = canvas.toDataURL('image/jpeg', quality);
+              const toBytes = (d: string) => Math.ceil((d.length - 'data:image/jpeg;base64,'.length) * 3 / 4);
+              let bytes = toBytes(dataUrl);
+              while (bytes > maxBytes && quality > 0.3) {
+                quality -= 0.07;
+                dataUrl = canvas.toDataURL('image/jpeg', quality);
+                bytes = toBytes(dataUrl);
+              }
+
+              // If still too large, downscale canvas further and try again
+              while (bytes > maxBytes && Math.max(canvas.width, canvas.height) > 200) {
+                const scale = 0.85;
+                const newW = Math.round(canvas.width * scale);
+                const newH = Math.round(canvas.height * scale);
+                const tmp = document.createElement('canvas');
+                tmp.width = newW;
+                tmp.height = newH;
+                const tctx = tmp.getContext('2d');
+                if (!tctx) break;
+                tctx.drawImage(canvas, 0, 0, newW, newH);
+                canvas.width = newW;
+                canvas.height = newH;
+                ctx.clearRect(0, 0, newW, newH);
+                ctx.drawImage(tmp, 0, 0);
+                // retry quality loop
+                quality = Math.max(quality, 0.6);
+                dataUrl = canvas.toDataURL('image/jpeg', quality);
+                bytes = toBytes(dataUrl);
+              }
+
+              resolve(dataUrl);
+            } catch (err) {
+              reject(err);
+            }
+          };
+          img.onerror = () => reject(new Error('Failed loading image'));
+          img.src = String(reader.result || '');
+        };
+        reader.onerror = () => reject(new Error('Failed reading file'));
+        reader.readAsDataURL(file);
+      });
+    };
+
+    // Avatar upload handler with validation + resizing
+    useEffect(() => {
+      const input = document.getElementById('avatarUpload') as HTMLInputElement | null;
+      if (!input) return;
+      const onChange = async (e: Event) => {
+        const el = e.target as HTMLInputElement;
+        const file = el.files && el.files[0];
+        if (!file || !employee) return;
+
+        const MAX_BYTES = 1_000_000; // 1 MB
+        try {
+          let dataUrl: string;
+          if (file.size > MAX_BYTES) {
+            // attempt to resize/compress
+            dataUrl = await resizeImageToMaxSize(file, MAX_BYTES);
+          } else {
+            // small enough, just read
+            dataUrl = await new Promise<string>((res, rej) => {
+              const r = new FileReader();
+              r.onload = () => res(String(r.result || ''));
+              r.onerror = () => rej(new Error('Failed reading file'));
+              r.readAsDataURL(file);
+            });
+          }
+
+          // Update employee context
+          try { updateEmployee(employee.id, { avatar: dataUrl }); } catch (err) {}
+          // If updating current logged-in user's profile, update auth user too
+          try { if (user && user.id === employee.id) { updateUser && updateUser({ avatar: dataUrl }); } } catch (err) {}
+
+          toast({ title: 'Profile photo updated', description: 'Your profile photo was updated.' });
+        } catch (err: any) {
+          console.error(err);
+          toast({ title: 'Upload failed', description: err?.message || 'Could not process image' });
+        } finally {
+          // reset input so same file can be re-selected
+          el.value = '';
+        }
+      };
+      input.addEventListener('change', onChange);
+      return () => input.removeEventListener('change', onChange);
+    }, [employee, updateEmployee, updateUser, user, toast]);
 
   // Allow deep linking to specific tab via ?tab= query param
   useEffect(() => {
@@ -177,6 +293,18 @@ export const EmployeeProfile: React.FC = () => {
                   {employee.name.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
+              {/* Avatar upload (only for own profile or HR) */}
+              <div className="mt-3 text-center md:text-left">
+                <input id="avatarUpload" name="avatarUpload" type="file" accept="image/*" className="hidden" />
+                {(isMyProfile || mapRole(user?.role) === 'hr') && (
+                  <div className="mt-2">
+                    <label htmlFor="avatarUpload" className="inline-flex items-center gap-2 text-sm text-blue-700 cursor-pointer">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V8.414A2 2 0 0016.586 7L13 3.414A2 2 0 0011.586 3H4z"/></svg>
+                      Upload photo
+                    </label>
+                  </div>
+                )}
+              </div>
               <div className="text-center md:text-left">
                 <h1 className="text-3xl font-bold mb-2">{employee.name}</h1>
                 <p className="text-xl text-muted-foreground mb-1">{employee.position}</p>

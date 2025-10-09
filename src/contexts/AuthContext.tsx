@@ -16,6 +16,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUser?: (updates: Partial<User>) => void;
   isLoading: boolean;
 }
 
@@ -118,8 +119,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('hris-user');
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    setUser(prev => {
+      const next = prev ? { ...prev, ...updates } : null;
+      try { if (next) localStorage.setItem('hris-user', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
