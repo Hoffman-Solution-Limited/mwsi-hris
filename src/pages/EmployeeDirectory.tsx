@@ -18,6 +18,7 @@ import { useEmployees } from "@/contexts/EmployeesContext"
 import { useUsers } from "@/contexts/UsersContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
+import { useToast } from '@/hooks/use-toast'
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ export const EmployeeDirectory: React.FC = () => {
   const navigate = useNavigate()
   const { users: employees, addUser } = useUsers() // Use users as employees
   const { users } = useUsers()
+  const { toast } = useToast()
 
   // Get logged-in user (manager) from context
   // Use useAuth hook for consistent logic
@@ -44,7 +46,7 @@ export const EmployeeDirectory: React.FC = () => {
   const canonical = mapRole(user?.role)
   const isManager = canonical === 'manager';
   const baseEmployees = canonical === 'manager'
-    ? user ? employees.filter(e => e.managerId === user.id) : []
+    ? user ? employees.filter(e => String(e.managerId || '') === String(user.id || '')) : []
     : employees;
 
   // Unique departments based on scoped employees
@@ -66,7 +68,13 @@ export const EmployeeDirectory: React.FC = () => {
     return matchesSearch && matchesDepartment && matchesStatus
   })
 
+  const canOpenProfile = canonical !== 'manager'
+
   const handleEmployeeClick = (employeeId: string) => {
+    if (!canOpenProfile) {
+      toast({ title: 'Access restricted', description: 'Managers cannot open employee profiles; contact HR for details.' })
+      return
+    }
     navigate(`/employees/${employeeId}`)
   }
 

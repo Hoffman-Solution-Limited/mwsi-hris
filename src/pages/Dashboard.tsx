@@ -278,14 +278,14 @@ export const Dashboard: React.FC = () => {
 
   if (isManager) {
     // Manager-specific metrics
-    const myTeam = mockEmployees.filter(emp => (emp.managerId && emp.managerId === user.id) || emp.manager === user.name);
+  const myTeam = mockEmployees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase()));
     const teamLeaves = leaveRequests.filter(req => {
       const employee = mockEmployees.find(emp => emp.id === req.employeeId);
-      return (employee?.managerId && employee.managerId === user.id) || employee?.manager === user.name;
+  return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
     });
     const teamReviews = reviews.filter(review => {
       const employee = mockEmployees.find(emp => emp.id === review.employeeId);
-      return (employee?.managerId && employee.managerId === user.id) || employee?.manager === user.name;
+  return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
     });
     const pendingTeamLeaves = teamLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr');
     const pendingTeamReviews = teamReviews.filter(review => review.status === 'targets_set');
