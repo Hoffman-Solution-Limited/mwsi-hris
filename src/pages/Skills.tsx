@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { mockEmployees } from "@/data/mockData"
+import { useSystemCatalog } from "@/contexts/SystemCatalogContext"
 
 // --- Types ---
 type Skill = {
@@ -22,34 +23,22 @@ type Skill = {
 
 export const SkillsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("")
-  const [customSkills, setCustomSkills] = useState<Skill[]>([])
   const [newSkill, setNewSkill] = useState("")
+  const { skillLevels, addSkillLevel } = useSystemCatalog()
 
-  // 🔹 Group employees by their "skills" field
-const employeeSkills: Skill[] = useMemo(() => {
-  const counts: Record<string, number> = {}
-
-  mockEmployees.forEach((emp) => {
-    if (emp.skills && emp.skills.length > 0) {
-      emp.skills.forEach((skill) => {
-        const skillName = skill.name || "Unnamed Skill"
-        counts[skillName] = (counts[skillName] || 0) + 1
-      })
-    } else {
-      counts["Unassigned"] = (counts["Unassigned"] || 0) + 1
-    }
-  })
-
-  return Object.entries(counts).map(([name, count], index) => ({
-    id: `emp-skill-${index + 1}`,
-    name,
-    employeeCount: count,
-  }))
-}, [])
-
-
-  // 🔹 Combine system skills + custom ones
-  const allSkills: Skill[] = [...employeeSkills, ...customSkills]
+  // 🔹 Build list with counts from mock employees for display
+  const allSkills: Skill[] = useMemo(() => {
+    const counts: Record<string, number> = {}
+    mockEmployees.forEach((emp) => {
+      const level = emp.skillLevel || "Unassigned"
+      counts[level] = (counts[level] || 0) + 1
+    })
+    return skillLevels.map((name, index) => ({
+      id: `sys-skill-${index + 1}`,
+      name,
+      employeeCount: counts[name] || 0,
+    }))
+  }, [skillLevels])
 
   // 🔹 Filter by search
   const filteredSkills = allSkills.filter((s) =>
@@ -59,12 +48,7 @@ const employeeSkills: Skill[] = useMemo(() => {
   // 🔹 Add new skill (starts with 0 employees)
   const handleAddSkill = () => {
     if (!newSkill.trim()) return
-    const newEntry: Skill = {
-      id: `custom-skill-${customSkills.length + 1}`,
-      name: newSkill.trim(),
-      employeeCount: 0,
-    }
-    setCustomSkills([...customSkills, newEntry])
+    addSkillLevel(newSkill.trim())
     setNewSkill("")
   }
 

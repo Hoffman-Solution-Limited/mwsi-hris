@@ -22,12 +22,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useLeave } from '@/contexts/LeaveContext';
+import { useToast } from '@/hooks/use-toast';
 import { usePerformance } from '@/contexts/PerformanceContext';
-import { useDocuments } from '@/contexts/DocumentContext';
 import {
   mockEmployees,
   mockLeaveRequests,
-  mockDocuments,
   mockPositions,
   mockTrainingRecords,
   mockPerformanceReviews
@@ -35,24 +34,111 @@ import {
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const { leaveRequests } = useLeave();
+  const { leaveRequests, approveManagerRequest, rejectManagerRequest } = useLeave();
   const { reviews } = usePerformance();
-  const { documents } = useDocuments();
   const navigate = useNavigate();
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const { toast } = useToast();
+
   // Calculate metrics based on user role
   const isEmployee = user?.role === 'employee';
   const isManager = user?.role === 'manager';
   const isHr = ['hr_manager', 'hr_staff'].includes(user?.role || '');
+  const isAdmin = user?.role === 'admin';
+
+  if (isAdmin) {
+    // Admin-specific metrics
+    const totalUsers = mockEmployees.length;
+    const activeUsers = mockEmployees.filter(emp => emp.status === 'active').length;
+    const inactiveUsers = mockEmployees.filter(emp => emp.status !== 'active').length;
+    const departments = [...new Set(mockEmployees.map(emp => emp.department))];
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">System-wide user overview</p>
+          </div>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader><CardTitle>Total Users</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold">{totalUsers}</div></CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Active Users</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold">{activeUsers}</div></CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Inactive Users</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold">{inactiveUsers}</div></CardContent>
+          </Card>
+        </div>
+
+        {/* Department Breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle>User Distribution by Department</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {departments.map((dept) => {
+                const count = mockEmployees.filter(emp => emp.department === dept).length;
+                return (
+                  <div key={dept} className="p-3 border rounded-lg flex justify-between">
+                    <span>{dept}</span>
+                    <span className="font-bold">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              className="w-full justify-start bg-blue-600 text-white hover:bg-blue-700"
+              onClick={() => navigate('/admin/users')}
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add New User
+            </Button>
+            <Button
+              className="w-full justify-start bg-red-600 text-white hover:bg-red-700"
+              onClick={() => navigate('/admin/users')}
+            >
+              <XCircle className="w-4 h-4 mr-2" />
+              Deactivate User
+            </Button>
+            <Button
+              className="w-full justify-start bg-purple-600 text-white hover:bg-purple-700"
+              onClick={() => navigate('/admin/roles')}
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Manage Roles
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   
   if (isEmployee) {
-  // Employee-specific metrics
+    // Employee-specific metrics
     const myLeaves = leaveRequests.filter(req => req.employeeId === user.id);
     const myTrainings = mockTrainingRecords.filter(tr => tr.employeeId === user.id);
-    const myReviews = mockPerformanceReviews.filter(rev => rev.employeeId === user.id);
-    const myDocuments = mockDocuments.filter(doc => doc.uploadedBy === user.name);
-    
-  const pendingLeaves = myLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr').length;
+  const myReviews = mockPerformanceReviews.filter(rev => rev.employeeId === user.id);    
+    const pendingLeaves = myLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr').length;
     const approvedLeaves = myLeaves.filter(req => req.status === 'approved').length;
     const completedTrainings = myTrainings.filter(tr => tr.status === 'completed').length;
     const pendingTrainings = myTrainings.filter(tr => tr.status !== 'completed').length;
@@ -72,7 +158,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Employee Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Leave Balance</CardTitle>
@@ -105,16 +191,7 @@ export const Dashboard: React.FC = () => {
               <Progress value={(completedTrainings / (myTrainings.length || 1)) * 100} className="mt-2" />
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">My Documents</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{myDocuments.length}</div>
-              <p className="text-xs text-muted-foreground">uploaded files</p>
-            </CardContent>
-          </Card>
+
         </div>
 
         {/* Quick Actions */}
@@ -127,7 +204,7 @@ export const Dashboard: React.FC = () => {
               <Button
                 className="w-full justify-start bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 variant="default"
-                onClick={() => navigate('/leave')}
+                onClick={() => navigate('/manager-apply-leave')}
               >
                 <Calendar className="w-4 h-4 mr-2" />
                 Apply for Leave
@@ -143,10 +220,10 @@ export const Dashboard: React.FC = () => {
               <Button
                 className="w-full justify-start bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800 focus:ring-2 focus:ring-purple-400 focus:outline-none"
                 variant="default"
-                onClick={() => navigate('/documents')}
+                onClick={() => navigate('/performance')}
               >
                 <FileText className="w-4 h-4 mr-2" />
-                Upload Document
+                Performance Review
               </Button>
             </CardContent>
           </Card>
@@ -208,7 +285,7 @@ export const Dashboard: React.FC = () => {
       const employee = mockEmployees.find(emp => emp.id === review.employeeId);
       return employee?.manager === user.name;
     });
-  const pendingTeamLeaves = teamLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr');
+    const pendingTeamLeaves = teamLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr');
     const pendingTeamReviews = teamReviews.filter(review => review.status === 'targets_set');
 
     return (
@@ -288,10 +365,26 @@ export const Dashboard: React.FC = () => {
                     </p>
                   </div>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="outline" className="text-success hover:text-success">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-success hover:text-success"
+                      onClick={() => {
+                        approveManagerRequest(leave.id);
+                        toast({ title: 'Leave forwarded to HR', description: `${leave.employeeName}'s ${leave.type} request moved to HR review.` });
+                      }}
+                    >
                       <CheckCircle className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => {
+                        rejectManagerRequest(leave.id);
+                        toast({ title: 'Leave rejected', description: `${leave.employeeName}'s ${leave.type} request has been rejected.`, variant: 'destructive' as any });
+                      }}
+                    >
                       <XCircle className="w-4 h-4" />
                     </Button>
                   </div>
@@ -314,7 +407,7 @@ export const Dashboard: React.FC = () => {
                     <p className="font-medium text-sm">{review.employeeName}</p>
                     <p className="text-xs text-muted-foreground">{review.reviewPeriod}</p>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => navigate('/performance')}>
                     <Edit className="w-4 h-4 mr-2" />
                     Review
                   </Button>
@@ -383,7 +476,6 @@ export const Dashboard: React.FC = () => {
   const totalEmployees = mockEmployees.length;
   const activeEmployees = mockEmployees.filter(emp => emp.status === 'active').length;
   const pendingLeaves = leaveRequests.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr').length;
-  const pendingDocuments = documents.filter(doc => doc.status === 'pending').length;
   const openPositions = mockPositions.filter(pos => pos.status === 'open').length;
   const completedTrainings = mockTrainingRecords.filter(tr => tr.status === 'completed').length;
   const pendingReviews = reviews.filter(pr => pr.status === 'hr_review').length;
@@ -410,51 +502,6 @@ export const Dashboard: React.FC = () => {
       change: '24 applications received',
       trend: 'up'
     },
-    {
-      title: 'Pending Documents',
-      value: pendingDocuments,
-      icon: <FileText className="w-6 h-6 text-destructive" />,
-      change: 'Require attention',
-      trend: 'down'
-    }
-  ];
-
-  const recentActivities = [
-    {
-      id: 1,
-      action: 'Leave request submitted',
-      user: 'Michael Davis',
-      time: '2 hours ago',
-      status: 'pending'
-    },
-    {
-      id: 2,
-      action: 'Training certificate uploaded',
-      user: 'Emily Chen',
-      time: '4 hours ago',
-      status: 'completed'
-    },
-    {
-      id: 3,
-      action: 'Performance review completed',
-      user: 'Sarah Johnson',
-      time: '1 day ago',
-      status: 'completed'
-    },
-    {
-      id: 4,
-      action: 'New position posted',
-      user: 'HR Department',
-      time: '2 days ago',
-      status: 'active'
-    }
-  ];
-
-  const upcomingTasks = [
-    { task: 'Review Q1 performance evaluations', due: 'Today', priority: 'high' },
-    { task: 'Approve pending leave requests', due: 'Tomorrow', priority: 'medium' },
-    { task: 'Update employee handbook', due: 'This week', priority: 'low' },
-    { task: 'Conduct new hire orientation', due: 'Friday', priority: 'high' }
   ];
 
   return (
@@ -470,7 +517,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {quickStats.map((stat, index) => (
           <Card key={index}>
             <CardContent className="p-6">
@@ -493,77 +540,7 @@ export const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activities */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Recent Activities
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{activity.action}</p>
-                    <p className="text-xs text-muted-foreground">by {activity.user}</p>
-                  </div>
-                  <div className="text-right">
-                    <Badge
-                      variant={
-                        activity.status === 'completed' ? 'default' :
-                        activity.status === 'pending' ? 'secondary' : 'outline'
-                      }
-                      className="mb-1"
-                    >
-                      {activity.status}
-                    </Badge>
-                    <p className="text-xs text-muted-foreground">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Button variant="outline" className="w-full mt-4">
-              View All Activities
-            </Button>
-          </CardContent>
-        </Card>
 
-        {/* Upcoming Tasks */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5" />
-              Upcoming Tasks
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {upcomingTasks.map((task, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{task.task}</p>
-                    <p className="text-xs text-muted-foreground">Due: {task.due}</p>
-                  </div>
-                  <Badge
-                    variant={
-                      task.priority === 'high' ? 'destructive' :
-                      task.priority === 'medium' ? 'default' : 'secondary'
-                    }
-                  >
-                    {task.priority}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-            <Button variant="outline" className="w-full mt-4">
-              View All Tasks
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Department Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -630,10 +607,6 @@ export const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                <p className="font-medium text-sm text-destructive">Urgent</p>
-                <p className="text-xs">{pendingDocuments} documents need approval</p>
-              </div>
               <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
                 <p className="font-medium text-sm text-warning">Reminder</p>
                 <p className="text-xs">{pendingReviews} performance reviews due</p>

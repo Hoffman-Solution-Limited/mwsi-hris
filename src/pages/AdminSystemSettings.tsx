@@ -9,12 +9,6 @@ export default function SystemSettings() {
 
   return (
     <div className="p-6">
-      <button
-        onClick={() => navigate('/admin')}
-        className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition"
-      >
-        ← Back to Admin Panel
-      </button>
 
       <h1 className="text-2xl font-semibold mb-4">System Settings</h1>
       <div className="space-y-6 max-w-lg">
