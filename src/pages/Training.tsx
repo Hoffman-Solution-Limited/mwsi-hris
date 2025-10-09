@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { mockTrainingRecords, mockEmployees } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import { mapRole } from '@/lib/roles';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTraining } from '@/contexts/TrainingContext';
@@ -27,11 +28,12 @@ export const Training: React.FC = () => {
   const filteredRecords = useMemo(() => {
     if (!user) return [] as typeof mockTrainingRecords;
     const source = trainings.length ? trainings : mockTrainingRecords;
-    if (user.role === 'employee' || user.role === 'manager') {
+    const canonical = mapRole(user.role);
+    if (canonical === 'employee' || canonical === 'manager') {
       return source.filter(tr => tr.employeeId === user.id);
     }
     // HR sees all records but doesn't get assigned trainings themselves
-    if (user.role === 'hr_manager' || user.role === 'hr_staff') {
+    if (canonical === 'hr') {
       return source.filter(tr => tr.employeeId !== user.id);
     }
     return source;
@@ -211,7 +213,7 @@ export const Training: React.FC = () => {
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
-          {['hr_manager', 'hr_staff'].includes(user?.role || '') ? (
+          {mapRole(user?.role) === 'hr' ? (
             <>
               <TabsTrigger
                 value="overview"

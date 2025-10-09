@@ -2,10 +2,12 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 
 export type AppUser = {
   id: string;
-  name: string;
+  name?: string; // optional because Admin may be a pure role-without-profile
   email: string;
-  role: 'Admin' | 'HR' | 'Employee';
+  role: 'Admin' | 'HR' | 'Employee' | 'Manager';
   status: 'Active' | 'Inactive';
+  // Optional password field used only for local/demo storage. In real app this should be handled by backend/auth service.
+  password?: string | null;
 };
 
 type UsersContextType = {
@@ -14,6 +16,7 @@ type UsersContextType = {
   updateUser: (id: string, updates: Partial<AppUser>) => void;
   toggleStatus: (id: string) => void;
   findByEmail: (email: string) => AppUser | undefined;
+  changePassword: (id: string, newPassword: string | null) => void;
 };
 
 const STORAGE_KEY = 'hris-users';
@@ -23,7 +26,12 @@ const UsersContext = createContext<UsersContextType | undefined>(undefined);
 const seedUsers: AppUser[] = [
   { id: '1', name: 'Alice Kimani', email: 'alice@company.com', role: 'HR', status: 'Active' },
   { id: '2', name: 'Brian Otieno', email: 'brian@company.com', role: 'Employee', status: 'Inactive' },
-  { id: '3', name: 'Carol Maina', email: 'carol@company.com', role: 'Admin', status: 'Active' },
+  // Manager seed user to match mock employees
+  { id: '10', name: 'David Manager', email: 'david.manager@mwsi.com', role: 'Manager', status: 'Active' },
+  // Admin created without a full profile (no name required). Password kept null in seed.
+  { id: '3', email: 'superadmin@company.com', name: undefined, role: 'Admin', status: 'Active', password: null },
+  // Test pure admin for local testing (no profile fields). Password set to 'demo123' so it works with the demo AuthProvider.
+  { id: 'admin-test', email: 'admin.test@mwsi.com', name: undefined, role: 'Admin', status: 'Active', password: 'demo123' },
 ];
 
 export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -41,10 +49,15 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {}
   }, [users]);
 
-  const addUser: UsersContextType['addUser'] = (u) => {
+  const addUser = (u: Omit<AppUser, 'id' | 'status'> & { status?: AppUser['status'] }) => {
     const id = crypto.randomUUID();
-    const newUser: AppUser = { status: 'Active', ...u, id };
+    // Allow Admin accounts to be created without a name/profile.
+    const newUser: AppUser = { status: 'Active', password: null, ...u, id } as AppUser;
     setUsers(prev => [newUser, ...prev]);
+  };
+
+  const changePassword = (id: string, newPassword: string | null) => {
+    setUsers(prev => prev.map(u => (u.id === id ? { ...u, password: newPassword } : u)));
   };
 
   const updateUser: UsersContextType['updateUser'] = (id, updates) => {
@@ -60,7 +73,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return users.find(u => u.email.toLowerCase() === e);
   };
 
-  const value = useMemo(() => ({ users, addUser, updateUser, toggleStatus, findByEmail }), [users]);
+  const value = useMemo(() => ({ users, addUser, updateUser, toggleStatus, findByEmail, changePassword }), [users]);
 
   return <UsersContext.Provider value={value}>{children}</UsersContext.Provider>;
 };

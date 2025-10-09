@@ -49,7 +49,7 @@ export const LoginPage: React.FC = () => {
   };
 
   const demoUsers = [
-    { email: 'admin@mwsi.com', role: 'Administrator', password: 'demo123' },
+    { email: 'admin.test@mwsi.com', role: 'Administrator', password: 'demo123' },
     { email: 'hr@mwsi.com', role: 'HR Manager', password: 'demo123' },
     { email: 'david.manager@mwsi.com', role: 'Manager', password: 'demo123' },
     { email: 'employee@mwsi.com', role: 'Employee', password: 'demo123' },

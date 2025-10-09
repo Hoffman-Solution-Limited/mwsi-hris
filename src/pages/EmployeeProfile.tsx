@@ -30,15 +30,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePerformance } from '@/contexts/PerformanceContext';
  
 import { useEmployees } from '@/contexts/EmployeesContext';
+import { useUsers } from '@/contexts/UsersContext';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 // Removed Select import used only by document upload UI
 import { useNotifications } from '@/contexts/NotificationsContext';
+import { mapRole } from '@/lib/roles';
 
 export const EmployeeProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const { templates } = usePerformance();
   const { updateEmployee } = useEmployees();
   const [activeTab, setActiveTab] = useState('personal');
@@ -50,6 +55,10 @@ export const EmployeeProfile: React.FC = () => {
     const targetEmployeeId = isMyProfile ? user?.id : id;
     const { employees } = useEmployees();
     const employee = employees.find(emp => emp.id === targetEmployeeId);
+    const { users, changePassword, findByEmail } = useUsers();
+    // If the target is not an employee but corresponds to a pure Admin account in UsersContext,
+    // show a simplified admin account view instead of the full employee profile.
+    const adminUser = targetEmployeeId ? users.find(u => u.id === targetEmployeeId || u.email === targetEmployeeId) : undefined;
     const { getUserNotifications, markAllRead, markRead } = useNotifications();
     const notifications = targetEmployeeId ? getUserNotifications(targetEmployeeId) : [];
 
@@ -62,9 +71,10 @@ export const EmployeeProfile: React.FC = () => {
 
   // Check if current user can access this profile
   // Managers can view/edit their own profile and direct reports
-  const canAccessProfile = isMyProfile || 
-    ['admin', 'hr_manager', 'hr_staff'].includes(user?.role || '') ||
-    (user?.role === 'manager' && (user?.id === targetEmployeeId || (employee && employee.manager === user?.name)));
+  const canonical = mapRole(user?.role);
+  const canAccessProfile = isMyProfile ||
+    canonical === 'admin' || canonical === 'hr' ||
+    (canonical === 'manager' && (user?.id === targetEmployeeId || (employee && employee.manager === user?.name)));
     const employeeTrainings = mockTrainingRecords.filter(training => 
       training.employeeId === targetEmployeeId
     );
@@ -90,6 +100,49 @@ export const EmployeeProfile: React.FC = () => {
   }
 
   if (!employee) {
+    // If there's an admin user (pure admin) matching the target, show admin account page
+    if (adminUser && adminUser.role === 'Admin') {
+      return (
+        <div className="space-y-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <Avatar className="w-24 h-24">
+                  <AvatarImage src={undefined} />
+                  <AvatarFallback className="text-2xl font-bold">A</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="text-3xl font-bold mb-1">Admin Account</h1>
+                  <p className="text-muted-foreground">{adminUser.email}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <h3 className="text-lg font-semibold mb-4">Account</h3>
+              <p className="mb-4 text-sm text-muted-foreground">This is a pure admin account without an employee profile. You can change the account password below.</p>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const form = e.target as HTMLFormElement & { newPassword: HTMLInputElement };
+                const newPassword = form.newPassword.value;
+                changePassword(adminUser.id, newPassword || null);
+                toast({ title: 'Password changed', description: 'Admin password updated in demo storage.' });
+                form.reset();
+              }} className="space-y-3 max-w-md">
+                <div>
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input id="newPassword" name="newPassword" type="password" placeholder="Enter new password" />
+                </div>
+                <Button type="submit">Change Password</Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -161,7 +214,7 @@ export const EmployeeProfile: React.FC = () => {
                 </div>
               </div>
             </div>
-            {(['hr_manager', 'hr_staff'].includes(user?.role || '')) && (
+            {(mapRole(user?.role) === 'hr') && (
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => navigate(`/employees/${employee.id}/edit`)}>
                   <Edit className="w-4 h-4 mr-2" />
@@ -411,7 +464,7 @@ export const EmployeeProfile: React.FC = () => {
         </TabsContent>
 
         {/* Documents */}
-        {(isMyProfile || ["admin", "hr_manager", "hr_staff"].includes(user?.role || "")) && (
+  {(isMyProfile || mapRole(user?.role) === 'admin' || mapRole(user?.role) === 'hr') && (
         <TabsContent value="documents">
           <Card>
             <CardHeader>
