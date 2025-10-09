@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { mapRole } from '@/lib/roles';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useLeave } from '@/contexts/LeaveContext';
 import { useToast } from '@/hooks/use-toast';
@@ -41,10 +42,11 @@ export const Dashboard: React.FC = () => {
   const { toast } = useToast();
 
   // Calculate metrics based on user role
-  const isEmployee = user?.role === 'employee';
-  const isManager = user?.role === 'manager';
-  const isHr = ['hr_manager', 'hr_staff'].includes(user?.role || '');
-  const isAdmin = user?.role === 'admin';
+  const canonical = mapRole(user?.role);
+  const isEmployee = canonical === 'employee';
+  const isManager = canonical === 'manager';
+  const isHr = canonical === 'hr';
+  const isAdmin = canonical === 'admin';
 
   if (isAdmin) {
     // Admin-specific metrics
@@ -276,14 +278,14 @@ export const Dashboard: React.FC = () => {
 
   if (isManager) {
     // Manager-specific metrics
-    const myTeam = mockEmployees.filter(emp => emp.manager === user.name);
+  const myTeam = mockEmployees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase()));
     const teamLeaves = leaveRequests.filter(req => {
       const employee = mockEmployees.find(emp => emp.id === req.employeeId);
-      return employee?.manager === user.name;
+  return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
     });
     const teamReviews = reviews.filter(review => {
       const employee = mockEmployees.find(emp => emp.id === review.employeeId);
-      return employee?.manager === user.name;
+  return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
     });
     const pendingTeamLeaves = teamLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr');
     const pendingTeamReviews = teamReviews.filter(review => review.status === 'targets_set');

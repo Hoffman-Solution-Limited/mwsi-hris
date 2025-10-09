@@ -50,7 +50,9 @@ export const PerformanceReviews: React.FC = () => {
 
   // Manager-specific review filters
   const myAppraisals = useMemo(() => {
-    if (!user || user.role !== 'manager') return [];
+    if (!user) return [];
+    // For managers this is the list of reviews they authored for themselves; for other roles we still
+    // provide a view of reviews that have employeeId === user.id so HR can view their own appraisals.
     return reviews.filter(review => review.employeeId === user.id);
   }, [reviews, user]);
 
@@ -58,7 +60,7 @@ export const PerformanceReviews: React.FC = () => {
     if (!user || user.role !== 'manager') return [];
     return reviews.filter(review => {
       const employee = mockEmployees.find(emp => emp.id === review.employeeId);
-      return employee?.manager === user.name;
+  return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
     });
   }, [reviews, user]);
 
@@ -569,7 +571,7 @@ const handleSubmitToManager = () => {
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         {user?.role === 'manager' ? (
-          <TabsList className="grid w-full grid-cols-3 gap-2">
+          <TabsList className="grid w-full grid-cols-4 gap-2">
             <TabsTrigger
               value="active"
               className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
@@ -590,18 +592,26 @@ const handleSubmitToManager = () => {
             </TabsTrigger>
           </TabsList>
         ) : user?.role === 'hr_manager' || user?.role === 'hr_staff' ? (
-          <TabsList className="grid w-full grid-cols-2 gap-2">
+          <TabsList className="grid w-full grid-cols-4 gap-2">
+
             <TabsTrigger
               value="assign"
               className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
             >
               Assign Reviews
             </TabsTrigger>
+
             <TabsTrigger
               value="pending"
               className="bg-yellow-600 text-white data-[state=active]:bg-yellow-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
             >
               Pending Reviews
+            </TabsTrigger>
+            <TabsTrigger
+              value="my-appraisals"
+              className="bg-green-600 text-white data-[state=active]:bg-green-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+            >
+              My Performance Appraisal
             </TabsTrigger>
           </TabsList>
         ) : (
@@ -812,6 +822,69 @@ const handleSubmitToManager = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+        )}
+        {/* HR: My Performance Appraisal tab */}
+        {(user?.role === 'hr_manager' || user?.role === 'hr_staff') && (
+          <TabsContent value="my-appraisals">
+            <div className="space-y-4">
+              {myAppraisals.filter(r => r.status !== 'completed').length === 0 ? (
+                <Card>
+                  <CardContent className="p-6 text-center text-muted-foreground">
+                    No active appraisals for your account.
+                  </CardContent>
+                </Card>
+              ) : (
+                myAppraisals.filter(r => r.status !== 'completed').map((review) => {
+                  const template = templates.find(t => t.id === review.templateId);
+                  return (
+                    <Card key={review.id}>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle>{review.reviewPeriod} {template ? `- ${template.name}` : ''}</CardTitle>
+                          <div className="text-sm text-muted-foreground">Status: {review.status}</div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {review.status === 'new' || review.status === 'draft' ? (
+                            <div className="space-y-2">
+                              <p className="text-muted-foreground">Start or edit your appraisal targets and submit to your manager.</p>
+                              <div className="flex gap-2">
+                                <Button className="bg-blue-600 text-white" onClick={() => navigate(`/performance/reviews/${review.id}/self`)}>Set Targets</Button>
+                                <Button variant="outline" onClick={() => navigate(`/performance/reviews/${review.id}`)}>View Details</Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div>
+                                <span className="font-semibold">Employee Targets:</span>
+                                <div className="mt-2 space-y-2">
+                                  {(review.employeeTargets || []).map((t, idx) => (
+                                    <div key={idx} className="bg-muted/30 p-2 rounded">
+                                      <div className="text-sm">{t.target}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              {review.status === 'employee_ack' && (
+                                <div className="space-y-3 border rounded p-3 bg-blue-50">
+                                  <p className="text-sm">Your manager has completed your performance review. Please review and respond.</p>
+                                  <Button className="bg-blue-600 text-white" onClick={() => navigate(`/performance/reviews/${review.id}/acknowledge`)}>Review & Respond</Button>
+                                </div>
+                              )}
+                              <div>
+                                <Button variant="outline" onClick={() => navigate(`/performance/reviews/${review.id}`)}>View Full Details</Button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
           </TabsContent>
         )}
         {/* Manager: Review Submissions Tab */}

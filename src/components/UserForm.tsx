@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,14 +13,12 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Loader2 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
-import { useEffect } from "react"
 import { Copy } from "lucide-react"
 
 export type UserFormData = {
-  name: string
+  name?: string
   email: string
-  phone?: string
-  role: "Admin" | "HR" | "Employee"
+  role: "admin" | "hr_manager" | "employee" | "manager"
   sendInvite?: boolean
   tempPassword?: string
 }
@@ -86,28 +84,26 @@ export function UserForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Personal Information */}
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold mb-2">
-              Personal Information
-            </h3>
+            <h3 className="text-lg font-semibold mb-2">Personal Information</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Provide the user's basic details. Fields marked with * are required.
             </p>
 
             <div>
-              <Label htmlFor="name">Full Name *</Label>
+              <Label htmlFor="name">Full Name {watchedRole !== 'admin' ? '*' : ''}</Label>
               <Input
                 id="name"
-                placeholder="e.g., Jane Doe"
+                placeholder={watchedRole === 'admin' ? 'Optional for Admin accounts' : 'e.g., Jane Doe'}
                 disabled={isSubmitting}
-                {...register("name", { required: "Name is required" })}
+                {...register("name", watchedRole === 'admin' ? {} : { required: "Name is required" })}
               />
               {errors.name && (
-                <p className="text-destructive text-sm">
-                  {errors.name.message}
-                </p>
+                <p className="text-destructive text-sm">{errors.name.message}</p>
               )}
-              {!errors.name && (
-                <p className="text-xs text-muted-foreground mt-1">Enter the full legal name as it appears on records.</p>
+              {watchedRole !== 'admin' && !errors.name && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  As it appears on official documents.
+                </p>
               )}
             </div>
 
@@ -127,57 +123,35 @@ export function UserForm({
                 })}
               />
               {errors.email && (
-                <p className="text-destructive text-sm">
-                  {errors.email.message}
-                </p>
+                <p className="text-destructive text-sm">{errors.email.message}</p>
               )}
               {!errors.email && (
                 <p className="text-xs text-muted-foreground mt-1">We'll use this to send account invitations and notifications.</p>
               )}
             </div>
 
-            <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                placeholder="e.g., +254 712 345 678"
-                disabled={isSubmitting}
-                {...register("phone", {
-                  pattern: {
-                    value: /^[+()\d\s-]{7,}$/,
-                    message: "Enter a valid phone number",
-                  },
-                })}
-              />
-              {errors.phone && (
-                <p className="text-destructive text-sm">{errors.phone.message}</p>
-              )}
-              {!errors.phone && (
-                <p className="text-xs text-muted-foreground mt-1">Optional. Include country code for external numbers.</p>
-              )}
-            </div>
+            {/* phone removed: not required for user accounts in admin UI */}
 
             <div>
               <Label htmlFor="role">Role *</Label>
               <Select
                 value={watchedRole}
-                onValueChange={(value) =>
-                  setValue("role", value as UserFormData["role"])
+                onValueChange={(value: "admin" | "hr_manager" | "employee" | "manager") =>
+                  setValue("role", value)
                 }
               >
-                <SelectTrigger id="role" className="w-full">
-                  <SelectValue placeholder="Select role" />
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="HR">HR</SelectItem>
-                  <SelectItem value="Employee">Employee</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="hr_manager">HR</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="employee">Employee</SelectItem>
                 </SelectContent>
               </Select>
               {errors.role && (
-                <p className="text-destructive text-sm">
-                  {errors.role.message}
-                </p>
+                <p className="text-destructive text-sm">{errors.role.message}</p>
               )}
               {!errors.role && (
                 <p className="text-xs text-muted-foreground mt-1">Choose the minimum required role for this user.</p>
@@ -187,48 +161,55 @@ export function UserForm({
         </div>
 
         {/* Account Setup */}
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold mb-2">Account Setup</h3>
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div>
-              <p className="font-medium">Send invitation email</p>
-              <p className="text-sm text-muted-foreground">Email the user a link to set up their account using a temporary password.</p>
-            </div>
-            <Switch
-              checked={!!watchedInvite}
-              onCheckedChange={(checked) => setValue("sendInvite", checked)}
-            />
-          </div>
-
-          {watchedInvite && (
-            <div>
-              <Label htmlFor="tempPassword">Temporary Password</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="tempPassword"
-                  value={watchedPassword || ""}
-                  readOnly
+          
+          <div className="space-y-6">
+          {mode === 'add' && ( <h3 className="text-lg font-semibold mb-2">Account Setup</h3> 
+          )}
+          {/* Send invite only relevant when adding new users */}
+          {mode === 'add' && (
+            <>
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div>
+                  <p className="font-medium">Send invitation email</p>
+                  <p className="text-sm text-muted-foreground">Email the user a link to set up their account using a temporary password.</p>
+                </div>
+                <Switch
+                  checked={!!watchedInvite}
+                  onCheckedChange={(checked) => setValue("sendInvite", checked)}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setValue("tempPassword", generateTempPassword())}
-                >
-                  Regenerate
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    if (watchedPassword) navigator.clipboard.writeText(watchedPassword)
-                  }}
-                  className="inline-flex items-center gap-2"
-                >
-                  <Copy className="h-4 w-4" /> Copy
-                </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Share this with the user if they don't receive the invite email.</p>
-            </div>
+
+              {watchedInvite && (
+                <div>
+                  <Label htmlFor="tempPassword">Temporary Password</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="tempPassword"
+                      value={watchedPassword || ""}
+                      readOnly
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setValue("tempPassword", generateTempPassword())}
+                    >
+                      Regenerate
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        if (watchedPassword) navigator.clipboard.writeText(watchedPassword)
+                      }}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <Copy className="h-4 w-4" /> Copy
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Share this with the user if they don't receive the invite email.</p>
+                </div>
+              )}
+            </>
           )}
         </div>
 
