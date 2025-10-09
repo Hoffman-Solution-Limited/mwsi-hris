@@ -32,6 +32,14 @@ const mockUsers: Record<string, User> = {
     department: 'IT',
     position: 'System Administrator'
   },
+  // Test admin user for local/demo testing. Use password 'demo123' in the demo login flow.
+  'admin.test@mwsi.com': {
+    id: 'admin-test',
+    name: '',
+    email: 'admin.test@mwsi.com',
+    role: 'admin',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=AT',
+  },
   'hr@mwsi.com': {
     id: '2',
     name: 'Sarah Johnson',

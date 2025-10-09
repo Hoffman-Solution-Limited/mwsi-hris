@@ -1,3 +1,4 @@
+import { mapRole } from '@/lib/roles'
 import React, { useState } from "react"
 import { Search, Plus, Download, Grid, List, Upload } from "lucide-react"
 
@@ -38,7 +39,8 @@ export const EmployeeDirectory: React.FC = () => {
   const { user } = useAuth();
 
   // Scope employees by role (manager sees only direct reports; others see all)
-  const baseEmployees = user?.role === 'manager'
+  const canonical = mapRole(user?.role)
+  const baseEmployees = canonical === 'manager'
     ? employees.filter(e => e.manager === user.name)
     : employees;
 
@@ -170,7 +172,7 @@ const BulkUploadCsvDialog: React.FC = () => {
           </Button>
 
           {/* Add Employee as separate page */}
-          {["admin", "hr_manager"].includes(user?.role as any) && (
+          {(mapRole(user?.role) === 'admin' || mapRole(user?.role) === 'hr') && (
             <Button size="sm" onClick={() => navigate("/employees/new") }>
               <Plus className="w-4 h-4 mr-2" />
               Add New Employee
@@ -178,7 +180,7 @@ const BulkUploadCsvDialog: React.FC = () => {
           )}
 
           {/* Bulk Upload (HR/Admin only) */}
-          {(["admin","hr_manager","hr_staff"] as const).includes(user?.role as any) && (
+          {(mapRole(user?.role) === 'admin' || mapRole(user?.role) === 'hr') && (
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="secondary" size="sm">

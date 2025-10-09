@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useFileTracking } from '@/contexts/FileTrackingContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { mapRole } from '@/lib/roles';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -140,10 +141,10 @@ const DocumentTrackingPage: React.FC = () => {
                               </div>
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline">Employee File</Badge>
-                                {user && user.role === 'admin' && (
+                                {user && mapRole(user.role) === 'admin' && (
                                   <Button size="sm" variant="outline" onClick={() => openMove(file.employeeId)}>Move</Button>
                                 )}
-                                {user && (user.role === 'hr_manager' || user.role === 'manager') && (
+                                {user && (mapRole(user.role) === 'hr' || mapRole(user.role) === 'manager') && (
                                   <Button size="sm" variant="outline" onClick={() => setRequestModal({ open: true, employeeId: file.employeeId, remarks: '' })}>Request File</Button>
                                 )}
                               </div>
@@ -180,7 +181,7 @@ const DocumentTrackingPage: React.FC = () => {
                   <TabsContent value="requests">
                     <Card>
                       <CardHeader>
-                        <CardTitle>{user?.role === 'admin' ? 'Pending Requests (Admin)' : 'All Requests'}</CardTitle>
+                        <CardTitle>{mapRole(user?.role) === 'admin' ? 'Pending Requests (Admin)' : 'All Requests'}</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
@@ -201,7 +202,7 @@ const DocumentTrackingPage: React.FC = () => {
                               </div>
                               <div className="flex items-center gap-2">
                                 <Badge className={`status-${r.status}`}>{r.status}</Badge>
-                                {user?.role === 'admin' && r.status === 'pending' && (
+                                {mapRole(user?.role) === 'admin' && r.status === 'pending' && (
                                   <>
                                     <Button size="sm" variant="outline" onClick={() => setApproveModal({ open: true, requestId: r.id, employeeId: r.employeeId, toLocation: LOCATIONS[0] || 'Registry Office' })}>Approve</Button>
                                     <Button size="sm" variant="outline" onClick={() => rejectRequest(r.id, 'Not available')}>Reject</Button>

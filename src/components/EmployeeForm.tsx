@@ -36,6 +36,8 @@ export type EmployeeFormData = {
   salary?: number
   status?: 'active' | 'inactive' | 'terminated'
   cadre?: 'Support' | 'Technical' | 'Management'
+  isManager?: boolean
+  managerId?: string
 }
 
 export function EmployeeForm({
@@ -49,6 +51,8 @@ export function EmployeeForm({
 }) {
   const { designations, skillLevels, stations, jobGroups, engagementTypes, ethnicities } = useSystemCatalog()
   const { findByEmail } = useUsers()
+  const { users } = useUsers()
+  const [managerQuery, setManagerQuery] = React.useState('')
   const {
     register,
     handleSubmit,
@@ -108,6 +112,12 @@ export function EmployeeForm({
     if (!u) {
       alert('No matching user account found for this email. Please ensure Admin has created the user first.');
       return;
+    }
+    // If a managerId was chosen, set the manager name from employees or users list
+    if (data.managerId) {
+      // Try to find manager name from users first
+      const managerUser = users.find(u => u.id === data.managerId || u.email === data.managerId)
+      if (managerUser && managerUser.name) (data as any).manager = managerUser.name
     }
     onSave(data)
     if (mode === "add") reset() // only reset on add
@@ -295,6 +305,53 @@ export function EmployeeForm({
                 </SelectContent>
               </Select>
               {errors.position && <p className="text-destructive text-sm">{errors.position.message}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="isManager">Is Manager</Label>
+              <div className="mt-1">
+                <input type="checkbox" id="isManager" {...register('isManager')} />
+                <span className="ml-2 text-sm text-muted-foreground">Toggle if this employee is a manager (allows assigning reports to them).</span>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="managerId">Manager</Label>
+              {/* Searchable manager selector: small inline filter + Select */}
+                <div className="mt-1">
+                  <Select value={watch('managerId') || ''} onValueChange={(v) => setValue('managerId', v === '__none' ? '' : v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select manager (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="p-2">
+                        <input
+                          className="w-full px-2 py-1 border rounded"
+                          placeholder="Type to search managers..."
+                          value={managerQuery}
+                          onChange={(e) => setManagerQuery(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <SelectItem value="__none">— None —</SelectItem>
+                      {/* Preferred: list existing users with Manager role (filtered by query) */}
+                      {(() => {
+                        const q = managerQuery.toLowerCase().trim();
+                        const candidates = users.filter(u => u.role === 'Manager' || u.role === 'Admin');
+                        const filtered = q ? candidates.filter(u => (u.name || u.email || '').toLowerCase().includes(q)) : candidates;
+                        return filtered.map(u => (
+                          <SelectItem key={u.id} value={u.id}>{u.name || u.email}</SelectItem>
+                        ));
+                      })()}
+                      {/* Fallback: list users without name (by email) */}
+                      {designations && designations.length > 0 && (
+                        users.filter(u => !u.name).map(u => (
+                          <SelectItem key={u.id + '-email'} value={u.email}>{u.email}</SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
             </div>
 
             <div>

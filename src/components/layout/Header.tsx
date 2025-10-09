@@ -132,10 +132,12 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
+             {(user?.role != 'admin') && (
             <DropdownMenuItem onClick={handleProfile} className="cursor-pointer">
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
+              )}
             <DropdownMenuItem onClick={handleSettings} className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               <span>Change Password</span>

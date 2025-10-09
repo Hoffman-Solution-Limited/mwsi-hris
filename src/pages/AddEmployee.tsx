@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmployeeForm } from "@/components/EmployeeForm";
 import { useEmployees } from "@/contexts/EmployeesContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUsers } from "@/contexts/UsersContext";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 const AddEmployeePage: React.FC = () => {
   const { addEmployee } = useEmployees();
   const { user } = useAuth();
+  const { users } = useUsers();
   const navigate = useNavigate();
 
   const canAdd = ["admin", "hr_manager"].includes(user?.role || "");
@@ -63,13 +65,19 @@ const AddEmployeePage: React.FC = () => {
                 status: "active",
               }}
               onSave={(data) => {
+                // Resolve manager name from managerId if provided
+                let managerName: string | undefined = undefined;
+                if ((data as any).managerId) {
+                  const m = users.find(u => u.id === (data as any).managerId || u.email === (data as any).managerId);
+                  if (m && m.name) managerName = m.name;
+                }
                 addEmployee({
                   id: undefined as any,
                   name: data.name,
                   email: data.email,
                   position: data.position,
                   department: data.department,
-                  manager: undefined,
+                  manager: managerName,
                   hireDate: data.hireDate || new Date().toISOString().slice(0, 10),
                   status: (data.status as any) || "active",
                   avatar: "",
