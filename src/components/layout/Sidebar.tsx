@@ -38,6 +38,8 @@ const navGroups: NavGroup[] = [
       { path: '/profile', label: 'My Profile', icon: <User className="w-5 h-5" />, roles: ['employee', 'manager', 'hr_manager', 'registry_manager'] },
       { path: '/my-files', label: 'My Files', icon: <FileText className="w-5 h-5" />, roles: ['employee', 'manager', 'hr_manager', 'registry_manager'] },
       { path: '/manager-apply-leave', label: 'Apply for Leave', icon: <Calendar className='w-5 h-5' />, roles: ['manager', 'employee', 'hr_manager', 'registry_manager'] },
+      { path: '/hr/my-tasks', label: 'My HR Tasks', icon: <GraduationCap className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
+
     ]
   },
   {
@@ -47,7 +49,7 @@ const navGroups: NavGroup[] = [
       { path: '/leave', label: 'Leave Management', icon: <Calendar className='w-5 h-5' />, roles: ['hr_manager', 'hr_staff', 'manager'] },
       { path: '/recruitment', label: 'Recruitment', icon: <UserPlus className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/disciplinary', label: 'Disciplinary Cases', icon: <AlertTriangle className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
-      { path: '/training', label: 'Training & CPD', icon: <GraduationCap className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'employee', 'registry_manager'] },
+      { path: '/training', label: 'Training & CPD', icon: <GraduationCap className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'employee', 'registry_manager', 'manager'] },
       { path: '/performance', label: 'Performance Reviews', icon: <TrendingUp className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'manager', 'employee', 'registry_manager'] },
       { path: '/hr-performance-filled', label: 'Filled Performance Reviews', icon: <BarChart3 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/designation', label: 'Designations', icon: <Briefcase className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
@@ -93,7 +95,7 @@ const groupTitleMap: Record<string, Record<string, string>> = {
   },
   "HR Management": {
     employee: "Employee Services",
-    manager: "My Team Management",
+    manager: "HR Management",
     hr_manager: "HR Management",
     hr_staff: "HR Management",
     admin: "HR Oversight",
