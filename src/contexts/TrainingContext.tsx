@@ -6,6 +6,9 @@ type TrainingContextType = {
   trainings: TrainingRecord[];
   startTraining: (id: string) => void;
   completeTraining: (id: string, file?: File | null) => void;
+  editTraining: (id: string, changes: Partial<TrainingRecord>) => void;
+  closeTraining: (id: string) => void;
+  archiveTraining: (id: string) => void;
   getCertificateUrl: (id: string) => string | undefined;
 };
 
@@ -43,9 +46,21 @@ export const TrainingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const editTraining = (id: string, changes: Partial<TrainingRecord>) => {
+    setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, ...changes } : tr));
+  };
+
+  const closeTraining = (id: string) => {
+    setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, status: 'closed' } : tr));
+  };
+
+  const archiveTraining = (id: string) => {
+    setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, archived: true } : tr));
+  };
+
   const getCertificateUrl = (id: string) => certUrls[id];
 
-  const value = useMemo(() => ({ trainings, startTraining, completeTraining, getCertificateUrl }), [trainings, certUrls]);
+  const value = useMemo(() => ({ trainings, startTraining, completeTraining, editTraining, closeTraining, archiveTraining, getCertificateUrl }), [trainings, certUrls]);
 
   return (
     <TrainingContext.Provider value={value}>

@@ -232,10 +232,13 @@ export interface TrainingRecord {
   employeeId: string;
   title: string;
   type: 'mandatory' | 'development' | 'compliance';
-  status: 'completed' | 'in_progress' | 'not_started';
+  // Added 'closed' to indicate a program that has been closed by admin
+  status: 'completed' | 'in_progress' | 'not_started' | 'closed';
   completionDate?: string;
   expiryDate?: string;
   provider: string;
+  // Archive flag to move records out of active lists and into history
+  archived?: boolean;
 }
 
 export interface LeaveRequest {
@@ -723,6 +726,17 @@ export const mockTrainingRecords: TrainingRecord[] = [
       status: 'in_progress',
       provider: 'Legal Compliance Corp'
     },
+    // Example archived training
+    {
+      id: 'arch-1',
+      employeeId: '3',
+      title: 'Old Compliance Course',
+      type: 'compliance',
+      status: 'completed',
+      provider: 'Legacy Provider',
+      completionDate: '2020-01-01',
+      archived: true
+    }
 ];
 
 export const mockLeaveRequests: LeaveRequest[] = [
