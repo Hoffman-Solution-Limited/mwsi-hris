@@ -5,10 +5,10 @@ export type CanonicalRole = 'admin' | 'hr' | 'employee' | 'manager' | 'registry'
 export function mapRole(role?: string | null): CanonicalRole {
   if (!role) return 'unknown'
   const r = role.toLowerCase()
-  if (r === 'admin' || r === 'administrator' || r === 'admin') return 'admin'
+  if (r === 'admin' || r === 'administrator') return 'admin'
   if (r === 'hr' || r === 'hr_manager' || r === 'hr_staff') return 'hr'
-  if (r === 'employee' || r === 'employee') return 'employee'
-  if (r.includes('manager')) return 'manager'
+  if (r === 'employee') return 'employee'
+  if (r === 'manager') return 'manager'
   if (r === 'registry' || r === 'registry_manager') return 'registry'
   return 'unknown'
 }

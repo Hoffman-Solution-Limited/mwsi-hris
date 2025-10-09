@@ -413,8 +413,8 @@ export const mockEmployees: Employee[] = [
     id: '4',
     name: 'Emily Chen',
     email: 'emily.chen@mwsi.com',
-    position: 'Marketing Coordinator',
-    department: 'Marketing',
+    position: 'Registry Manager',
+    department: 'Registry',
   manager: 'David Manager',
   managerId: '10',
     hireDate: '2023-02-14',
@@ -484,6 +484,15 @@ export const mockEmployees: Employee[] = [
     skillLevel: 'Masters (Finance)',
     company: 'Ministry of Water, Sanitation and Irrigation',
     dateOfBirth: '1978-12-18'
+  },
+  {
+    id: 'admin-001',
+    name: 'Main Admin',
+    email: 'admin@mwsi.com',
+    position: 'System Administrator',
+    department: 'IT',
+    hireDate: '2020-01-01',
+    status: 'active',
   },
   {
     id: '6',
@@ -1371,41 +1380,3 @@ export const mockDisciplinaryCases: DisciplinaryCaseMock[] = [
     ]
   }
 ];
-
-// Auto-populate managerId for mock data when possible.
-// This keeps the mock dataset consistent for the managerId-first lookup
-// without manually editing every record. It attempts exact name/email
-// matches within the mockEmployees array and assigns managerId in-place.
-(() => {
-  try {
-    const nameToId = new Map<string, string>();
-    const emailToId = new Map<string, string>();
-    for (const e of mockEmployees) {
-      if (e.name) nameToId.set(e.name.toLowerCase(), e.id);
-      if (e.email) emailToId.set(e.email.toLowerCase(), e.id);
-    }
-
-    for (const e of mockEmployees) {
-      if (!e.managerId && e.manager) {
-        const m = String(e.manager).toLowerCase();
-        // Try email match first (in case manager stored as email)
-        if (emailToId.has(m)) {
-          e.managerId = emailToId.get(m) as string;
-          continue;
-        }
-        // Exact name match
-        if (nameToId.has(m)) {
-          e.managerId = nameToId.get(m) as string;
-          continue;
-        }
-        // Loose name match (contains or startsWith)
-        const loose = mockEmployees.find(x => x.name && (x.name.toLowerCase().includes(m) || m.includes(x.name.toLowerCase())));
-        if (loose) e.managerId = loose.id;
-      }
-    }
-  } catch (err) {
-    // Non-fatal in demo data; leave managerId as-is if anything goes wrong
-    // eslint-disable-next-line no-console
-    console.warn('Failed to auto-populate managerId for mockEmployees', err);
-  }
-})();

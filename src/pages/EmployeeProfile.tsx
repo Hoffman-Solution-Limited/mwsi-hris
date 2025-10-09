@@ -217,7 +217,7 @@ export const EmployeeProfile: React.FC = () => {
 
   if (!employee) {
     // If there's an admin user (pure admin) matching the target, show admin account page
-    if (adminUser && adminUser.role === 'Admin') {
+    if (adminUser && adminUser.role === 'admin') {
       return (
         <div className="space-y-6">
           <Card>
