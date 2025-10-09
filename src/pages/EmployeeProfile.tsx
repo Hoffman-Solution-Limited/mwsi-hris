@@ -190,7 +190,7 @@ export const EmployeeProfile: React.FC = () => {
   const canonical = mapRole(user?.role);
   const canAccessProfile = isMyProfile ||
     canonical === 'admin' || canonical === 'hr' ||
-    (canonical === 'manager' && (user?.id === targetEmployeeId || (employee && employee.manager === user?.name)));
+    (canonical === 'manager' && (user?.id === targetEmployeeId || (employee && ((employee.managerId && employee.managerId === user.id) || employee.manager === user?.name))));
     const employeeTrainings = mockTrainingRecords.filter(training => 
       training.employeeId === targetEmployeeId
     );

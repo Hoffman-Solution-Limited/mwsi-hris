@@ -53,6 +53,7 @@ export function EmployeeForm({
   const { findByEmail } = useUsers()
   const { users } = useUsers()
   const [managerQuery, setManagerQuery] = React.useState('')
+  const [initialisedManager, setInitialisedManager] = React.useState(false)
   const {
     register,
     handleSubmit,
@@ -122,6 +123,19 @@ export function EmployeeForm({
     onSave(data)
     if (mode === "add") reset() // only reset on add
   }
+
+  // Initialize managerQuery from defaultValues (managerId or manager name)
+  React.useEffect(() => {
+    if (initialisedManager) return
+    const mv = (defaultValues as any)?.managerId || (defaultValues as any)?.manager
+    if (mv) {
+      const str = String(mv).toLowerCase()
+      const u = users.find(u => (u.id && u.id.toLowerCase() === str) || (u.email && u.email.toLowerCase() === str) || (u.name && u.name.toLowerCase() === str))
+      if (u) setManagerQuery(u.name || u.email || '')
+      else setManagerQuery(String(mv))
+    }
+    setInitialisedManager(true)
+  }, [defaultValues, users, initialisedManager])
 
   return (
     <ScrollArea className="h-[600px] pr-4">
@@ -317,41 +331,45 @@ export function EmployeeForm({
 
             <div>
               <Label htmlFor="managerId">Manager</Label>
-              {/* Searchable manager selector: small inline filter + Select */}
-                <div className="mt-1">
-                  <Select value={watch('managerId') || ''} onValueChange={(v) => setValue('managerId', v === '__none' ? '' : v)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select manager (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <div className="p-2">
-                        <input
-                          className="w-full px-2 py-1 border rounded"
-                          placeholder="Type to search managers..."
-                          value={managerQuery}
-                          onChange={(e) => setManagerQuery(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                      <SelectItem value="__none">— None —</SelectItem>
-                      {/* Preferred: list existing users with Manager role (filtered by query) */}
-                      {(() => {
-                        const q = managerQuery.toLowerCase().trim();
-                        const candidates = users.filter(u => u.role === 'Manager' || u.role === 'Admin');
-                        const filtered = q ? candidates.filter(u => (u.name || u.email || '').toLowerCase().includes(q)) : candidates;
-                        return filtered.map(u => (
-                          <SelectItem key={u.id} value={u.id}>{u.name || u.email}</SelectItem>
-                        ));
-                      })()}
-                      {/* Fallback: list users without name (by email) */}
-                      {designations && designations.length > 0 && (
-                        users.filter(u => !u.name).map(u => (
-                          <SelectItem key={u.id + '-email'} value={u.email}>{u.email}</SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="mt-1 space-y-2">
+                {/* Visible text input for manager name (autocomplete) */}
+                <input
+                  className="w-full px-2 py-2 border rounded"
+                  placeholder="Type manager name or email..."
+                  value={managerQuery}
+                  onChange={(e) => setManagerQuery(e.target.value)}
+                  onBlur={() => {
+                    // Try to resolve managerQuery to a user and set managerId
+                    const q = managerQuery.trim().toLowerCase();
+                    if (!q) return;
+                    const userMatch = users.find(u => (u.email && u.email.toLowerCase() === q) || (u.name && u.name.toLowerCase() === q));
+                    if (userMatch) {
+                      setValue('managerId', userMatch.id || userMatch.email || '')
+                    }
+                  }}
+                />
+
+                {/* Select control to explicitly pick manager which also updates query */}
+                <Select value={watch('managerId') || ''} onValueChange={(v) => {
+                  const val = v === '__none' ? '' : v
+                  setValue('managerId', val)
+                  const u = users.find(u => u.id === val || u.email === val)
+                  setManagerQuery(u ? (u.name || u.email || '') : '')
+                }}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="(or pick from list)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="p-2">
+                      <div className="text-xs text-muted-foreground">Choose from registered users</div>
+                    </div>
+                    <SelectItem value="__none">— None —</SelectItem>
+                    {users.map(u => (
+                      <SelectItem key={u.id} value={u.id}>{u.name || u.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div>
