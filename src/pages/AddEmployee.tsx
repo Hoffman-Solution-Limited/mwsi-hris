@@ -78,6 +78,7 @@ const AddEmployeePage: React.FC = () => {
                   position: data.position,
                   department: data.department,
                   manager: managerName,
+                  managerId: (data as any).managerId || undefined,
                   hireDate: data.hireDate || new Date().toISOString().slice(0, 10),
                   status: (data.status as any) || "active",
                   avatar: "",

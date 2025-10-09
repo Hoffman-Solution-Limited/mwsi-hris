@@ -60,7 +60,7 @@ export const PerformanceReviews: React.FC = () => {
     if (!user || user.role !== 'manager') return [];
     return reviews.filter(review => {
       const employee = mockEmployees.find(emp => emp.id === review.employeeId);
-      return employee?.manager === user.name;
+      return (employee?.managerId && employee.managerId === user.id) || employee?.manager === user.name;
     });
   }, [reviews, user]);
 
