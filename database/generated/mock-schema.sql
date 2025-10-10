@@ -312,3 +312,22 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Roles table (allow dynamic roles and metadata)
++
+CREATE TABLE IF NOT EXISTS roles (
+  id VARCHAR(100) PRIMARY KEY,
+  name VARCHAR(200) NOT NULL,
+  locked BOOLEAN DEFAULT FALSE,
+  meta JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
++
+-- Role permissions mapping: each row represents a single permission assigned to a role
++
+CREATE TABLE IF NOT EXISTS role_permissions (
+  role_id VARCHAR(100) REFERENCES roles(id) ON DELETE CASCADE,
+  permission_key VARCHAR(200) NOT NULL,
+  PRIMARY KEY (role_id, permission_key)
+);
++

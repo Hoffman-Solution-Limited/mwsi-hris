@@ -13,6 +13,7 @@ import { PerformanceProvider } from "@/contexts/PerformanceContext";
 import { DepartmentGoalsProvider } from "@/contexts/DepartmentGoalsContext";
 import { TrainingProvider } from "@/contexts/TrainingContext";
 import { UsersProvider } from "@/contexts/UsersContext";
+import { RolesProvider } from "@/contexts/RolesContext";
 import { SystemCatalogProvider } from "@/contexts/SystemCatalogContext";
 import { SystemLogsProvider } from "@/contexts/SystemLogsContext";
 import { EmployeesProvider } from "@/contexts/EmployeesContext";
@@ -39,7 +40,6 @@ import EmployeeAcknowledgmentPage from "@/pages/EmployeeAcknowledgmentPage";
 import { Admin } from "@/pages/Admin";
 import { DesignationPage } from "@/pages/Designation";
 import {SkillsPage} from "@/pages/Skills";
-import { EmployeeByCounty } from "@/pages/EmployeeByCounty";
 import ApplyLeave from "@/pages/ApplyLeave";
 import ManagerApplyLeave from "@/pages/ManagerApplyLeave";
  import ReviewDetails from '@/pages/ReviewDetails';
@@ -87,6 +87,7 @@ const App = () => (
             <PerformanceProvider>
               <TrainingProvider>
                 <UsersProvider>
+                  <RolesProvider>
                   <SystemCatalogProvider>
                     <EmployeesProvider>
                     <FileTrackingProvider>
@@ -126,7 +127,6 @@ const App = () => (
 
                           {/* ✅ Wrap Designations same way */}
                           <Route path="/Designation" element={<ProtectedRoute><Layout><DesignationPage /></Layout></ProtectedRoute>} />
-                          <Route path="/employees-by-county" element={<ProtectedRoute><Layout><EmployeeByCounty /></Layout></ProtectedRoute>} />
                           <Route path="/disciplinary" element={<ProtectedRoute><Layout><DisciplinaryCases /></Layout></ProtectedRoute>} />
                           <Route path="/skills" element={<ProtectedRoute><Layout><SkillsPage /></Layout></ProtectedRoute>} />
                           <Route path="/admin/users" element={<ProtectedRoute><RequirePermission permission="page.admin.users"><Layout><AdminUserManagement /></Layout></RequirePermission></ProtectedRoute>} />
@@ -149,6 +149,7 @@ const App = () => (
                     </FileTrackingProvider>
                     </EmployeesProvider>
                   </SystemCatalogProvider>
+                  </RolesProvider>
                 </UsersProvider>
               </TrainingProvider>
             </PerformanceProvider>

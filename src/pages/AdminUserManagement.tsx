@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, User, Mail, RefreshCw, Edit as EditIcon } from 'lucide-react'
 import {UserForm} from '@/components/UserForm'
 import { useUsers, AppUser } from '@/contexts/UsersContext'
+import { useRoles } from '@/contexts/RolesContext'
 import { useEmployees } from '@/contexts/EmployeesContext'
 import { useToast } from '@/hooks/use-toast'
 import { Input } from '@/components/ui/input'
@@ -41,7 +42,8 @@ export default function AdminUserManagement() {
   }
 
   const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'hr_manager' | 'employee' | 'manager' | 'registry_manager'>('all')
+  const [roleFilter, setRoleFilter] = useState<'all' | string>('all')
+  const { roles } = useRoles();
   const [editingUser, setEditingUser] = useState<AppUser | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [addOpen, setAddOpen] = useState(false)
@@ -113,11 +115,9 @@ export default function AdminUserManagement() {
             className="border px-3 py-2 rounded w-full sm:w-1/4"
           >
             <option value="all">All Roles</option>
-            <option value="admin">Admin</option>
-            <option value="hr_manager">HR</option>
-            <option value="registry_manager">Registry</option>
-            <option value="employee">Employee</option>
-            <option value="manager">Manager</option>
+            {roles.map(r => (
+              <option key={r.id} value={r.id}>{r.name}</option>
+            ))}
           </select>
         </div>
 
@@ -268,7 +268,7 @@ export default function AdminUserManagement() {
                   // validations
                   if (!r.email || !r.role) r.error = 'Missing email or role';
                   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) r.error = 'Invalid email';
-                  else if (!['Admin','HR','Registry','Manager','Employee'].includes((r.role || '').toString())) r.error = 'Invalid role';
+                  else if (!roles.map(x => x.name).includes((r.role || '').toString())) r.error = 'Invalid role';
                   return r;
                 });
                 setImportRows(rows);
@@ -294,11 +294,9 @@ export default function AdminUserManagement() {
                             <td className="p-2">
                               <select className="border px-2 py-1 rounded w-full" value={r.role || ''} onChange={(e) => setImportRows(prev => prev.map(p => p.id === r.id ? { ...p, role: e.target.value } : p))}>
                                 <option value="">-- select --</option>
-                                <option>Admin</option>
-                                <option>HR</option>
-                                <option>Registry</option>
-                                <option>Manager</option>
-                                <option>Employee</option>
+                                {roles.map(roleOption => (
+                                  <option key={roleOption.id} value={roleOption.name}>{roleOption.name}</option>
+                                ))}
                               </select>
                             </td>
                             <td className="p-2 text-xs text-muted-foreground">{r.error || 'OK'}</td>
@@ -315,7 +313,7 @@ export default function AdminUserManagement() {
                         const copy = { ...r };
                         if (!copy.email || !copy.role) copy.error = 'Missing email or role';
                         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(copy.email)) copy.error = 'Invalid email';
-                        else if (!['Admin','HR','Registry','Manager','Employee'].includes((copy.role || '').toString())) copy.error = 'Invalid role';
+                        else if (!roles.map(x => x.name).includes((copy.role || '').toString())) copy.error = 'Invalid role';
                         else delete copy.error;
                         return copy;
                       });
@@ -324,7 +322,9 @@ export default function AdminUserManagement() {
                       good.forEach(r => {
                         // normalize role text to internal role strings
                         const roleText = (r.role || '').toString();
-                        const internalRole = roleText.toLowerCase() === 'admin' ? 'admin' : roleText.toLowerCase() === 'hr' ? 'hr_manager' : roleText.toLowerCase() === 'manager' ? 'manager' : roleText.toLowerCase() === 'registry' ? 'registry_manager' : 'employee';
+                        // try to map display name back to role id
+                        const found = roles.find(rr => rr.name.toLowerCase() === roleText.toLowerCase());
+                        const internalRole = found ? found.id : roleText.toLowerCase();
                         addUser({ name: r.name, email: r.email, role: internalRole as any, position: 'Imported', department: 'Imported', hireDate: new Date().toISOString() });
                         if (roleText === 'Manager') {
                           // create minimal employee record for manager

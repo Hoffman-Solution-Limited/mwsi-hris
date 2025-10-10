@@ -239,6 +239,56 @@ VALUES
 ('4','4','emily.chen@mwsi.com','Emily Chen','registry_manager','demo123','active'),
 ('testing-user',NULL,'testing@mwsi.com','Testing User','testing','demo123','active')
 ON CONFLICT DO NOTHING;
+-- Default roles (seed for admin-managed roles)
++INSERT INTO roles (id, name, locked) VALUES
++  ('admin','Admin', TRUE),
++  ('hr_manager','HR', FALSE),
++  ('hr_staff','HR Staff', FALSE),
++  ('manager','Manager', FALSE),
++  ('employee','Employee', FALSE),
++  ('registry_manager','Registry', FALSE),
++  ('testing','Testing', FALSE)
++ON CONFLICT DO NOTHING;
++
++
++-- Default role permissions matching front-end DEFAULT_ROLE_PERMISSIONS
++-- admin: all permissions (seeded by inserting all keys)
++INSERT INTO role_permissions (role_id, permission_key)
++SELECT 'admin', key FROM (VALUES
++  ('employee.view'),('employee.edit'),('employee.create'),('employee.delete'),('page.employee-files'),('page.admin.requests'),('page.registry.requests'),('page.admin.users'),('page.admin.roles'),('page.admin.settings'),('page.admin.data'),('page.admin.performance-templates'),('page.admin.department-goals'),('page.admin.training-management'),('page.admin.system-logs')
++) AS perms(key)
++ON CONFLICT DO NOTHING;
++
++-- hr_manager permissions
++INSERT INTO role_permissions (role_id, permission_key) VALUES
++  ('hr_manager','employee.view'),('hr_manager','employee.edit'),('hr_manager','employee.create'),('hr_manager','page.employee-files')
++ON CONFLICT DO NOTHING;
++
++-- hr_staff permissions
++INSERT INTO role_permissions (role_id, permission_key) VALUES
++  ('hr_staff','employee.view'),('hr_staff','employee.edit'),('hr_staff','page.employee-files')
++ON CONFLICT DO NOTHING;
++
++-- manager permissions
++INSERT INTO role_permissions (role_id, permission_key) VALUES
++  ('manager','employee.view'),('manager','page.employee-files')
++ON CONFLICT DO NOTHING;
++
++-- employee permissions
++INSERT INTO role_permissions (role_id, permission_key) VALUES
++  ('employee','employee.view')
++ON CONFLICT DO NOTHING;
++
++-- registry_manager permissions
++INSERT INTO role_permissions (role_id, permission_key) VALUES
++  ('registry_manager','employee.view'),('registry_manager','page.employee-files'),('registry_manager','page.registry.requests')
++ON CONFLICT DO NOTHING;
++
++-- testing role: no permissions by default
++INSERT INTO role_permissions (role_id, permission_key) VALUES
++  ('testing','') ON CONFLICT DO NOTHING;
++
+*** End Patch
 
 -- Notifications sample data
 INSERT INTO notifications (id, user_id, title, message, link, type, read, created_at)

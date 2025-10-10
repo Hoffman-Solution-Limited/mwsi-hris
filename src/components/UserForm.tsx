@@ -14,11 +14,12 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Loader2 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Copy } from "lucide-react"
+import { useRoles } from '@/contexts/RolesContext'
 
 export type UserFormData = {
   name?: string
   email: string
-  role: "admin" | "hr_manager" | "employee" | "manager" | "registry_manager"
+  role: string
   sendInvite?: boolean
   tempPassword?: string
 }
@@ -45,10 +46,12 @@ export function UserForm({
   } = useForm<UserFormData>({
     defaultValues,
   })
-
+  
   const watchedRole = watch("role")
   const watchedInvite = watch("sendInvite")
   const watchedPassword = watch("tempPassword")
+
+  const { roles } = useRoles();
 
   function handleSave(data: UserFormData) {
     onSave(data)
@@ -136,26 +139,19 @@ export function UserForm({
               <Label htmlFor="role">Role *</Label>
               <Select
                 value={watchedRole}
-                onValueChange={(value: "admin" | "hr_manager" | "employee" | "manager" | "registry_manager") =>
-                  setValue("role", value)
-                }
+                onValueChange={(value: string) => setValue("role", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="hr_manager">HR</SelectItem>
-                  <SelectItem value="registry_manager">Registry</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="employee">Employee</SelectItem>
+                  {roles.map(r => (
+                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {errors.role && (
                 <p className="text-destructive text-sm">{errors.role.message}</p>
-              )}
-              {!errors.role && (
-                <p className="text-xs text-muted-foreground mt-1">Choose the minimum required role for this user.</p>
               )}
             </div>
           </div>
