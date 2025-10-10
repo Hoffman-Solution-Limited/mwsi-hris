@@ -506,6 +506,70 @@ export const Dashboard: React.FC = () => {
     },
   ];
 
+  // Helper to export employees as CSV
+  const exportEmployees = () => {
+    try {
+      const headers = ['ID', 'Name', 'Email', 'Department', 'Position', 'Status', 'Manager'];
+      const rows = mockEmployees.map(emp => [
+        emp.id,
+        '"' + (emp.name || '') + '"',
+        emp.email || '',
+        emp.department || '',
+        emp.position || '',
+        emp.status || '',
+        emp.manager || ''
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'employees.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({ title: 'Export started', description: 'employees.csv is downloading' });
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Export failed', err);
+      toast({ title: 'Export failed', description: 'Unable to export employees', variant: 'destructive' as any });
+    }
+  };
+
+  // HR Insights helpers
+  const parseDate = (d?: string) => d ? new Date(d) : null;
+  const daysBetween = (a: Date, b: Date) => Math.ceil((+b - +a) / (1000 * 60 * 60 * 24));
+
+  const recentHires = mockEmployees
+    .filter(e => {
+      const hd = parseDate(e.hireDate);
+      if (!hd) return false;
+      return daysBetween(hd, new Date()) <= 90; // hired within last 90 days
+    })
+    .sort((a, b) => (parseDate(b.hireDate)?.getTime() ?? 0) - (parseDate(a.hireDate)?.getTime() ?? 0))
+    .slice(0, 5);
+
+  const upcomingBirthdays = mockEmployees
+    .map(e => ({ ...e, dob: parseDate(e.dateOfBirth) }))
+    .filter(e => e.dob)
+    .map(e => {
+      const now = new Date();
+      const thisYearBirthday = new Date((e.dob as Date).getTime());
+      thisYearBirthday.setFullYear(now.getFullYear());
+      let diff = daysBetween(now, thisYearBirthday);
+      // if already passed, check next year
+      if (diff < 0) {
+        thisYearBirthday.setFullYear(now.getFullYear() + 1);
+        diff = daysBetween(now, thisYearBirthday);
+      }
+      return { ...e, daysUntilBirthday: diff, birthdayDate: thisYearBirthday };
+    })
+    .filter(e => e.daysUntilBirthday >= 0 && e.daysUntilBirthday <= 30)
+    .sort((a, b) => a.daysUntilBirthday - b.daysUntilBirthday)
+    .slice(0, 5);
+
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
@@ -616,6 +680,123 @@ export const Dashboard: React.FC = () => {
               <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
                 <p className="font-medium text-sm text-primary">Info</p>
                 <p className="text-xs">Training compliance report ready</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* HR Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>HR Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              className="w-full justify-start bg-blue-600 text-white hover:bg-blue-700"
+              onClick={() => navigate('/hr/leave-requests')}
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Approve Leaves
+            </Button>
+
+            <Button
+              className="w-full justify-start bg-green-600 text-white hover:bg-green-700"
+              onClick={() => navigate('/recruitment')}
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Manage Recruitment
+            </Button>
+
+            <Button
+              className="w-full justify-start bg-indigo-600 text-white hover:bg-indigo-700"
+              onClick={() => navigate('/recruitment/post-job')}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Post Job
+            </Button>
+
+            <Button
+              className="w-full justify-start bg-neutral-600 text-white hover:bg-neutral-700"
+              onClick={() => exportEmployees()}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Export Employees (CSV)
+            </Button>
+
+            <Button
+              className="w-full justify-start bg-amber-600 text-white hover:bg-amber-700"
+              onClick={() => navigate('/reports')}
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Generate Reports
+            </Button>
+
+            <Button
+              className="w-full justify-start bg-purple-600 text-white hover:bg-purple-700"
+              onClick={() => navigate('/training')}
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Manage Trainings
+            </Button>
+          </CardContent>
+        </Card>
+        {/* HR Insights: placed beside quick actions to fill empty space */}
+        <Card>
+          <CardHeader>
+            <CardTitle>HR Insights</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium">Recent Hires (last 90 days)</p>
+                {recentHires.length > 0 ? (
+                  <div className="mt-2 space-y-2">
+                    {recentHires.map(h => (
+                      <div key={h.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={h.avatar} />
+                            <AvatarFallback>{h.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium text-sm">{h.name}</div>
+                            <div className="text-xs text-muted-foreground">{h.position}</div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{h.hireDate}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No recent hires</p>
+                )}
+              </div>
+
+              <div>
+                <p className="text-sm font-medium">Upcoming Birthdays (30 days)</p>
+                {upcomingBirthdays.length > 0 ? (
+                  <div className="mt-2 space-y-2">
+                    {upcomingBirthdays.map(b => (
+                      <div key={b.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={b.avatar} />
+                            <AvatarFallback>{b.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium text-sm">{b.name}</div>
+                            <div className="text-xs text-muted-foreground">{b.position}</div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">in {b.daysUntilBirthday} days</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No birthdays coming up</p>
+                )}
               </div>
             </div>
           </CardContent>
