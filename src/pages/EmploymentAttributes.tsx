@@ -2,31 +2,36 @@ import React, { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronRight, List, Plus, Search } from "lucide-react";
 import { useSystemCatalog } from "@/contexts/SystemCatalogContext";
 import { useEmployees } from "@/contexts/EmployeesContext";
 
 type Counts = Record<string, { total: number; byStatus: Record<string, number> }>;
-
 const Section: React.FC<{
   title: string;
-  items: string[];
+  items: { value: string; active: boolean }[];
   onAdd: (name: string) => void;
+  onEdit?: (oldName: string, newName: string) => void;
+  onToggleActive?: (name: string) => void;
   placeholder: string;
   normalize?: (v: string) => string;
   counts?: Counts;
   defaultCollapsed?: boolean;
-}> = ({ title, items, onAdd, placeholder, normalize, counts, defaultCollapsed }) => {
+}> = ({ title, items, onAdd, onEdit, onToggleActive, placeholder, normalize, counts, defaultCollapsed }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [newItem, setNewItem] = useState("");
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingValue, setEditingValue] = useState("");
+  const [editingKey, setEditingKey] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<boolean>(!!defaultCollapsed);
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return items;
-    return items.filter((i) => i.toLowerCase().includes(q));
+    return items.filter((i) => i.value.toLowerCase().includes(q));
   }, [items, searchQuery]);
 
   const handleAdd = () => {
@@ -34,9 +39,30 @@ const Section: React.FC<{
     if (!v) return;
     onAdd(v);
     setNewItem("");
+    setIsAddOpen(false);
+  };
+
+  const openEdit = (value: string) => {
+    setEditingKey(value);
+    setEditingValue(value);
+    setIsEditOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingKey) return;
+    const next = (normalize ? normalize(editingValue) : editingValue).trim();
+    if (!next || next === editingKey) {
+      setIsEditOpen(false);
+      return;
+    }
+    onEdit && onEdit(editingKey, next);
+    setIsEditOpen(false);
+    setEditingKey(null);
+    setEditingValue("");
   };
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -65,7 +91,7 @@ const Section: React.FC<{
                 className="pl-10"
               />
             </div>
-            <Dialog>
+            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
                 <Button size="sm">
                   <Plus className="w-4 h-4 mr-2" /> Add
@@ -76,13 +102,14 @@ const Section: React.FC<{
                   <DialogTitle>Add New {title.slice(0, -1)}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <Input
-                    placeholder={placeholder}
-                    value={newItem}
-                    onChange={(e) => setNewItem(e.target.value)}
-                  />
-                  <Button onClick={handleAdd}>Save</Button>
+                  <Input placeholder={placeholder} value={newItem} onChange={(e) => setNewItem(e.target.value)} />
                 </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+                  </DialogClose>
+                  <Button onClick={handleAdd}>Save</Button>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
@@ -94,15 +121,16 @@ const Section: React.FC<{
                   <th>{title.slice(0, -1)}</th>
                   <th className="w-24 text-right">Total</th>
                   <th>Status Breakdown</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((i) => {
-                  const c = counts?.[i];
+                  const c = counts?.[i.value];
                   const statuses = c ? Object.entries(c.byStatus) : [];
                   return (
-                    <tr key={i}>
-                      <td>{i}</td>
+                    <tr key={i.value} className={i.active ? '' : 'opacity-60'}>
+                      <td>{i.value}</td>
                       <td className="text-right font-medium">{c?.total ?? 0}</td>
                       <td>
                         <div className="flex flex-wrap gap-1">
@@ -117,12 +145,16 @@ const Section: React.FC<{
                           )}
                         </div>
                       </td>
+                      <td className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => openEdit(i.value)}>Edit</Button>
+                        <Button size="sm" variant="outline" onClick={() => onToggleActive && onToggleActive(i.value)}>{i.active ? 'Deactivate' : 'Reactivate'}</Button>
+                      </td>
                     </tr>
                   );
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="text-sm text-muted-foreground">No results</td>
+                    <td colSpan={4} className="text-sm text-muted-foreground">No results</td>
                   </tr>
                 )}
               </tbody>
@@ -131,6 +163,24 @@ const Section: React.FC<{
         </CardContent>
       )}
     </Card>
+    {/* Edit Dialog shared by sections */}
+    <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit {title.slice(0, -1)}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Input value={editingValue} onChange={(e) => setEditingValue(e.target.value)} />
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+          </DialogClose>
+          <Button onClick={handleSaveEdit}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 
@@ -142,13 +192,22 @@ const EmploymentAttributesPage: React.FC = () => {
     addJobGroup,
     addEngagementType,
     addEthnicity,
+    editJobGroup,
+    deactivateJobGroup,
+    reactivateJobGroup,
+    editEngagementType,
+    deactivateEngagementType,
+    reactivateEngagementType,
+    editEthnicity,
+    deactivateEthnicity,
+    reactivateEthnicity,
   } = useSystemCatalog();
-  const { employees } = useEmployees();
+  const { employees, renameJobGroupAcrossEmployees, renameEngagementTypeAcrossEmployees, renameEthnicityAcrossEmployees } = useEmployees();
 
-  // Build counts for each attribute type
+  // Build counts for each attribute type (items are Item[] with .value)
   const engagementCounts: Counts = useMemo(() => {
     const map: Counts = {};
-    for (const key of engagementTypes) {
+    for (const key of engagementTypes.map((x) => x.value)) {
       map[key] = { total: 0, byStatus: {} };
     }
     employees.forEach((e: any) => {
@@ -164,7 +223,7 @@ const EmploymentAttributesPage: React.FC = () => {
 
   const jobGroupCounts: Counts = useMemo(() => {
     const map: Counts = {};
-    for (const key of jobGroups) {
+    for (const key of jobGroups.map((x) => x.value)) {
       map[key] = { total: 0, byStatus: {} };
     }
     employees.forEach((e: any) => {
@@ -180,7 +239,7 @@ const EmploymentAttributesPage: React.FC = () => {
 
   const ethnicityCounts: Counts = useMemo(() => {
     const map: Counts = {};
-    for (const key of ethnicities) {
+    for (const key of ethnicities.map((x) => x.value)) {
       map[key] = { total: 0, byStatus: {} };
     }
     employees.forEach((e: any) => {
@@ -205,6 +264,15 @@ const EmploymentAttributesPage: React.FC = () => {
         title="Engagement Types"
         items={engagementTypes}
         onAdd={addEngagementType}
+        onEdit={(oldName, newName) => {
+          editEngagementType(oldName, newName);
+          if (renameEngagementTypeAcrossEmployees) renameEngagementTypeAcrossEmployees(oldName, newName);
+        }}
+        onToggleActive={(name) => {
+          const it = engagementTypes.find(x => x.value === name);
+          if (!it) return;
+          if (it.active) deactivateEngagementType(name); else reactivateEngagementType(name);
+        }}
         placeholder="e.g., Permanent, Extended Service, Local Contract"
         counts={engagementCounts}
         defaultCollapsed={false}
@@ -214,6 +282,15 @@ const EmploymentAttributesPage: React.FC = () => {
         title="Job Groups"
         items={jobGroups}
         onAdd={addJobGroup}
+        onEdit={(oldName, newName) => {
+          editJobGroup(oldName, newName);
+          if (renameJobGroupAcrossEmployees) renameJobGroupAcrossEmployees(oldName, newName);
+        }}
+        onToggleActive={(name) => {
+          const it = jobGroups.find(x => x.value === name);
+          if (!it) return;
+          if (it.active) deactivateJobGroup(name); else reactivateJobGroup(name);
+        }}
         placeholder="Enter job group (e.g., A, B, C...)"
         normalize={(v) => v.toUpperCase()}
         counts={jobGroupCounts}
@@ -224,6 +301,15 @@ const EmploymentAttributesPage: React.FC = () => {
         title="Ethnicities"
         items={ethnicities}
         onAdd={addEthnicity}
+        onEdit={(oldName, newName) => {
+          editEthnicity(oldName, newName);
+          if (renameEthnicityAcrossEmployees) renameEthnicityAcrossEmployees(oldName, newName);
+        }}
+        onToggleActive={(name) => {
+          const it = ethnicities.find(x => x.value === name);
+          if (!it) return;
+          if (it.active) deactivateEthnicity(name); else reactivateEthnicity(name);
+        }}
         placeholder="Enter ethnicity"
         counts={ethnicityCounts}
         defaultCollapsed={true}
