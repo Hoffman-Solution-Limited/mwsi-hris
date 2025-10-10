@@ -4,11 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { usePerformance } from '@/contexts/PerformanceContext';
+import { TemplateCriteriaList } from '@/components/performance/TemplateCriteriaList';
 import { useAuth } from '@/contexts/AuthContext';
 import { mockEmployees } from '@/data/mockData';
+import { Navigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
+
 
 const HRPerformanceFilledList: React.FC = () => {
-  const { reviews } = usePerformance();
+  const { reviews, templates } = usePerformance();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -16,6 +20,7 @@ const HRPerformanceFilledList: React.FC = () => {
 
   // Only show reviews that have been filled (not draft)
   const filledReviews = reviews.filter(r => r.status !== 'draft' && r.employeeName.toLowerCase().includes(searchQuery.toLowerCase()));
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
@@ -61,48 +66,21 @@ const HRPerformanceFilledList: React.FC = () => {
                   }</td>
                   <td className="p-3">{review.reviewPeriod}</td>
                   <td className="p-3">
-                    <Button size="sm" variant="outline" onClick={() => { setSelectedReview(review); setViewModalOpen(true); }}>
-                      View
-                    </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate(`/performance/reviews/${review.id}`)}
+                >
+                  View
+                </Button>
+
+
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </CardContent>
-        {/* View Modal */}
-        {selectedReview && (
-          <div>
-            <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 ${viewModalOpen ? '' : 'hidden'}`}>
-              <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-6">
-                <h2 className="text-xl font-bold mb-2">Performance Review Details</h2>
-                <div className="mb-2"><strong>Employee:</strong> {selectedReview.employeeName}</div>
-                <div className="mb-2"><strong>Review Period:</strong> {selectedReview.reviewPeriod}</div>
-                <div className="mb-2"><strong>Status:</strong> <Badge>{selectedReview.status}</Badge></div>
-                <div className="mb-2"><strong>Assigned To:</strong> {
-                  selectedReview.status === 'manager_review'
-                    ? (() => {
-                        const emp = mockEmployees.find(e => e.name === selectedReview.employeeName);
-                        return emp && emp.manager ? emp.manager : 'Manager';
-                      })()
-                    : selectedReview.status === 'hr_review'
-                    ? 'HR'
-                    : selectedReview.status === 'completed'
-                    ? 'Completed'
-                    : 'Unassigned'
-                }</div>
-                <div className="mb-2"><strong>Manager Comments:</strong> {selectedReview.managerComments || '-'}</div>
-                <div className="mb-2"><strong>HR Comments:</strong> {selectedReview.hrComments || '-'}</div>
-                <div className="mb-2"><strong>Next Review Date:</strong> {selectedReview.nextReviewDate}</div>
-                <div className="mb-2"><strong>Goals:</strong> {selectedReview.goals ? selectedReview.goals.join(', ') : '-'}</div>
-                <div className="mb-2"><strong>Feedback:</strong> {selectedReview.feedback || '-'}</div>
-                <div className="flex justify-end mt-4">
-                  <Button variant="outline" onClick={() => setViewModalOpen(false)}>Close</Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </Card>
     </div>
   );
