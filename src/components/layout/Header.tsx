@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUsers } from '@/contexts/UsersContext';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,6 +25,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { user, logout } = useAuth();
+  const { users } = useUsers()
   const navigate = useNavigate();
   const { getUserNotifications, getUnreadCount, markAllRead, markRead } = useNotifications();
 
@@ -36,12 +38,33 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
     navigate('/profile');
   };
 
+  const handleEditPhoto = () => {
+    // If the avatar upload input exists on the page (profile), open it. Otherwise navigate to profile then try again.
+    const tryClick = () => {
+      const input = document.getElementById('avatarUpload') as HTMLInputElement | null;
+      if (input) {
+        input.click();
+        return true;
+      }
+      return false;
+    }
+
+    if (!tryClick()) {
+      navigate('/profile');
+      // Try again after navigation — short delay to allow profile to mount
+      setTimeout(() => tryClick(), 300);
+    }
+  };
+
   const handleSettings = () => {
     navigate('/change-password');
   };
 
   const notifications = user ? getUserNotifications(user.id) : [];
   const unreadCount = user ? getUnreadCount(user.id) : 0;
+
+  // Prefer avatar from the authenticated user object; if missing, fall back to the users context record
+  const avatarSrc = user?.avatar || users.find(u => (user && (u.id === user.id || u.email === user.email)))?.avatar || undefined
 
   return (
     <header className="sticky top-0 z-10 h-16 bg-header border-b border-border shadow-sm flex items-center justify-between px-6">
@@ -120,7 +143,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 text-header-foreground">
               <Avatar className="w-8 h-8">
-                <AvatarImage src={user?.avatar} />
+                <AvatarImage src={avatarSrc} />
                 <AvatarFallback>{
                   (user?.name ? user.name.split(' ').map(n => n[0]).slice(0,2).join('') : 'U')
                 }</AvatarFallback>
@@ -140,6 +163,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               <span>Profile</span>
             </DropdownMenuItem>
               )}
+            <DropdownMenuItem onClick={handleEditPhoto} className="cursor-pointer">
+              <User className="mr-2 h-4 w-4" />
+              <span>Edit photo</span>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleSettings} className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               <span>Change Password</span>
