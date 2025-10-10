@@ -27,6 +27,10 @@ VALUES
 ('12','20211234572','Rita Registry','registry@mwsi.com','Registry Manager','Registry',NULL,'2021-08-15','active','https://api.dicebear.com/7.x/initials/svg?seed=RR','+254-700-888888','Paul Registry (+254-700-888889)',80000,'female','Management','Permanent','Permanent','J','Luhya','30987654','A012345684Z','2','Nairobi','Kakamega','P.O. Box 33556','00100','Registry Department - Head Office','Degree (Records Management)','Ministry of Water, Sanitation and Irrigation','1986-09-12')
 ON CONFLICT DO NOTHING;
 
+-- Populate manager_id where known (matches mockEmployees.managerId)
+UPDATE employees SET manager_id = '2' WHERE id IN ('1','5','12');
+UPDATE employees SET manager_id = '10' WHERE id IN ('3','6','7','4');
+
 -- Employee skills
 INSERT INTO employee_skills (employee_id, name, level) VALUES
 ('1','Networking','Advanced'),
@@ -109,11 +113,20 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 -- Performance reviews (core fields)
-INSERT INTO performance_reviews (id, employee_id, employee_name, employee_number, template_id, review_period, status, employee_self_comments, manager_comments, hr_comments, overall_score, score, goals, feedback, next_review_date, created_by, created_at)
+-- Use JSONB columns for structured fields to match frontend shapes
+INSERT INTO performance_reviews (id, employee_id, employee_name, employee_number, template_id, review_period, status, employee_self_comments, manager_comments, hr_comments, overall_score, score, goals, feedback, employee_targets, manager_scores, employee_scores, next_review_date, created_by, created_at)
 VALUES
-('PR100','10','David Manager','2019031010','template-1','Q2 2025','completed','Strong quarter with successful execution of all operational goals and team engagement initiatives.','Excellent leadership and team management.','Consistently exceeds expectations.',4.7,4.7,ARRAY['Deliver Q2 operational OKRs','Monthly townhalls','Implement 2 process improvements'],'Excellent performance this quarter. Strong technical skills and great team collaboration.','2025-12-01','HR System','2025-06-30'),
+('PR100','10','David Manager','2019031010','template-1','Q2 2025','completed','Strong quarter with successful execution of all operational goals and team engagement initiatives.','Excellent leadership and team management.','Consistently exceeds expectations.',4.7,4.7,ARRAY['Deliver Q2 operational OKRs','Monthly townhalls','Implement 2 process improvements'],'Excellent performance this quarter. Strong technical skills and great team collaboration.',
+	'[{"criteriaId":"c1","target":"Deliver Q2 operational OKRs","description":"Execute quarterly plan"},{"criteriaId":"c2","target":"Monthly townhalls","description":"Improve transparency"},{"criteriaId":"c3","target":"Implement 2 process improvements","description":"Lean practices"}]'::jsonb,
+	'[{"criteriaId":"c1","score":5,"comments":"Exceeded plan delivery"},{"criteriaId":"c2","score":4,"comments":"Clear communication cadence"},{"criteriaId":"c3","score":4,"comments":"Strong improvements"}]'::jsonb,
+	'[{"criteriaId":"c1","score":5,"comments":"Successfully delivered all Q2 OKRs ahead of schedule"},{"criteriaId":"c2","score":4,"comments":"Conducted monthly townhalls with high attendance and engagement"},{"criteriaId":"c3","score":4,"comments":"Implemented 2 major process improvements that increased efficiency"}]'::jsonb,
+	'2025-12-01','HR System','2025-06-30'),
 ('PR101','10','David Manager','2019031010','template-1','Q3 2025','draft',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-03-01','HR System','2025-09-01'),
-('1','3','Michael Davis','20221234569','template-1','Q1 2024','completed','Excellent performance this quarter. Strong technical skills and great team collaboration.','Outstanding technical delivery and team leadership.','Approved. Excellent performance across all criteria.',4.5,4.5,ARRAY['Complete React migration project','Mentor junior developers','Improve code review process'],'Excellent performance this quarter. Strong technical skills and great team collaboration.','2024-06-30','Sarah Johnson','2025-09-01')
+('1','3','Michael Davis','20221234569','template-1','Q1 2024','completed','Excellent performance this quarter. Strong technical skills and great team collaboration.','Outstanding technical delivery and team leadership.','Approved. Excellent performance across all criteria.',4.5,4.5,ARRAY['Complete React migration project','Mentor junior developers','Improve code review process'],'Excellent performance this quarter. Strong technical skills and great team collaboration.',
+	'[{"criteriaId":"c1","target":"Complete React migration project","description":"Focus on migration tasks."},{"criteriaId":"c2","target":"Mentor junior developers","description":"Weekly mentorship sessions."},{"criteriaId":"c3","target":"Improve code review process","description":"Document and share best practices."}]'::jsonb,
+	'[{"criteriaId":"c1","score":5,"comments":"Migration completed successfully"},{"criteriaId":"c2","score":4,"comments":"Active mentorship observed"},{"criteriaId":"c3","score":4,"comments":"Better review coverage"}]'::jsonb,
+	'[{"criteriaId":"c1","score":5,"comments":"Successfully completed React migration with zero production issues"},{"criteriaId":"c2","score":4,"comments":"Conducted weekly mentorship sessions with 2 junior developers"},{"criteriaId":"c3","score":4,"comments":"Created comprehensive code review guidelines and improved team practices"}]'::jsonb,
+	'2024-06-30','Sarah Johnson','2025-09-01')
 ON CONFLICT DO NOTHING;
 
 -- Employee targets (examples)
@@ -216,3 +229,20 @@ INSERT INTO system_ethnicities (name) VALUES
 ON CONFLICT DO NOTHING;
 
 -- End of generated seed
+
+-- Users (application users) - map some mockEmployees into users table
+INSERT INTO users (id, employee_id, email, name, role, password, status)
+VALUES
+('admin-001','admin-001','admin@mwsi.com','Main Admin','admin','demo123','active'),
+('2','2','sarah.johnson@mwsi.com','Sarah Johnson','hr_manager','demo123','active'),
+('10','10','david.manager@mwsi.com','David Manager','manager','demo123','active'),
+('4','4','emily.chen@mwsi.com','Emily Chen','registry_manager','demo123','active'),
+('testing-user',NULL,'testing@mwsi.com','Testing User','testing','demo123','active')
+ON CONFLICT DO NOTHING;
+
+-- Notifications sample data
+INSERT INTO notifications (id, user_id, title, message, link, type, read, created_at)
+VALUES
+('n-1','2','New File Request','John Smith requested Birth Certificate for employee 1','/employee-files','info',FALSE,'2025-09-01T10:05:00Z'),
+('n-2','10','Leave Request Pending','Michael Davis submitted a leave request for manager approval','/leave/requests','info',FALSE,'2025-09-01T11:10:00Z')
+ON CONFLICT DO NOTHING;

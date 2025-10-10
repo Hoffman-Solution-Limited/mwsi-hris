@@ -21,6 +21,7 @@ CREATE TABLE employees (
   position VARCHAR(200),
   department VARCHAR(100),
   manager VARCHAR(200),
+  manager_id VARCHAR(50),
   hire_date DATE,
   status VARCHAR(20) CHECK (status IN ('active', 'inactive', 'terminated')) DEFAULT 'active',
   avatar TEXT,
@@ -149,6 +150,10 @@ CREATE TABLE performance_reviews (
   hr_comments TEXT,
   goals TEXT[],
   feedback TEXT,
+  -- Store flexible structured parts as JSON to match frontend shapes
+  employee_targets JSONB,
+  manager_scores JSONB,
+  employee_scores JSONB,
   next_review_date DATE,
   created_by VARCHAR(200),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -255,7 +260,9 @@ CREATE TABLE notifications (
   id VARCHAR(50) PRIMARY KEY,
   user_id VARCHAR(50),
   title VARCHAR(300),
-  body TEXT,
+  message TEXT,
+  link VARCHAR(300),
+  type VARCHAR(50),
   read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -276,6 +283,7 @@ CREATE INDEX idx_positions_department ON positions(department);
 CREATE INDEX idx_training_records_employee_id ON training_records(employee_id);
 CREATE INDEX idx_leave_requests_employee_id ON leave_requests(employee_id);
 CREATE INDEX idx_performance_reviews_employee_id ON performance_reviews(employee_id);
+CREATE INDEX idx_users_email ON users(email);
 
 -- Trigger to update updated_at on employees
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -287,4 +295,20 @@ END;
 $$ language 'plpgsql';
 
 CREATE TRIGGER update_employees_updated_at BEFORE UPDATE ON employees
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Users table: App users (may map to employees)
+CREATE TABLE IF NOT EXISTS users (
+  id VARCHAR(50) PRIMARY KEY,
+  employee_id VARCHAR(50) REFERENCES employees(id) ON DELETE SET NULL,
+  email VARCHAR(200) UNIQUE NOT NULL,
+  name VARCHAR(200),
+  role VARCHAR(100),
+  password TEXT,
+  status VARCHAR(20) CHECK (status IN ('active','inactive','terminated')) DEFAULT 'active',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
