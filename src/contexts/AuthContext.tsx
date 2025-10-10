@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useUsers } from './UsersContext'; // Import useUsers hook
 
-export type UserRole = 'admin' | 'hr_manager' | 'hr_staff' | 'employee' | 'manager' | 'registry_manager' | 'testing';
+// Allow dynamic role ids managed by RolesContext. Keep the name for compatibility.
+export type UserRole = string;
 
 export interface User {
   id: string;
