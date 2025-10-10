@@ -11,7 +11,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { useSystemCatalog } from '@/contexts/SystemCatalogContext';
+import { DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { useSystemCatalog, StationItem } from '@/contexts/SystemCatalogContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
 
 // Types for table rendering
@@ -19,13 +20,18 @@ type StationRow = {
   id: string;
   name: string;
   employeeCount: number;
+  active: boolean;
 };
 
 const WorkStationsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [newStation, setNewStation] = useState('');
-  const { stations, addStation, removeStation } = useSystemCatalog();
-  const { employees } = useEmployees();
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingStation, setEditingStation] = useState<string | null>(null);
+  const [editingStationValue, setEditingStationValue] = useState('');
+  const { stations, addStation, removeStation, editStation, deactivateStation, reactivateStation } = useSystemCatalog();
+  const { employees, renameStationAcrossEmployees } = useEmployees();
 
   const allStations: StationRow[] = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -33,7 +39,7 @@ const WorkStationsPage: React.FC = () => {
       const s = e.stationName || 'Unassigned';
       counts[s] = (counts[s] || 0) + 1;
     });
-    return stations.map((name, index) => ({ id: `st-${index + 1}`, name, employeeCount: counts[name] || 0 }));
+    return stations.map((st: StationItem, index: number) => ({ id: `st-${index + 1}`, name: st.name, employeeCount: counts[st.name] || 0, active: st.active }));
   }, [stations, employees]);
 
   const filtered = allStations.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -42,6 +48,39 @@ const WorkStationsPage: React.FC = () => {
     if (!newStation.trim()) return;
     addStation(newStation.trim());
     setNewStation('');
+    setIsAddOpen(false);
+  };
+
+  const openEditDialog = (name: string) => {
+    setEditingStation(name);
+    setEditingStationValue(name);
+    setIsEditOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingStation) return;
+    const oldName = editingStation;
+    const next = editingStationValue.trim();
+    if (!next || next === oldName) {
+      setIsEditOpen(false);
+      return;
+    }
+    editStation(oldName, next);
+    try { renameStationAcrossEmployees?.(oldName, next); } catch {}
+    setIsEditOpen(false);
+    setEditingStation(null);
+    setEditingStationValue('');
+  };
+
+  const handleToggleActive = (name: string) => {
+    const st = stations.find((s: StationItem) => s.name === name);
+    if (!st) return;
+    if (st.active) {
+      if (!window.confirm(`Deactivate station "${name}"? Employees assigned will remain assigned.`)) return;
+      deactivateStation(name);
+    } else {
+      reactivateStation(name);
+    }
   };
 
   return (
@@ -56,7 +95,7 @@ const WorkStationsPage: React.FC = () => {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Dialog>
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="w-4 h-4 mr-2" />
@@ -69,8 +108,13 @@ const WorkStationsPage: React.FC = () => {
               </DialogHeader>
               <div className="space-y-4">
                 <Input placeholder="Enter station name..." value={newStation} onChange={e => setNewStation(e.target.value)} />
-                <Button onClick={handleAdd}>Save</Button>
               </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+                </DialogClose>
+                <Button onClick={handleAdd}>Save</Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
@@ -110,11 +154,13 @@ const WorkStationsPage: React.FC = () => {
                     <td>{s.name}</td>
                     <td>{s.employeeCount}</td>
                     <td>
-                      <Badge variant={s.employeeCount > 0 ? 'default' : 'secondary'}>
-                        {s.employeeCount > 0 ? 'Active' : 'Unassigned'}
+                      <Badge variant={s.active ? 'default' : 'secondary'}>
+                        {s.active ? (s.employeeCount > 0 ? 'In Use' : 'Active') : 'Inactive'}
                       </Badge>
                     </td>
-                    <td>
+                    <td className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openEditDialog(s.name)}>Edit</Button>
+                      <Button size="sm" variant="outline" onClick={() => handleToggleActive(s.name)}>{s.active ? 'Deactivate' : 'Reactivate'}</Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -132,6 +178,24 @@ const WorkStationsPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Station</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input value={editingStationValue} onChange={e => setEditingStationValue(e.target.value)} />
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+              </DialogClose>
+              <Button onClick={handleSaveEdit}>Save</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 };
