@@ -10,6 +10,7 @@ type EmployeesContextType = {
   loading: boolean;
   addEmployee: (data: Omit<EmployeeRecord, 'id' | 'avatar' | 'status' | 'hireDate'> & Partial<Pick<EmployeeRecord, 'status' | 'hireDate'>>) => Promise<EmployeeRecord | void>;
   updateEmployee: (id: string, updates: Partial<EmployeeRecord>) => Promise<void>;
+  updateEmployeeStatus?: (id: string, status: EmployeeRecord['status']) => Promise<void>;
   removeEmployee: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
   renameStationAcrossEmployees?: (oldName: string, newName: string) => void;
@@ -95,6 +96,16 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const updateEmployeeStatus: EmployeesContextType['updateEmployeeStatus'] = async (id, status) => {
+    try {
+      const updated = await api.put(`/api/employees/${id}`, { status });
+      setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...(updated as EmployeeRecord) } as EmployeeRecord : e)));
+    } catch (err) {
+      // optimistic fallback
+      setEmployees(prev => prev.map(e => (e.id === id ? { ...e, status } as EmployeeRecord : e)));
+    }
+  };
+
   const removeEmployee: EmployeesContextType['removeEmployee'] = async (id) => {
     try {
       await api.del(`/api/employees/${id}`);
@@ -105,7 +116,7 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  const value = useMemo(() => ({ employees, loading, addEmployee, updateEmployee, removeEmployee, refresh }), [employees, loading, addEmployee, updateEmployee, removeEmployee, refresh]);
+  const value = useMemo(() => ({ employees, loading, addEmployee, updateEmployee, updateEmployeeStatus, removeEmployee, refresh }), [employees, loading, addEmployee, updateEmployee, updateEmployeeStatus, removeEmployee, refresh]);
 
   // attach helper to rename stations across employees
   const renameStationAcrossEmployees = (oldName: string, newName:string) => {

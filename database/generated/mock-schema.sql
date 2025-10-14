@@ -23,7 +23,7 @@ CREATE TABLE employees (
   manager VARCHAR(200),
   manager_id VARCHAR(50),
   hire_date DATE,
-  status VARCHAR(20) CHECK (status IN ('active', 'inactive', 'terminated')) DEFAULT 'active',
+  status VARCHAR(20) CHECK (status IN ('active', 'inactive', 'terminated', 'retired')) DEFAULT 'active',
   avatar TEXT,
   phone VARCHAR(50),
   emergency_contact TEXT,

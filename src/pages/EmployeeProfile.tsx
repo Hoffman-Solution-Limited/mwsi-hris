@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 // Removed Select import used only by document upload UI
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { mapRole } from '@/lib/roles';
-import { getWorkStation } from '@/lib/utils';
+import { getWorkStation, getInitialsParts } from '@/lib/utils';
 
 export const EmployeeProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -320,7 +320,9 @@ export const EmployeeProfile: React.FC = () => {
               <Avatar className="w-24 h-24 mx-auto md:mx-0">
                 <AvatarImage src={employee.avatar} />
                 <AvatarFallback className="text-2xl font-bold">
-                  {employee.name.split(' ').map(n => n[0]).join('')}
+                  {(() => { const [f, l] = getInitialsParts(employee.name); return (
+                    <span><span className="text-blue-600">{f}</span>{l ? <span className="text-emerald-600">{l}</span> : null}</span>
+                  )})()}
                 </AvatarFallback>
               </Avatar>
               {/* Avatar upload (only for own profile or HR) */}

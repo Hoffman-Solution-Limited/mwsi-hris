@@ -52,7 +52,7 @@ export interface Employee {
   manager?: string;
   managerId?: string;
   hireDate?: string;
-  status?: 'active' | 'inactive' | 'terminated';
+  status?: 'active' | 'inactive' | 'terminated' | 'retired';
   avatar?: string;
   phone?: string;
   stationName?: string;
