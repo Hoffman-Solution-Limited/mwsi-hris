@@ -6,35 +6,39 @@
 
 @layer base {
   :root {
-    /* Primary Brand Colors - Professional Blue */
-    --background: 0 0% 100%;
-    --foreground: 215 25% 15%;
+    /* Ministry of Water - Blue Brand Palette */
+    --background: 210 100% 99%; /* near white */
+    --foreground: 210 12% 18%;
 
     /* Card & Surface Colors */
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card: 210 100% 100%;
+    --card-foreground: 210 12% 18%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+  /* Header surface (distinct from page background) */
+  --header-background: 210 100% 97%;
+  --header-foreground: 210 12% 18%;
 
-    /* Primary Enterprise Blue */
-    --primary: 214 84% 56%;
+    --popover: 210 100% 100%;
+    --popover-foreground: 210 12% 18%;
+
+    /* Primary Brand Blue (approx #0092CC) */
+    --primary: 197 100% 40%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 214 84% 48%;
-    --primary-light: 214 84% 94%;
+    --primary-hover: 197 100% 34%;
+    --primary-light: 197 100% 94%;
 
-    /* Secondary Professional Gray */
-    --secondary: 215 16% 94%;
-    --secondary-foreground: 215 25% 15%;
-    --secondary-hover: 215 16% 88%;
+    /* Secondary Neutral */
+    --secondary: 210 12% 94%;
+    --secondary-foreground: 210 12% 18%;
+    --secondary-hover: 210 12% 88%;
 
     /* Muted Backgrounds */
-    --muted: 215 16% 96%;
-    --muted-foreground: 215 12% 45%;
+    --muted: 210 12% 96%;
+    --muted-foreground: 210 12% 45%;
 
     /* Accent Colors */
-    --accent: 215 16% 94%;
-    --accent-foreground: 215 25% 15%;
+    --accent: 197 100% 94%;
+    --accent-foreground: 210 12% 18%;
 
     /* Status Colors */
     --success: 142 76% 36%;
@@ -50,19 +54,19 @@
     --destructive-light: 0 84% 94%;
 
     /* Borders & Inputs */
-    --border: 215 16% 88%;
-    --input: 215 16% 88%;
-    --ring: 214 84% 56%;
+    --border: 210 12% 88%;
+    --input: 210 12% 88%;
+    --ring: 197 100% 40%;
 
-    /* Sidebar Navigation */
-    --sidebar-background: 215 25% 8%;
-    --sidebar-foreground: 215 16% 88%;
-    --sidebar-primary: 214 84% 56%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 12%;
-    --sidebar-accent-foreground: 215 16% 88%;
-    --sidebar-border: 215 25% 16%;
-    --sidebar-ring: 214 84% 56%;
+  /* Sidebar Navigation (MINISTRY blue) */
+  --sidebar-background: 200 90% 12%; /* stronger blue */
+  --sidebar-foreground: 210 12% 96%;
+  --sidebar-primary: 197 100% 40%; /* primary brand blue */
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 200 90% 16%;
+  --sidebar-accent-foreground: 210 12% 96%;
+  --sidebar-border: 200 90% 16%;
+  --sidebar-ring: 197 100% 40%;
 
     /* HR Specific Colors */
     --hr-pending: 45 93% 47%;
@@ -78,29 +82,33 @@
   }
 
   .dark {
-    --background: 215 25% 6%;
-    --foreground: 215 16% 88%;
+    --background: 210 24% 8%;
+    --foreground: 210 12% 92%;
 
-    --card: 215 25% 8%;
-    --card-foreground: 215 16% 88%;
+    --card: 210 24% 12%;
+    --card-foreground: 210 12% 92%;
 
-    --popover: 215 25% 8%;
-    --popover-foreground: 215 16% 88%;
+  /* Header surface (distinct from page background) */
+  --header-background: 210 24% 10%;
+  --header-foreground: 210 12% 92%;
 
-    --primary: 214 84% 56%;
+    --popover: 210 24% 12%;
+    --popover-foreground: 210 12% 92%;
+
+    --primary: 197 100% 46%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 214 84% 64%;
-    --primary-light: 214 84% 16%;
+    --primary-hover: 197 100% 54%;
+    --primary-light: 197 100% 16%;
 
-    --secondary: 215 25% 12%;
-    --secondary-foreground: 215 16% 88%;
-    --secondary-hover: 215 25% 16%;
+    --secondary: 210 24% 12%;
+    --secondary-foreground: 210 12% 92%;
+    --secondary-hover: 210 24% 16%;
 
-    --muted: 215 25% 12%;
-    --muted-foreground: 215 12% 65%;
+    --muted: 210 24% 12%;
+    --muted-foreground: 210 12% 65%;
 
-    --accent: 215 25% 12%;
-    --accent-foreground: 215 16% 88%;
+    --accent: 210 24% 12%;
+    --accent-foreground: 210 12% 92%;
 
     --success: 142 76% 44%;
     --success-foreground: 0 0% 100%;
@@ -114,23 +122,23 @@
     --destructive-foreground: 0 0% 100%;
     --destructive-light: 0 84% 16%;
 
-    --border: 215 25% 16%;
-    --input: 215 25% 16%;
-    --ring: 214 84% 56%;
+    --border: 210 24% 16%;
+    --input: 210 24% 16%;
+    --ring: 197 100% 40%;
 
-    --sidebar-background: 215 25% 4%;
-    --sidebar-foreground: 215 16% 88%;
-    --sidebar-primary: 214 84% 56%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 8%;
-    --sidebar-accent-foreground: 215 16% 88%;
-    --sidebar-border: 215 25% 12%;
-    --sidebar-ring: 214 84% 56%;
+  --sidebar-background: 200 90% 8%;
+  --sidebar-foreground: 210 12% 96%;
+  --sidebar-primary: 197 100% 46%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 200 90% 10%;
+  --sidebar-accent-foreground: 210 12% 96%;
+  --sidebar-border: 200 90% 12%;
+  --sidebar-ring: 197 100% 40%;
 
     --hr-pending: 45 93% 55%;
     --hr-approved: 142 76% 44%;
     --hr-rejected: 0 84% 68%;
-    --hr-draft: 215 12% 65%;
+    --hr-draft: 210 12% 65%;
   }
 }
 

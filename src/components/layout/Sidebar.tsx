@@ -38,15 +38,13 @@ const navGroups: NavGroup[] = [
       { path: '/profile', label: 'My Profile', icon: <User className="w-5 h-5" />, roles: ['employee', 'manager', 'hr_manager', 'registry_manager'] },
       { path: '/my-files', label: 'My Files', icon: <FileText className="w-5 h-5" />, roles: ['employee', 'manager', 'hr_manager', 'registry_manager'] },
       { path: '/manager-apply-leave', label: 'Apply for Leave', icon: <Calendar className='w-5 h-5' />, roles: ['manager', 'employee', 'hr_manager', 'registry_manager'] },
-      { path: '/hr/my-tasks', label: 'My HR Tasks', icon: <GraduationCap className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
-
     ]
   },
   {
     title: "HR Management",
     items: [
       { path: '/employees', label: 'Employee Directory', icon: <Users className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'manager'] },
-      { path: '/managers', label: 'Managers', icon: <UserCheck2 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'admin'] },
+      { path: '/managers', label: 'Managers', icon: <UserCheck2 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/leave', label: 'Leave Management', icon: <Calendar className='w-5 h-5' />, roles: ['hr_manager', 'hr_staff', 'manager'] },
       { path: '/recruitment', label: 'Recruitment', icon: <UserPlus className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/disciplinary', label: 'Disciplinary Cases', icon: <AlertTriangle className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
@@ -119,7 +117,7 @@ const groupTitleMap: Record<string, Record<string, string>> = {
   }
 };
 
-export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, bgColor = 'bg-brand', className, ...rest }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, bgColor = 'bg-sidebar', className, ...rest }) => {
   const { user } = useAuth();
   const { can } = usePermissions();
 
@@ -145,8 +143,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, bgColor = '
         />
         {!collapsed && (
           <div>
-            <h1 className="text-xl font-bold text-white">MWSI HRIS</h1>
-            <p className="text-xs text-white/60">HR Management System</p>
+            <h1 className="text-xl font-bold text-sidebar-foreground">MWSI HRIS</h1>
+            <p className="text-xs text-sidebar-foreground/60">HR Management System</p>
           </div>
         )}
       </div>
@@ -180,7 +178,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, bgColor = '
                         'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
                         isActive
                           ? 'bg-primary text-primary-foreground'
-                          : 'text-white/80 hover:bg-blue-800 hover:text-white'
+                          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                       )
                     }
                   >
