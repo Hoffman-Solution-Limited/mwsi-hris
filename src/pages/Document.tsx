@@ -146,7 +146,7 @@ const DocumentTrackingPage: React.FC = () => {
                                 {user && mapRole(user.role) === 'admin' && (
                                   <Button size="sm" variant="outline" onClick={() => openMove(file.employeeId)}>Move</Button>
                                 )}
-                                {user && (mapRole(user.role) === 'hr' || mapRole(user.role) === 'manager') && (
+                                {user && (mapRole(user.role) === 'hr' || mapRole(user.role) === 'manager' || (user.role || '').toLowerCase() === 'registry_manager') && (
                                   <Button size="sm" variant="outline" onClick={() => setRequestModal({ open: true, employeeId: file.employeeId, remarks: '' })}>Request File</Button>
                                 )}
                               </div>

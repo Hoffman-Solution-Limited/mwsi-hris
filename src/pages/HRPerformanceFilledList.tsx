@@ -20,7 +20,11 @@ const HRPerformanceFilledList: React.FC = () => {
   const [selectedReview, setSelectedReview] = useState(null);
 
   // Only show reviews that have been filled (not draft)
-  const filledReviews = reviews.filter(r => r.status !== 'draft' && r.employeeName.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filledReviews = (reviews || []).filter(r => {
+    const name = (r.employeeName || '').toLowerCase();
+    const q = (searchQuery || '').toLowerCase();
+    return r.status !== 'draft' && name.includes(q);
+  });
   const navigate = useNavigate();
 
   return (

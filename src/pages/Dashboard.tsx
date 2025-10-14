@@ -28,6 +28,8 @@ import { useToast } from '@/hooks/use-toast';
 import { usePerformance } from '@/contexts/PerformanceContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
 import { useTraining } from '@/contexts/TrainingContext';
+import { useFileTracking } from '@/contexts/FileTrackingContext';
+import { isRegistryManager, isRegistryStaff } from '@/lib/roles';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -40,9 +42,10 @@ export const Dashboard: React.FC = () => {
   // Calculate metrics based on user role
   const canonical = mapRole(user?.role);
   const isEmployee = canonical === 'employee';
-  const isManager = canonical === 'manager';
+  const isManager = canonical === 'manager' || (user?.role === 'registry_manager');
   const isHr = canonical === 'hr';
   const isAdmin = canonical === 'admin';
+  const isRegistry = canonical === 'registry';
 
   if (isAdmin) {
     // Admin-specific metrics
@@ -469,6 +472,174 @@ export const Dashboard: React.FC = () => {
                 );
               })}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  // Registry dashboard for registry_manager and registry_staff
+  if (isRegistry) {
+    const { files, listAllRequests, listAssignedToUser, knownDocumentTypes } = useFileTracking();
+    const allPending = listAllRequests().filter(r => r.status === 'pending');
+    const assignedToMe = user ? listAssignedToUser(user.id) : [];
+    const filesAtRegistry = files.filter(f => (f.currentLocation || '').toLowerCase() === 'registry office');
+
+    // Build recent movements across files (latest entry per file)
+    const recentMovements = files
+      .map(f => ({
+        employeeId: f.employeeId,
+        last: f.movementHistory[(f.movementHistory?.length ? f.movementHistory.length - 1 : 0)]
+      }))
+      .filter(x => !!x.last)
+      .sort((a, b) => new Date(b.last!.timestamp).getTime() - new Date(a.last!.timestamp).getTime())
+      .slice(0, 8);
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Registry Dashboard</h1>
+            <p className="text-muted-foreground">
+              {isRegistryManager(user) ? 'Manage file requests and movements' : 'Track your assigned files and requests'}
+            </p>
+          </div>
+        </div>
+
+        {/* Registry Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
+              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{allPending.length}</div>
+              <p className="text-xs text-muted-foreground">awaiting registry action</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Files at Registry</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{filesAtRegistry.length}</div>
+              <p className="text-xs text-muted-foreground">current location: Registry Office</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Assigned To Me</CardTitle>
+              <User className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{assignedToMe.length}</div>
+              <p className="text-xs text-muted-foreground">files in your possession</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Document Types</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{knownDocumentTypes.length}</div>
+              <p className="text-xs text-muted-foreground">standard file documents</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button
+                className="w-full justify-start bg-blue-600 text-white hover:bg-blue-700"
+                onClick={() => navigate('/registry/requests')}
+              >
+                <AlertCircle className="w-4 h-4 mr-2" />
+                Manage Requests
+              </Button>
+              <Button
+                className="w-full justify-start bg-emerald-600 text-white hover:bg-emerald-700"
+                onClick={() => navigate('/employee-files')}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Employee File Tracking
+              </Button>
+              <Button
+                className="w-full justify-start bg-indigo-600 text-white hover:bg-indigo-700"
+                onClick={() => navigate('/registry/documents')}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Document Types
+              </Button>
+              <Button
+                className="w-full justify-start bg-neutral-600 text-white hover:bg-neutral-700"
+                onClick={() => navigate('/my-files')}
+              >
+                <User className="w-4 h-4 mr-2" />
+                My Files
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Movements</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {recentMovements.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No recent file movements</p>
+              ) : (
+                recentMovements.map(m => (
+                  <div key={m.employeeId + m.last!.timestamp} className="p-3 bg-muted/30 rounded-lg text-sm">
+                    <div className="flex justify-between">
+                      <span className="font-medium">File: {m.employeeId}</span>
+                      <span className="text-xs text-muted-foreground">{new Date(m.last!.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {m.last!.fromLocation} → {m.last!.toLocation}
+                      {m.last!.toAssigneeName ? ` • to ${m.last!.toAssigneeName}` : ''}
+                    </div>
+                    {m.last!.remarks && (
+                      <div className="text-xs mt-1">{m.last!.remarks}</div>
+                    )}
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Pending Requests Preview */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Requests ({allPending.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {allPending.length === 0 ? (
+              <p className="text-sm text-muted-foreground">You're all caught up.</p>
+            ) : (
+              allPending.slice(0, 6).map(r => (
+                <div key={r.id} className="p-3 border rounded flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-sm">Employee File: {r.employeeId}</div>
+                    <div className="text-xs text-muted-foreground">Requested by {r.requestedByName} • {new Date(r.createdAt).toLocaleString()}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => navigate('/registry/requests')}>Open</Button>
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

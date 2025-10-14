@@ -9,7 +9,7 @@ export function mapRole(role?: string | null): CanonicalRole {
   if (r === 'hr' || r === 'hr_manager' || r === 'hr_staff') return 'hr'
   if (r === 'employee') return 'employee'
   if (r === 'manager') return 'manager'
-  if (r === 'registry' || r === 'registry_manager') return 'registry'
+  if (r === 'registry' || r === 'registry_manager' || r === 'registry_staff') return 'registry'
   return 'unknown'
 }
 
@@ -21,4 +21,8 @@ export const isAuthEmployee = (user?: { role?: string | null } | null) => mapRol
 export const isAppUserAdmin = (u?: { role?: string | null } | null) => mapRole(u?.role ?? undefined) === 'admin'
 export const isAppUserEmployee = (u?: { role?: string | null } | null) => mapRole(u?.role ?? undefined) === 'employee'
 
-export default { mapRole, isAuthManager, isAuthEmployee, isAppUserAdmin, isAppUserEmployee }
+// Registry manager acts like a manager for workflow approvals
+export const isRegistryManager = (u?: { role?: string | null } | null) => (u?.role ?? '').toLowerCase() === 'registry_manager'
+export const isRegistryStaff = (u?: { role?: string | null } | null) => (u?.role ?? '').toLowerCase() === 'registry_staff'
+
+export default { mapRole, isAuthManager, isAuthEmployee, isAppUserAdmin, isAppUserEmployee, isRegistryManager, isRegistryStaff }

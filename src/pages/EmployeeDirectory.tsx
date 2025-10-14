@@ -45,8 +45,8 @@ export const EmployeeDirectory: React.FC = () => {
 
   // Scope employees by role (manager sees only direct reports; others see all)
   const canonical = mapRole(user?.role)
-  const isManager = canonical === 'manager';
-  const baseEmployees = canonical === 'manager'
+  const isManager = canonical === 'manager' || (user?.role || '').toLowerCase() === 'registry_manager';
+  const baseEmployees = isManager
     ? user
       ? employees.filter(e => {
           const mgrId = String(e.managerId ?? '')
@@ -60,7 +60,7 @@ export const EmployeeDirectory: React.FC = () => {
           return false
         })
       : []
-    : employees;
+  : employees;
 
   // Unique departments/stations based on scoped employees (filter blanks)
   const departments = React.useMemo(() => {
@@ -102,7 +102,7 @@ export const EmployeeDirectory: React.FC = () => {
   const endIndex = Math.min(startIndex + pageSize, total)
   const pagedEmployees = filteredEmployees.slice(startIndex, endIndex)
 
-  const canOpenProfile = canonical !== 'manager'
+  const canOpenProfile = !isManager
 
   const handleEmployeeClick = (employeeId: string) => {
     if (!canOpenProfile) {

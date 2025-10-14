@@ -24,6 +24,10 @@ export const PerformanceReviews: React.FC = () => {
   const { templates, reviews, createTemplate, createReview, setEmployeeTargets, submitManagerReview, submitHrReview, updateReview, submitEmployeeAcknowledgment } = usePerformance();
   const { employees } = useEmployees();
   const [activeTab, setActiveTab] = useState('active');
+  const isHrManager = user?.role === 'hr_manager';
+  const isHrStaff = user?.role === 'hr_staff';
+  // HR Manager can act either as HR Oversight (default) or Team Manager (direct reports)
+  const [hrMode, setHrMode] = useState<'hr' | 'team'>('hr');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -57,17 +61,20 @@ export const PerformanceReviews: React.FC = () => {
   }, [reviews, user]);
 
   const teamAppraisals = useMemo(() => {
-    if (!user || user.role !== 'manager') return [];
+    if (!user) return [];
+    const isManagerLike = user.role === 'manager' || user.role === 'registry_manager' || (isHrManager && hrMode === 'team');
+    if (!isManagerLike) return [];
     return reviews.filter(review => {
       const employee = employees.find(emp => emp.id === review.employeeId);
       return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
     });
-  }, [reviews, user, employees]);
+  }, [reviews, user, employees, isHrManager, hrMode]);
 
   // Use reviews for filtering instead of baseReviews
   const filteredReviews = reviews.filter(review => {
-    const matchesSearch = review.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         review.reviewPeriod.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = (searchQuery || '').toLowerCase();
+    const matchesSearch = (review.employeeName || '').toLowerCase().includes(q) ||
+                         (review.reviewPeriod || '').toLowerCase().includes(q);
     const matchesStatus = statusFilter === 'all' || review.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -238,14 +245,14 @@ export const PerformanceReviews: React.FC = () => {
     setSelectedReview(review);
     const template = templates.find(t => t.id === review.templateId);
     if (template) {
-      setTargets(template.criteria.map(criteria => ({
+      setTargets((template.criteria || []).map(criteria => ({
         criteriaId: criteria.id,
         target: '',
         description: ''
       })));
       // initialize self scores from existing or blank
       const existing = review.employeeScores || [];
-      setSelfScores(template.criteria.map(c => {
+      setSelfScores((template.criteria || []).map(c => {
         const m = existing.find(s => s.criteriaId === c.id);
         return { criteriaId: c.id, score: m?.score ?? 0, comments: m?.comments ?? '' };
       }));
@@ -307,15 +314,29 @@ const handleSubmitToManager = () => {
           <p className="text-muted-foreground">
             {user?.role === 'employee' 
               ? 'View your performance history and set targets'
-              : user?.role === 'manager'
+              : (user?.role === 'manager' || user?.role === 'registry_manager')
               ? `Manage reviews for your team`
               : 'Manage employee performance evaluations and templates'
             }
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {isHrManager && (
+            <div className="flex items-center gap-2 mr-4">
+              <label className="text-sm text-muted-foreground">Mode:</label>
+              <Select value={hrMode} onValueChange={(v: any) => setHrMode(v)}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hr">HR Oversight</SelectItem>
+                  <SelectItem value="team">My Team</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           {user?.role !== 'employee' &&
-          user?.role !== 'manager' && user?.role !== 'hr_manager' && (
+          user?.role !== 'manager' && user?.role !== 'registry_manager' && user?.role !== 'hr_manager' && (
             <>
               <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
                 <DialogTrigger asChild>
@@ -570,7 +591,7 @@ const handleSubmitToManager = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        {user?.role === 'manager' ? (
+        {(user?.role === 'manager' || user?.role === 'registry_manager') ? (
           <TabsList className="grid w-full grid-cols-4 gap-2">
             <TabsTrigger
               value="active"
@@ -613,6 +634,14 @@ const handleSubmitToManager = () => {
             >
               My Performance Appraisal
             </TabsTrigger>
+            {isHrManager && hrMode === 'team' && (
+              <TabsTrigger
+                value="review-submissions"
+                className="bg-purple-600 text-white data-[state=active]:bg-purple-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+              >
+                Team Submissions
+              </TabsTrigger>
+            )}
           </TabsList>
         ) : (
           <TabsList className="grid w-full grid-cols-2 gap-2">
@@ -887,8 +916,8 @@ const handleSubmitToManager = () => {
             </div>
           </TabsContent>
         )}
-        {/* Manager: Review Submissions Tab */}
-        {user?.role === 'manager' && (
+        {/* Manager/HR Manager (Team Mode): Review Submissions Tab */}
+        {(user?.role === 'manager' || (isHrManager && hrMode === 'team')) && (
           <TabsContent value="review-submissions">
             <div className="space-y-4">
               <div className="flex justify-between items-center">
@@ -980,11 +1009,11 @@ const handleSubmitToManager = () => {
                             <Dialog>
                               <DialogTrigger asChild>
                               <Button
-  className="bg-blue-600 text-white hover:bg-blue-700"
-  onClick={() => navigate(`/performance/reviews/${review.id}/manager`)}
->
-  Review & Approve
-</Button>
+                                className="bg-blue-600 text-white hover:bg-blue-700"
+                                onClick={() => navigate(`/performance/reviews/${review.id}/manager`)}
+                              >
+                                Review & Approve
+                              </Button>
                               </DialogTrigger>
                               <DialogContent className="max-w-3xl md:max-w-4xl">
                                 <DialogHeader>
@@ -1033,7 +1062,7 @@ const handleSubmitToManager = () => {
                                     <details open className="rounded border">
                                       <summary className="cursor-pointer px-3 py-2 font-medium">Manager Scores</summary>
                                       <div className="space-y-3 p-3">
-                                        {template.criteria.map((c, idx) => (
+                                        {(template?.criteria || []).map((c, idx) => (
                                           <div key={c.id} className="grid grid-cols-12 gap-2 items-center">
                                             <div className="col-span-6 text-sm">{c.name}</div>
                                             <Input
@@ -1430,7 +1459,7 @@ const handleSubmitToManager = () => {
                     <div className="mb-3">
                       <p className="text-xs font-medium text-muted-foreground mb-1">Criteria:</p>
                       <div className="space-y-1">
-                        {template.criteria.map(criteria => (
+                        {(template?.criteria || []).map(criteria => (
                           <div key={criteria.id} className="flex justify-between text-sm">
                             <span>{criteria.name}</span>
                             <span className="text-muted-foreground">{criteria.weight}%</span>

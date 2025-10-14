@@ -15,7 +15,8 @@ export const DEFAULT_ROLES: RoleItem[] = [
   { id: 'hr_staff', name: 'HR Staff', locked: false },
   { id: 'manager', name: 'Manager', locked: false },
   { id: 'employee', name: 'Employee', locked: false },
-  { id: 'registry_manager', name: 'Registry', locked: false },
+  { id: 'registry_manager', name: 'Registry Manager', locked: false },
+  { id: 'registry_staff', name: 'Registry Staff', locked: false },
   { id: 'testing', name: 'Testing', locked: false },
 ];
 
@@ -43,7 +44,24 @@ export const RolesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [roles, setRoles] = useState<RoleItem[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw) as RoleItem[];
+      if (raw) {
+        const saved = JSON.parse(raw) as RoleItem[];
+        // Merge in any missing default roles (migration-friendly)
+        const byId = new Map(saved.map(r => [r.id, r]));
+        for (const def of DEFAULT_ROLES) {
+          if (!byId.has(def.id)) {
+            byId.set(def.id, def);
+          } else {
+            // normalize display names for known roles
+            const r = byId.get(def.id)!;
+            if (r.name !== def.name) {
+              r.name = def.name;
+              byId.set(def.id, r);
+            }
+          }
+        }
+        return Array.from(byId.values());
+      }
     } catch {}
     return DEFAULT_ROLES;
   });

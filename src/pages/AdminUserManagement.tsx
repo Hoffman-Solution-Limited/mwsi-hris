@@ -269,14 +269,23 @@ export default function AdminUserManagement() {
           <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl">
             <DialogHeader>
               <DialogTitle>Import Users from CSV</DialogTitle>
-              <DialogDescription>Upload a CSV with columns: name,email,role. Roles: Admin,HR,Registry,Manager,Employee.</DialogDescription>
+              <DialogDescription>
+                {(() => {
+                  // Build dynamic roles description from roles context
+                  const roleNames = roles.map(r => r.name);
+                  const uniqueNames = Array.from(new Set(roleNames));
+                  return `Upload a CSV with columns: name,email,role. Roles: ${uniqueNames.join(', ')}.`;
+                })()}
+              </DialogDescription>
             </DialogHeader>
               <div className="space-y-4">
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => {
                     // CSV template
                     const headers = ['name','email','role'];
-                    const sample = ['Jane Manager','jane.manager@example.com','Manager'];
+                    // Prefer a Manager-like sample if present, else the first available role
+                    const preferred = roles.find(r => /manager/i.test(r.name))?.name || roles[0]?.name || 'Employee';
+                    const sample = ['Jane Manager','jane.manager@example.com', preferred];
                     const csv = '\uFEFF' + [headers.join(','), sample.join(',')].join('\n');
                     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                     const url = URL.createObjectURL(blob);
@@ -292,9 +301,10 @@ export default function AdminUserManagement() {
                     // XLSX template (dynamic import)
                     try {
                       const XLSX = await import('xlsx');
+                      const preferred = roles.find(r => /manager/i.test(r.name))?.name || roles[0]?.name || 'Employee';
                       const aoa = [
                         ['name','email','role'],
-                        ['Jane Manager','jane.manager@example.com','Manager']
+                        ['Jane Manager','jane.manager@example.com', preferred]
                       ];
                       const ws = XLSX.utils.aoa_to_sheet(aoa as any);
                       const wb = XLSX.utils.book_new();
@@ -365,9 +375,10 @@ export default function AdminUserManagement() {
                     if (map === 'role') r.role = v || r.role;
                   });
                   // validations
+                  const roleNamesLower = roles.map(x => x.name.toLowerCase());
                   if (!r.email || !r.role) r.error = 'Missing email or role';
                   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) r.error = 'Invalid email';
-                  else if (!roles.map(x => x.name).includes((r.role || '').toString())) r.error = 'Invalid role';
+                  else if (!roleNamesLower.includes((r.role || '').toString().toLowerCase())) r.error = 'Invalid role';
                   return r;
                 });
                 setImportRows(rows);
@@ -411,9 +422,10 @@ export default function AdminUserManagement() {
                       // revalidate and create
                       const revalidated = importRows.map(r => {
                         const copy = { ...r };
+                        const roleNamesLower = roles.map(x => x.name.toLowerCase());
                         if (!copy.email || !copy.role) copy.error = 'Missing email or role';
                         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(copy.email)) copy.error = 'Invalid email';
-                        else if (!roles.map(x => x.name).includes((copy.role || '').toString())) copy.error = 'Invalid role';
+                        else if (!roleNamesLower.includes((copy.role || '').toString().toLowerCase())) copy.error = 'Invalid role';
                         else delete copy.error;
                         return copy;
                       });
@@ -426,9 +438,11 @@ export default function AdminUserManagement() {
                         const found = roles.find(rr => rr.name.toLowerCase() === roleText.toLowerCase());
                         const internalRole = found ? found.id : roleText.toLowerCase();
                         addUser({ name: r.name, email: r.email, role: internalRole as any, position: 'Imported', department: 'Imported', hireDate: new Date().toISOString() });
-                        if (roleText === 'Manager') {
-                          // create minimal employee record for manager
-                          addEmployee({ name: r.name || (r.email || ''), email: r.email, position: 'Manager', department: 'Unassigned' } as any)
+                        // Create minimal employee record for manager-equivalent roles
+                        const managerEquivalentNames = ['manager', 'registry manager', 'hr manager'];
+                        if (managerEquivalentNames.includes(roleText.toLowerCase())) {
+                          const position = found?.name || 'Manager';
+                          addEmployee({ name: r.name || (r.email || ''), email: r.email, position, department: 'Unassigned' } as any)
                         }
                       });
                       toast({ title: 'Import complete', description: `${good.length} users created.` });

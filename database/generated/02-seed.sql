@@ -27,6 +27,7 @@ VALUES
 ('manager','Manager',false,'{}'),
 ('employee','Employee',false,'{}'),
 ('registry_manager','Registry Manager',false,'{}'),
+('registry_staff','Registry Staff',false,'{}'),
 ('testing','Testing',false,'{}')
 ON CONFLICT (id) DO NOTHING;
 

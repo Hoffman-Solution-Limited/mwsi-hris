@@ -17,7 +17,11 @@ export type PermissionKey =
   | 'page.admin.performance-templates'
   | 'page.admin.department-goals'
   | 'page.admin.training-management'
-  | 'page.admin.system-logs';
+  | 'page.admin.system-logs'
+  // HR module specific
+  | 'hr.oversight'           // View company-wide HR queues, reports, and approvals
+  | 'hr.team.manage'         // Perform team manager actions (for HR Manager's direct reports)
+  | 'hr.assign_reviews';     // Create/assign performance reviews
 
 export const ALL_PERMISSIONS: PermissionKey[] = [
   'employee.view',
@@ -35,6 +39,10 @@ export const ALL_PERMISSIONS: PermissionKey[] = [
   'page.admin.department-goals',
   'page.admin.training-management',
   'page.admin.system-logs',
+  // HR module specific
+  'hr.oversight',
+  'hr.team.manage',
+  'hr.assign_reviews',
 ];
 
 export type RolePermissions = Record<UserRole, PermissionKey[]>;
@@ -64,11 +72,18 @@ export const DEFAULT_ROLE_PERMISSIONS: RolePermissions = {
     'employee.edit',
     'employee.create',
     'page.employee-files',
+    // HR module
+    'hr.oversight',
+    'hr.team.manage',
+    'hr.assign_reviews',
   ],
   hr_staff: [
     'employee.view',
     'employee.edit',
     'page.employee-files',
+    // HR module
+    'hr.oversight',
+    'hr.assign_reviews',
   ],
   manager: [
     'employee.view',
@@ -82,6 +97,12 @@ export const DEFAULT_ROLE_PERMISSIONS: RolePermissions = {
     'page.employee-files',
     'page.registry.requests',
   ],
+  registry_staff: [
+    'employee.view',
+    'page.employee-files',
+    'page.registry.requests',
+  ],
+  testing: [],
 };
 
 interface PermissionsContextType {
