@@ -41,12 +41,7 @@ export default function RoleConfiguration() {
 
   return (
     <div className="p-6">
-      <button
-        onClick={() => navigate('/admin')}
-        className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition"
-      >
-        ← Back to Admin Panel
-      </button>
+
 
       <h1 className="text-2xl font-semibold mb-2">Role Configuration</h1>
       <p className="text-sm text-muted-foreground mb-4">Configure permissions for each role. Admin has full access and cannot be reduced here.</p>

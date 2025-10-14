@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { mockEmployees } from "@/data/mockData"
+import { useEmployees } from "@/contexts/EmployeesContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
 import {
@@ -30,16 +30,17 @@ export const EmployeeDirectory: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("all")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const navigate = useNavigate()
+  const { employees, addEmployee } = useEmployees()
 
   // Unique departments
-  const departments = [...new Set(mockEmployees.map((emp) => emp.department))]
+  const departments = [...new Set(employees.map((emp) => emp.department))]
 
   // Get logged-in user (manager) from context
   // Use useAuth hook for consistent logic
   const { user } = useAuth();
 
   // Filter employees: if manager, show only direct reports
-  const filteredEmployees = mockEmployees.filter((employee) => {
+  const filteredEmployees = employees.filter((employee) => {
     if (user?.role === 'manager') {
       // Only show employees whose manager field matches logged-in manager's name
       if (employee.manager !== user.name) {
@@ -120,9 +121,37 @@ export const EmployeeDirectory: React.FC = () => {
                   status: "active"
                 }}
                 onSave={(data) => {
-                  console.log("Employee submitted (mock):", data)
-                  alert(`Employee ${data.name} submitted!`)
-                  // Here later, call API or update state
+                  addEmployee({
+                    id: undefined as any, // will be generated in context
+                    name: data.name,
+                    email: data.email,
+                    position: data.position,
+                    department: data.department,
+                    manager: undefined,
+                    hireDate: data.hireDate || new Date().toISOString().slice(0,10),
+                    status: (data.status as any) || 'active',
+                    avatar: '',
+                    phone: data.phone,
+                    emergencyContact: data.emergencyContact,
+                    salary: data.salary,
+                    documents: [],
+                    skills: [],
+                    gender: data.gender,
+                    employmentType: data.employmentType,
+                    staffNumber: data.staffNumber,
+                    nationalId: data.nationalId,
+                    kraPin: data.kraPin,
+                    children: data.children,
+                    workCounty: data.workCounty,
+                    homeCounty: data.homeCounty,
+                    postalAddress: data.postalAddress,
+                    postalCode: data.postalCode,
+                    stationName: data.stationName,
+                    skillLevel: data.skillLevel,
+                    company: data.company,
+                    dateOfBirth: data.dateOfBirth,
+                  } as any)
+                  alert(`Employee ${data.name} saved!`)
                 }}
               />
             </DialogContent>
@@ -202,7 +231,7 @@ export const EmployeeDirectory: React.FC = () => {
       {/* Results Summary */}
       <div className="flex justify-between items-center">
         <p className="text-sm text-muted-foreground">
-          Showing {filteredEmployees.length} of {mockEmployees.length} employees
+          Showing {filteredEmployees.length} of {employees.length} employees
         </p>
       </div>
 

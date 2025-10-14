@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useSystemCatalog } from "@/contexts/SystemCatalogContext"
+import { useUsers } from "@/contexts/UsersContext"
 
 export type EmployeeFormData = {
   name: string
@@ -41,13 +43,16 @@ export function EmployeeForm({
   onSave: (data: EmployeeFormData) => void
   mode?: "add" | "edit"
 }) {
+  const { designations, skillLevels, stations } = useSystemCatalog()
+  const { findByEmail } = useUsers()
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
     setValue,
-    watch
+    watch,
+    setError
   } = useForm<EmployeeFormData>({
     defaultValues: {
       company: "Ministry of Water, Sanitation and Irrigation",
@@ -62,6 +67,25 @@ export function EmployeeForm({
   const watchedStatus = watch("status")
 
   const handleSave = (data: EmployeeFormData) => {
+    // Required validations for system-selected fields
+    if (!data.position) {
+      setError("position", { type: "required", message: "Position is required" });
+      return;
+    }
+    if (!data.skillLevel) {
+      setError("skillLevel", { type: "required", message: "Skill level is required" });
+      return;
+    }
+    if (!data.stationName) {
+      setError("stationName", { type: "required", message: "Station is required" });
+      return;
+    }
+    // Enforce mapping: email must exist in system users (created by Admin)
+    const u = findByEmail(data.email || '')
+    if (!u) {
+      alert('No matching user account found for this email. Please ensure Admin has created the user first.');
+      return;
+    }
     onSave(data)
     if (mode === "add") reset() // only reset on add
   }
@@ -139,7 +163,19 @@ export function EmployeeForm({
 
             <div>
               <Label htmlFor="position">Position *</Label>
-              <Input id="position" {...register("position", { required: "Position is required" })} />
+              <Select
+                value={watch("position")}
+                onValueChange={(value) => setValue("position", value, { shouldValidate: true })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select position" />
+                </SelectTrigger>
+                <SelectContent>
+                  {designations.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.position && <p className="text-destructive text-sm">{errors.position.message}</p>}
             </div>
 
@@ -204,12 +240,37 @@ export function EmployeeForm({
 
             <div>
               <Label htmlFor="skillLevel">Skill Level</Label>
-              <Input id="skillLevel" {...register("skillLevel")} />
+              <Select
+                value={watch("skillLevel")}
+                onValueChange={(value) => setValue("skillLevel", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select skill level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {skillLevels.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.skillLevel && <p className="text-destructive text-sm">{errors.skillLevel.message}</p>}
             </div>
 
             <div>
               <Label htmlFor="stationName">Station Name</Label>
-              <Input id="stationName" {...register("stationName")} />
+              <Select
+                value={watch("stationName")}
+                onValueChange={(value) => setValue("stationName", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select station" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stations.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>

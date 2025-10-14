@@ -22,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useLeave } from '@/contexts/LeaveContext';
+import { useToast } from '@/hooks/use-toast';
 import { usePerformance } from '@/contexts/PerformanceContext';
 import { useDocuments } from '@/contexts/DocumentContext';
 import {
@@ -35,17 +36,21 @@ import {
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const { leaveRequests } = useLeave();
+  const { leaveRequests, approveManagerRequest, rejectManagerRequest } = useLeave();
   const { reviews } = usePerformance();
   const { documents } = useDocuments();
   const navigate = useNavigate();
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const { toast } = useToast();
+
   // Calculate metrics based on user role
   const isEmployee = user?.role === 'employee';
   const isManager = user?.role === 'manager';
   const isHr = ['hr_manager', 'hr_staff'].includes(user?.role || '');
   const isAdmin = user?.role === 'admin';
-if (isAdmin) {
+
+  if (isAdmin) {
+    // Admin-specific metrics
     const totalUsers = mockEmployees.length;
     const activeUsers = mockEmployees.filter(emp => emp.status === 'active').length;
     const inactiveUsers = mockEmployees.filter(emp => emp.status !== 'active').length;
@@ -132,13 +137,13 @@ if (isAdmin) {
   }
   
   if (isEmployee) {
-  // Employee-specific metrics
+    // Employee-specific metrics
     const myLeaves = leaveRequests.filter(req => req.employeeId === user.id);
     const myTrainings = mockTrainingRecords.filter(tr => tr.employeeId === user.id);
     const myReviews = mockPerformanceReviews.filter(rev => rev.employeeId === user.id);
     const myDocuments = mockDocuments.filter(doc => doc.uploadedBy === user.name);
     
-  const pendingLeaves = myLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr').length;
+    const pendingLeaves = myLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr').length;
     const approvedLeaves = myLeaves.filter(req => req.status === 'approved').length;
     const completedTrainings = myTrainings.filter(tr => tr.status === 'completed').length;
     const pendingTrainings = myTrainings.filter(tr => tr.status !== 'completed').length;
@@ -294,7 +299,7 @@ if (isAdmin) {
       const employee = mockEmployees.find(emp => emp.id === review.employeeId);
       return employee?.manager === user.name;
     });
-  const pendingTeamLeaves = teamLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr');
+    const pendingTeamLeaves = teamLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr');
     const pendingTeamReviews = teamReviews.filter(review => review.status === 'targets_set');
 
     return (
@@ -374,10 +379,26 @@ if (isAdmin) {
                     </p>
                   </div>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="outline" className="text-success hover:text-success">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-success hover:text-success"
+                      onClick={() => {
+                        approveManagerRequest(leave.id);
+                        toast({ title: 'Leave forwarded to HR', description: `${leave.employeeName}'s ${leave.type} request moved to HR review.` });
+                      }}
+                    >
                       <CheckCircle className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => {
+                        rejectManagerRequest(leave.id);
+                        toast({ title: 'Leave rejected', description: `${leave.employeeName}'s ${leave.type} request has been rejected.`, variant: 'destructive' as any });
+                      }}
+                    >
                       <XCircle className="w-4 h-4" />
                     </Button>
                   </div>
@@ -400,7 +421,7 @@ if (isAdmin) {
                     <p className="font-medium text-sm">{review.employeeName}</p>
                     <p className="text-xs text-muted-foreground">{review.reviewPeriod}</p>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => navigate('/performance')}>
                     <Edit className="w-4 h-4 mr-2" />
                     Review
                   </Button>
