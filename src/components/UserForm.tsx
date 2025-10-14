@@ -18,7 +18,7 @@ import { Copy } from "lucide-react"
 export type UserFormData = {
   name?: string
   email: string
-  role: "Admin" | "HR" | "Employee" | "Manager"
+  role: "admin" | "hr_manager" | "employee" | "manager"
   sendInvite?: boolean
   tempPassword?: string
 }
@@ -90,18 +90,20 @@ export function UserForm({
             </p>
 
             <div>
-              <Label htmlFor="name">Full Name {watchedRole !== 'Admin' ? '*' : ''}</Label>
+              <Label htmlFor="name">Full Name {watchedRole !== 'admin' ? '*' : ''}</Label>
               <Input
                 id="name"
-                placeholder={watchedRole === 'Admin' ? 'Optional for Admin accounts' : 'e.g., Jane Doe'}
+                placeholder={watchedRole === 'admin' ? 'Optional for Admin accounts' : 'e.g., Jane Doe'}
                 disabled={isSubmitting}
-                {...register("name", watchedRole === 'Admin' ? {} : { required: "Name is required" })}
+                {...register("name", watchedRole === 'admin' ? {} : { required: "Name is required" })}
               />
               {errors.name && (
                 <p className="text-destructive text-sm">{errors.name.message}</p>
               )}
-              {watchedRole !== 'Admin' && !errors.name && (
-                <p className="text-xs text-muted-foreground mt-1">Enter the full legal name as it appears on records.</p>
+              {watchedRole !== 'admin' && !errors.name && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  As it appears on official documents.
+                </p>
               )}
             </div>
 
@@ -134,18 +136,18 @@ export function UserForm({
               <Label htmlFor="role">Role *</Label>
               <Select
                 value={watchedRole}
-                onValueChange={(value) =>
-                  setValue("role", value as UserFormData["role"])
+                onValueChange={(value: "admin" | "hr_manager" | "employee" | "manager") =>
+                  setValue("role", value)
                 }
               >
-                <SelectTrigger id="role" className="w-full">
-                  <SelectValue placeholder="Select role" />
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="HR">HR</SelectItem>
-                  <SelectItem value="Manager">Manager</SelectItem>
-                  <SelectItem value="Employee">Employee</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="hr_manager">HR</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="employee">Employee</SelectItem>
                 </SelectContent>
               </Select>
               {errors.role && (

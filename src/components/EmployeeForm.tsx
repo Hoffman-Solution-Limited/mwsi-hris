@@ -361,10 +361,10 @@ export function EmployeeForm({
                   </SelectTrigger>
                   <SelectContent>
                     <div className="p-2">
-                      <div className="text-xs text-muted-foreground">Choose from registered users</div>
+                      <div className="text-xs text-muted-foreground">Choose from registered managers</div>
                     </div>
                     <SelectItem value="__none">— None —</SelectItem>
-                    {users.map(u => (
+                    {users.filter(u => u.role === 'manager').map(u => (
                       <SelectItem key={u.id} value={u.id}>{u.name || u.email}</SelectItem>
                     ))}
                   </SelectContent>
