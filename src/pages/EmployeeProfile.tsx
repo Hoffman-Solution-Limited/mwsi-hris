@@ -419,262 +419,79 @@ export const EmployeeProfile: React.FC = () => {
 
         {/* Personal Information */}
         {showPersonalInfo && (
-          <TabsContent value="personal">
-          <Card>
-            <CardContent className="p-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
-                {/* Left Column */}
-                <div className="space-y-6">
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Series *</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      HR-{(employee.stationName || employee.department || '').toString().substring(0, 4).toUpperCase()}-
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">First Name *</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.name.split(' ')[0]}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Other Name</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.name.split(' ').slice(1, -1).join(' ') || ''}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Surname</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.name.split(' ').slice(-1)[0]}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Salutation</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.gender === 'female' ? 'Ms.' : 'Mr.'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Full Name</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm font-medium">
-                      {employee.name}
-                    </div>
-                  </div>
-                  {showPersonalInfo && (
-                    <>
-                      <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="text-sm font-medium text-foreground mb-1 block">Next of Kin Name</label>
-                          <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                            {(employee as any).nextOfKinName || '—'}
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-foreground mb-1 block">Relationship</label>
-                          <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                            {(employee as any).nextOfKinRelationship || '—'}
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-foreground mb-1 block">Next of Kin Contact</label>
-                          <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                            {((employee as any).nextOfKinPhone || (employee as any).nextOfKinEmail) ? (
-                              <span>
-                                {((employee as any).nextOfKinPhone || '—')}
-                                {((employee as any).nextOfKinEmail) ? ` • ${String((employee as any).nextOfKinEmail)}` : ''}
-                              </span>
-                            ) : '—'}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="text-sm font-medium text-foreground mb-1 block">Special Needs</label>
-                        <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                          {((employee as any).hasSpecialNeeds ? 'Yes' : 'No') + (((employee as any).hasSpecialNeeds && (employee as any).specialNeedsDescription) ? ` — ${(employee as any).specialNeedsDescription}` : '')}
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-foreground mb-1 block">ID Number</label>
-                        <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono">
-                          {employee.nationalId || '***********'}
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-foreground mb-1 block">KRA PIN</label>
-                        <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono">
-                          {employee.kraPin || 'A001234567X'}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Employment Type</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.employmentType || 'Permanent'}
-                    </div>
-                  </div>
+          <TabsContent value="personal" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Personal Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="w-5 h-5" /> Personal Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <InfoItem label="Full Name" value={employee.name} />
+                  <InfoItem label="Date of Birth" value={employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'} />
+                  <InfoItem label="Gender" value={employee.gender} className="capitalize" />
+                  <InfoItem label="National ID" value={employee.nationalId || '—'} isMonospace />
+                  <InfoItem label="KRA PIN" value={employee.kraPin || '—'} isMonospace />
+                  <InfoItem label="Ethnicity" value={(employee as any).ethnicity || '—'} />
+                  <InfoItem label="Children" value={employee.children || '0'} />
+                  <InfoItem label="Special Needs" value={((employee as any).hasSpecialNeeds ? 'Yes' : 'No') + (((employee as any).hasSpecialNeeds && (employee as any).specialNeedsDescription) ? ` — ${(employee as any).specialNeedsDescription}` : '')} />
+                </CardContent>
+              </Card>
 
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Engagement Type</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {(employee as any).engagementType || employee.employmentType || 'Permanent'}
-                    </div>
-                  </div>
+              {/* Employment Details (moved to top row) */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" /> Employment Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <InfoItem label="Employee Number" value={(employee as any).employeeNumber || '—'} isMonospace />
+                  <InfoItem label="Date of Joining" value={new Date(employee.hireDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })} />
+                  <InfoItem label="Employment Type" value={employee.employmentType || '—'} />
+                  <InfoItem label="Engagement Type" value={(employee as any).engagementType || '—'} />
+                  <InfoItem label="Cadre" value={employee.cadre || '—'} className="capitalize" />
+                  <InfoItem label="Job Group" value={(employee as any).jobGroup || '—'} />
+                  <InfoItem label="Work County" value={employee.workCounty || '—'} />
+                  <InfoItem label="Station Name" value={employee.stationName || '—'} />
+                  <InfoItem label="Skill Level" value={employee.skillLevel || '—'} />
+                  <InfoItem label="Company" value={employee.company || '—'} />
+                  <InfoItem label="Status" value={<Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>{employee.status}</Badge>} />
+                </CardContent>
+              </Card>
 
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Cadre</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm capitalize">
-                      {employee.cadre || 'Not specified'}
-                    </div>
-                  </div>
+              {/* Contact & Address (moved to bottom row) */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5" /> Contact & Address
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <InfoItem label="Home County" value={employee.homeCounty || '—'} />
+                  <InfoItem label="Home Subcounty" value={(employee as any).homeSubcounty || '—'} />
+                  <InfoItem label="Postal Address" value={employee.postalAddress || '—'} />
+                  <InfoItem label="Postal Code" value={employee.postalCode || '—'} />
+                </CardContent>
+              </Card>
 
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Job Group</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {(employee as any).jobGroup || '—'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Employee Number</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono">
-                      {(employee as any).employeeNumber || '—'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">ID Number</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono">
-                      {employee.nationalId || '***********'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">KRA PIN</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono">
-                      {employee.kraPin || 'A001234567X'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column */}
-                <div className="space-y-6">
-                <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Children</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.children || '0'}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Work County</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.workCounty || 'Nairobi'}
-                    </div>
-                  </div>
-                  {/* Work Subcounty removed per request */}
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Home County</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.homeCounty || 'Nairobi'}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Home Subcounty</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {(employee as any).homeSubcounty || '—'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Postal Address</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.postalAddress || 'P.O. Box 12345'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Postal Code</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.postalCode || '00100'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Station Name</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.stationName || `${employee.department} - ${employee.position}`}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Skill Level</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.skillLevel || 'Form-4 (KCSE)'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Company *</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.company || 'Ministry of Water, Sanitation and Irrigation'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Status *</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
-                        {employee.status}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Gender *</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm capitalize">
-                      {employee.gender || 'Not specified'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Ethnicity</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {(employee as any).ethnicity || '—'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Date of Birth *</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit', 
-                        year: 'numeric'
-                      }) : '01-01-1980'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Date of Joining *</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      {new Date(employee.hireDate).toLocaleDateString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric'
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              {/* Next of Kin (remains bottom row) */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5" /> Next of Kin
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <InfoItem label="Name" value={(employee as any).nextOfKinName || '—'} />
+                  <InfoItem label="Relationship" value={(employee as any).nextOfKinRelationship || '—'} />
+                  <InfoItem label="Phone" value={(employee as any).nextOfKinPhone || '—'} />
+                  <InfoItem label="Email" value={(employee as any).nextOfKinEmail || '—'} />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         )}
 
@@ -914,3 +731,12 @@ export const EmployeeProfile: React.FC = () => {
     </div>
   );
 };
+
+const InfoItem: React.FC<{ label: string; value: React.ReactNode; className?: string; isMonospace?: boolean }> = ({ label, value, className, isMonospace }) => (
+  <div>
+    <label className="text-sm font-medium text-foreground mb-1 block">{label}</label>
+    <div className={`bg-muted px-3 py-2 rounded-md text-sm ${className} ${isMonospace ? 'font-mono' : ''}`}>
+      {value}
+    </div>
+  </div>
+);

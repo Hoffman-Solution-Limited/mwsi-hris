@@ -371,12 +371,21 @@ export function EmployeeForm({
             {/* Home Subcounty dropdown dependent on Home County */}
             {(() => {
               const county = watch('homeCounty') || ''
+              const subcounty = watch('homeSubcounty')
               const list = subcountyMap[county] || []
               const disabled = !county
+              
+              // If the form is in edit mode and a subcounty is set,
+              // but it's not in the list for the selected county, add it to the list.
+              // This handles the initial load where the list might not be ready yet.
+              if (mode === 'edit' && subcounty && !list.includes(subcounty)) {
+                list.push(subcounty);
+              }
+
               return (
                 <div>
                   <Label htmlFor="homeSubcounty">Home Subcounty</Label>
-                  <Select value={watch('homeSubcounty') || ''} onValueChange={(v) => setValue('homeSubcounty', v)}>
+                  <Select value={subcounty || ''} onValueChange={(v) => setValue('homeSubcounty', v)}>
                     <SelectTrigger disabled={disabled}>
                       <SelectValue placeholder={disabled ? 'Select county first' : 'Select subcounty'} />
                     </SelectTrigger>
