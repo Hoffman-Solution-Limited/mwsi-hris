@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { mockLeaveRequests, LeaveRequest } from '@/data/mockData';
+import { LeaveRequest } from '@/types/models';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -19,13 +19,11 @@ const STORAGE_KEY = 'hris-leave-requests';
 export const LeaveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {}
-    }
-    return mockLeaveRequests;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) return JSON.parse(stored) as LeaveRequest[];
+    } catch {}
+    return [];
   });
 
   // Persist to localStorage and attempt to load from backend on mount (fallback to mock/local)

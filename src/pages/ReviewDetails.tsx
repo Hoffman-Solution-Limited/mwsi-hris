@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
 import { usePerformance } from "@/contexts/PerformanceContext";
 import { TemplateCriteriaList } from "@/components/performance/TemplateCriteriaList";
-import { mockEmployees } from "@/data/mockData";
+import { useEmployees } from '@/contexts/EmployeesContext';
 
 const ReviewDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,9 +34,10 @@ const ReviewDetailsPage: React.FC = () => {
     );
   }
 
+  const { employees } = useEmployees();
   const getAssignedTo = () => {
-    const emp = mockEmployees.find(e => e.name === review.employeeName);
-    if (review.status === "manager_review") return emp?.manager || "Manager";
+    const emp = employees.find(e => e.name === review.employeeName);
+    if (review.status === "manager_review") return (emp as any)?.manager || "Manager";
     if (review.status === "hr_review") return "HR";
     if (review.status === "completed") return "Completed";
     return "Unassigned";

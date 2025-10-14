@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { mockEmployees, Employee } from '@/data/mockData';
+import { Employee } from '@/types/models';
 import api from '@/lib/api';
 
 export type EmployeeRecord = Employee;
@@ -25,9 +25,9 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [employees, setEmployees] = useState<EmployeeRecord[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) return JSON.parse(raw) as EmployeeRecord[];
     } catch {}
-    return mockEmployees;
+    return [];
   });
 
   useEffect(() => {
@@ -54,41 +54,7 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Removed legacy backfill from staffNumber; employeeNumber must be managed by HR
 
-  // One-time migration: if localStorage employees are missing employeeNumber, backfill from mockData by id
-  useEffect(() => {
-    const missing = employees.some((e: any) => !e.employeeNumber);
-    if (!missing) return;
-    setEmployees(prev => prev.map((e: any) => {
-      if (e.employeeNumber) return e;
-      const seed = (mockEmployees as any[]).find(m => m.id === e.id);
-      if (seed && seed.employeeNumber) {
-        return { ...e, employeeNumber: seed.employeeNumber } as EmployeeRecord;
-      }
-      return e;
-    }));
-  }, []);
-
-  // One-time deduplication: if many employees share the same employeeNumber, restore from mock where possible
-  useEffect(() => {
-    const FLAG = 'hris-empno-dedupe-v1';
-    try {
-      if (localStorage.getItem(FLAG)) return;
-    } catch {}
-    const nums = employees.map((e: any) => e.employeeNumber).filter(Boolean) as string[];
-    if (nums.length < 2) return;
-    const unique = new Set(nums);
-    const hasDupes = unique.size < nums.length;
-    if (!hasDupes) return;
-    // perform dedupe using mock as source of truth
-    setEmployees(prev => prev.map((e: any) => {
-      const seed = (mockEmployees as any[]).find(m => m.id === e.id);
-      if (seed?.employeeNumber && seed.employeeNumber !== e.employeeNumber) {
-        return { ...e, employeeNumber: seed.employeeNumber } as EmployeeRecord;
-      }
-      return e;
-    }));
-    try { localStorage.setItem(FLAG, '1'); } catch {}
-  }, [employees]);
+  // No mock-based backfills here; rely on backend or explicit HR edits for missing employeeNumbers
 
   const addEmployee: EmployeesContextType['addEmployee'] = (data) => {
     (async () => {

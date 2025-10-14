@@ -13,13 +13,13 @@ import {
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { useEmployees } from "@/contexts/EmployeesContext";
-import { DisciplinaryCaseMock, mockDisciplinaryCases } from "@/data/mockData";
 
-// Mock disciplinary cases data
-// Use centralized mock data for disciplinary cases
+import { useEmployees } from "@/contexts/EmployeesContext";
+import { DisciplinaryCaseMock } from '@/types/models';
+
+// Local disciplinary cases type (seeded empty - add via UI)
 type DisciplinaryCase = DisciplinaryCaseMock;
-const mockCases: DisciplinaryCase[] = mockDisciplinaryCases;
+const mockCases: DisciplinaryCase[] = [];
 
 export const DisciplinaryCases: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { mockDepartmentGoals, DepartmentGoal } from '@/data/mockData';
+import { DepartmentGoal } from '@/types/models';
 import api from '@/lib/api';
 
 export type DepartmentGoalRecord = DepartmentGoal;
@@ -21,9 +21,9 @@ export const DepartmentGoalsProvider: React.FC<{ children: React.ReactNode }> = 
   const [goals, setGoals] = useState<DepartmentGoalRecord[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) return JSON.parse(raw) as DepartmentGoalRecord[];
     } catch {}
-    return mockDepartmentGoals;
+    return [];
   });
 
   // Try to load department goals from backend on mount

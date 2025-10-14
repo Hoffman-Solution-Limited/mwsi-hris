@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockEmployees, mockLeaveRequests } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEmployees } from '@/contexts/EmployeesContext';
+import { useLeave } from '@/contexts/LeaveContext';
 import { mapRole } from '@/lib/roles';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,12 +17,14 @@ export const GlobalSearch: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const { user } = useAuth();
+  const { employees } = useEmployees();
+  const { leaveRequests } = useLeave();
   const navigate = useNavigate();
 
   // Determine role-based visibility scopes
   const { scopedEmployees, scopedLeaveRequests } = useMemo(() => {
     if (!user) {
-      return { scopedEmployees: [] as typeof mockEmployees, scopedLeaveRequests: [] as typeof mockLeaveRequests };
+      return { scopedEmployees: [] as typeof employees, scopedLeaveRequests: [] as typeof leaveRequests };
     }
 
   const isHR = mapRole(user.role) === 'hr' || mapRole(user.role) === 'admin';
@@ -29,23 +32,23 @@ export const GlobalSearch: React.FC = () => {
     // HR/Admin see all
     if (isHR) {
       return {
-        scopedEmployees: mockEmployees,
-        scopedLeaveRequests: mockLeaveRequests,
+        scopedEmployees: employees,
+        scopedLeaveRequests: leaveRequests,
       };
     }
 
     // Manager sees self + direct reports (by matching employee.manager === manager.name)
   if (mapRole(user.role) === 'manager') {
-  const teamEmployees = mockEmployees.filter(e => (e.managerId && String(e.managerId) === String(user.id)) || (e.manager && user?.name && String(e.manager).toLowerCase() === String(user.name).toLowerCase()) || e.id === user.id || e.email === user.email || e.name === user.name);
-      const teamNames = new Set(teamEmployees.map(e => e.name).concat([user.name]));
-      const teamIds = new Set(teamEmployees.map(e => e.id).concat([user.id]));
+  const teamEmployees = employees.filter(e => (e.managerId && String(e.managerId) === String(user.id)) || (e.manager && user?.name && String(e.manager).toLowerCase() === String(user.name).toLowerCase()) || e.id === user.id || e.email === user.email || e.name === user.name);
+  const teamNames = new Set(teamEmployees.map(e => e.name).concat([user.name]));
+  const teamIds = new Set(teamEmployees.map(e => e.id).concat([user.id]));
 
-      const teamLeave = mockLeaveRequests.filter(l => teamIds.has(l.employeeId) || teamNames.has(l.employeeName));
+  const teamLeave = leaveRequests.filter(l => teamIds.has(l.employeeId) || teamNames.has(l.employeeName));
 
-      return {
-        scopedEmployees: teamEmployees,
-        scopedLeaveRequests: teamLeave,
-      };
+  return {
+    scopedEmployees: teamEmployees,
+    scopedLeaveRequests: teamLeave,
+  };
     }
 
     // Default fallback: nothing
@@ -55,17 +58,17 @@ export const GlobalSearch: React.FC = () => {
   // Filter results based on search query within scoped datasets
   const employeeResults = scopedEmployees.filter(emp => 
     emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.position.toLowerCase().includes(searchQuery.toLowerCase())
+    (emp.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (emp.department || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (emp.position || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
 
 
   const leaveResults = scopedLeaveRequests.filter(leave => 
-    leave.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    leave.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    leave.reason.toLowerCase().includes(searchQuery.toLowerCase())
+    (leave.employeeName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (leave.type || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (leave.reason || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const totalResults = employeeResults.length + leaveResults.length;

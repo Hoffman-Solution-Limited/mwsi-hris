@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockTrainingRecords, mockEmployees } from '@/data/mockData';
+// Training page uses contexts (useTraining, useEmployees) — no mockData dependency
+import { useEmployees } from '@/contexts/EmployeesContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { mapRole } from '@/lib/roles';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -33,8 +34,8 @@ export const Training: React.FC = () => {
   const [editExpiryDate, setEditExpiryDate] = useState<string | undefined>(undefined);
   const [editType, setEditType] = useState<'mandatory' | 'development' | 'compliance'>('development');
 
-  // Source of truth for training records (context first, then mock)
-  const source = useMemo(() => (trainings.length ? trainings : mockTrainingRecords), [trainings]);
+  // Source of truth for training records (context)
+  const source = useMemo(() => trainings, [trainings]);
 
   // Records shown in the main records table (for employees/managers show only their records,
   // for HR and others show all records)
@@ -102,10 +103,11 @@ export const Training: React.FC = () => {
     setSelectedTrainingId(null);
   };
 
+  const { employees } = useEmployees();
   const handleSelectAllEmployees = (checked: boolean) => {
     if (checked) {
-      const allEmployeeIds = mockEmployees
-        .filter(emp => !['hr_manager', 'hr_staff'].includes(emp.position.toLowerCase()))
+      const allEmployeeIds = (employees || [])
+        .filter(emp => !/hr_(manager|staff)/i.test(String(emp.position || '').toLowerCase()))
         .map(emp => emp.id);
       setSelectedEmployees(allEmployeeIds);
     } else {
@@ -163,21 +165,21 @@ export const Training: React.FC = () => {
   const complianceData = [
     {
       requirement: 'Cybersecurity Training',
-      totalEmployees: mockEmployees.length,
+      totalEmployees: (employees || []).length,
       compliant: 12,
       expiringSoon: 2,
       overdue: 1
     },
     {
       requirement: 'Data Protection Training',
-      totalEmployees: mockEmployees.length,
+      totalEmployees: (employees || []).length,
       compliant: 18,
       expiringSoon: 0,
       overdue: 0
     },
     {
       requirement: 'Health & Safety Training',
-      totalEmployees: mockEmployees.length,
+      totalEmployees: (employees || []).length,
       compliant: 15,
       expiringSoon: 3,
       overdue: 2
@@ -312,7 +314,7 @@ export const Training: React.FC = () => {
               <CardContent>
                 <div className="space-y-4">
                   {filteredRecords.slice(0, 5).map((training) => {
-                    const employee = mockEmployees.find(emp => emp.id === training.employeeId);
+                    const employee = (employees || []).find(emp => emp.id === training.employeeId);
                     return (
                       <div key={training.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                         <div className="flex items-center gap-3">

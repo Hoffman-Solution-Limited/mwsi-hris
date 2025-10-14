@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { mockEmployees } from '@/data/mockData';
+// Note: removed dependency on mockData. Catalog seeds start empty and rely on backend or admin to populate.
 import api from '@/lib/api';
 
 export type Item = { value: string; active: boolean };
@@ -69,25 +69,10 @@ export const SystemCatalogProvider: React.FC<{ children: React.ReactNode }> = ({
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
   };
 
-  // Seed from backend employees when available, else from mockEmployees
-  const seededDesignations = useMemo(() => {
-    const set = new Set<string>();
-    mockEmployees.forEach(emp => { if (emp.position) set.add(emp.position); });
-    return Array.from(set).map(s => ({ value: s, active: true }));
-  }, []);
-
-  const seededSkillLevels = useMemo(() => {
-    const set = new Set<string>();
-    mockEmployees.forEach(emp => { if (emp.skillLevel) set.add(emp.skillLevel); });
-    mockEmployees.forEach(emp => (emp.skills || []).forEach(s => { if (s.level) set.add(s.level); }));
-    return Array.from(set).map(s => ({ value: s, active: true }));
-  }, []);
-
-  const seededStations = useMemo(() => {
-    const set = new Set<string>();
-    mockEmployees.forEach(emp => { if (emp.stationName) set.add(emp.stationName); });
-    return Array.from(set).map(s => ({ name: s, active: true } as StationItem));
-  }, []);
+  // Start with empty seeds; backend fetch will populate these on mount when available.
+  const seededDesignations = useMemo(() => [], [] as any);
+  const seededSkillLevels = useMemo(() => [], [] as any);
+  const seededStations = useMemo(() => [], [] as any);
   const seededJobGroups = useMemo(() => {
     // Default job groups A-L
     return 'ABCDEFGHIJKL'.split('').map(s => ({ value: s, active: true }));

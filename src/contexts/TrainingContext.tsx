@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { TrainingRecord, mockTrainingRecords } from '@/data/mockData';
+import { TrainingRecord } from '@/types/models';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -20,13 +20,11 @@ const TrainingContext = createContext<TrainingContextType | undefined>(undefined
 export const TrainingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [trainings, setTrainings] = useState<TrainingRecord[]>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {}
-    }
-    return mockTrainingRecords;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) return JSON.parse(stored) as TrainingRecord[];
+    } catch {}
+    return [];
   });
 
   const [certUrls, setCertUrls] = useState<Record<string, string>>({});

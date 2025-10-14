@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { mockEmployees } from '@/data/mockData';
+import { useEmployees } from '@/contexts/EmployeesContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLeave } from '@/contexts/LeaveContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -20,6 +20,7 @@ import { Switch } from '@/components/ui/switch';
 export const LeaveManagement: React.FC = () => {
   const { user } = useAuth();
   const { leaveRequests, addLeaveRequest, approveManagerRequest, rejectManagerRequest, approveHrRequest, rejectHrRequest } = useLeave();
+  const { employees } = useEmployees();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [balancesSearch, setBalancesSearch] = useState('');
@@ -36,12 +37,12 @@ export const LeaveManagement: React.FC = () => {
 
   // Details dialog state
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<import('@/data/mockData').LeaveRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<import('@/types/models').LeaveRequest | null>(null);
   const [actionComment, setActionComment] = useState('');
 
   // Reject confirmation state
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [rejectTarget, setRejectTarget] = useState<import('@/data/mockData').LeaveRequest | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<import('@/types/models').LeaveRequest | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -58,7 +59,7 @@ export const LeaveManagement: React.FC = () => {
       return leaveRequests.filter(leave => leave.employeeId === user.id);
     }
     if (user?.role === 'manager') {
-  const directReportIds = mockEmployees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase())).map(emp => emp.id);
+  const directReportIds = employees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase())).map(emp => emp.id);
       return leaveRequests.filter(leave => directReportIds.includes(leave.employeeId));
     }
     return leaveRequests;
@@ -77,7 +78,7 @@ export const LeaveManagement: React.FC = () => {
 
   const leaveBalances = useMemo(() => {
     if (user?.role === 'manager') {
-  const directReports = mockEmployees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase()));
+  const directReports = employees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase()));
       return directReports.map(emp => ({
         employeeId: emp.id,
         employeeName: emp.name,
@@ -99,7 +100,7 @@ export const LeaveManagement: React.FC = () => {
         }
       }));
     }
-    return mockEmployees.map(emp => ({
+    return employees.map(emp => ({
       employeeId: emp.id,
       employeeName: emp.name,
       department: emp.department,
@@ -126,7 +127,7 @@ export const LeaveManagement: React.FC = () => {
     if (myQueueOnly && isHrRole && user?.department) {
       const dept = user.department;
       return baseLeaves.filter(req => {
-        const emp = mockEmployees.find(e => e.id === req.employeeId);
+        const emp = employees.find(e => e.id === req.employeeId);
         return emp?.department === dept;
       });
     }
@@ -380,7 +381,7 @@ export const LeaveManagement: React.FC = () => {
                   <p className="text-sm text-muted-foreground">No leave requests yet.</p>
                 )}
                 {filteredRequests.map((request) => {
-                  const employee = mockEmployees.find(emp => emp.id === request.employeeId);
+                  const employee = employees.find(emp => emp.id === request.employeeId);
                   return (
                     <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div>
@@ -463,7 +464,7 @@ export const LeaveManagement: React.FC = () => {
               <CardContent>
                 <div className="space-y-4">
                   {filteredRequests.map((request) => {
-                    const employee = mockEmployees.find(emp => emp.id === request.employeeId);
+                    const employee = employees.find(emp => emp.id === request.employeeId);
                     return (
                       <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center gap-4">
@@ -649,7 +650,7 @@ export const LeaveManagement: React.FC = () => {
                         );
                       })
                       .map((balance) => {
-                      const employee = mockEmployees.find(emp => emp.id === balance.employeeId);
+                      const employee = employees.find(emp => emp.id === balance.employeeId);
                       return (
                         <tr key={balance.employeeId}>
                           <td>
@@ -754,9 +755,9 @@ export const LeaveManagement: React.FC = () => {
               <CardContent>
                 <div className="space-y-4">
                   {['Engineering', 'Human Resources', 'Marketing', 'Finance'].map(dept => {
-                    const deptEmployees = mockEmployees.filter(emp => emp.department === dept);
+                    const deptEmployees = employees.filter(emp => emp.department === dept);
                     const deptRequests = leaveRequests.filter(req => {
-                      const emp = mockEmployees.find(e => e.id === req.employeeId);
+                      const emp = employees.find(e => e.id === req.employeeId);
                       return emp?.department === dept;
                     });
                     const totalDays = deptRequests.reduce((sum, req) => sum + req.days, 0);

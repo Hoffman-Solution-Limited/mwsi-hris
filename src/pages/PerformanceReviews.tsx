@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { mockEmployees } from '@/data/mockData';
 import { TemplateCriteriaList } from '@/components/performance/TemplateCriteriaList';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePerformance, PerformanceTemplate, PerformanceReview } from '@/contexts/PerformanceContext';
@@ -59,10 +58,10 @@ export const PerformanceReviews: React.FC = () => {
   const teamAppraisals = useMemo(() => {
     if (!user || user.role !== 'manager') return [];
     return reviews.filter(review => {
-      const employee = mockEmployees.find(emp => emp.id === review.employeeId);
-  return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
+      const employee = employees.find(emp => emp.id === review.employeeId);
+      return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
     });
-  }, [reviews, user]);
+  }, [reviews, user, employees]);
 
   // Use reviews for filtering instead of baseReviews
   const filteredReviews = reviews.filter(review => {
@@ -175,7 +174,7 @@ export const PerformanceReviews: React.FC = () => {
     if (employeeIds.length === 0) return;
 
     employeeIds.forEach(empId => {
-      const employee = employees.find(emp => emp.id === empId) || mockEmployees.find(emp => emp.id === empId);
+      const employee = employees.find(emp => emp.id === empId);
       if (!employee) return;
       createReview({
         employeeId: empId,

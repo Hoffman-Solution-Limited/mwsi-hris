@@ -1,4 +1,4 @@
-import { mockPerformanceTemplates, mockPerformanceReviews } from '@/data/mockData';
+// seeds removed: use backend API or localStorage
 import api from '@/lib/api';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -108,8 +108,14 @@ export const PerformanceProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { user } = useAuth();
-  const [templates, setTemplates] = useState<PerformanceTemplate[]>(mockPerformanceTemplates);
-  const [reviews, setReviews] = useState<PerformanceReview[]>(mockPerformanceReviews);
+  const [templates, setTemplates] = useState<PerformanceTemplate[]>(() => {
+    try { const raw = localStorage.getItem(STORAGE_KEY_TEMPLATES); if (raw) return JSON.parse(raw) as PerformanceTemplate[]; } catch {}
+    return [];
+  });
+  const [reviews, setReviews] = useState<PerformanceReview[]>(() => {
+    try { const raw = localStorage.getItem(STORAGE_KEY_REVIEWS); if (raw) return JSON.parse(raw) as PerformanceReview[]; } catch {}
+    return [];
+  });
 
   // Load templates and reviews from backend on mount
   useEffect(() => {
