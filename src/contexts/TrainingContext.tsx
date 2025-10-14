@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { TrainingRecord, mockTrainingRecords } from '@/data/mockData';
+import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 type TrainingContextType = {
@@ -34,12 +35,42 @@ export const TrainingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem(STORAGE_KEY, JSON.stringify(trainings));
   }, [trainings]);
 
+  // load trainings from backend on mount
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const rows = await api.get('/api/trainings');
+        if (!mounted) return;
+        if (Array.isArray(rows) && rows.length > 0) setTrainings(rows as TrainingRecord[]);
+      } catch (err) {
+        // fallback to local
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
   const startTraining = (id: string) => {
-    setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, status: 'in_progress' } as TrainingRecord : tr));
+    (async () => {
+      try {
+        const updated = await api.put(`/api/trainings/${id}`, { status: 'in_progress' });
+        setTrainings(prev => prev.map(tr => tr.id === id ? (updated as TrainingRecord) : tr));
+      } catch (err) {
+        setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, status: 'in_progress' } as TrainingRecord : tr));
+      }
+    })();
   };
 
   const completeTraining = (id: string, file?: File | null) => {
-    setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, status: 'completed', completionDate: new Date().toISOString().slice(0,10) } as TrainingRecord : tr));
+    const completionDate = new Date().toISOString().slice(0,10);
+    (async () => {
+      try {
+        const updated = await api.put(`/api/trainings/${id}`, { status: 'completed', completion_date: completionDate });
+        setTrainings(prev => prev.map(tr => tr.id === id ? (updated as TrainingRecord) : tr));
+      } catch (err) {
+        setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, status: 'completed', completionDate } as TrainingRecord : tr));
+      }
+    })();
     if (file) {
       const url = URL.createObjectURL(file);
       setCertUrls(prev => ({ ...prev, [id]: url }));
@@ -47,15 +78,36 @@ export const TrainingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const editTraining = (id: string, changes: Partial<TrainingRecord>) => {
-    setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, ...changes } : tr));
+    (async () => {
+      try {
+        const updated = await api.put(`/api/trainings/${id}`, changes);
+        setTrainings(prev => prev.map(tr => tr.id === id ? (updated as TrainingRecord) : tr));
+      } catch (err) {
+        setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, ...changes } : tr));
+      }
+    })();
   };
 
   const closeTraining = (id: string) => {
-    setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, status: 'closed' } : tr));
+    (async () => {
+      try {
+        const updated = await api.put(`/api/trainings/${id}`, { status: 'closed' });
+        setTrainings(prev => prev.map(tr => tr.id === id ? (updated as TrainingRecord) : tr));
+      } catch (err) {
+        setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, status: 'closed' } : tr));
+      }
+    })();
   };
 
   const archiveTraining = (id: string) => {
-    setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, archived: true } : tr));
+    (async () => {
+      try {
+        const updated = await api.put(`/api/trainings/${id}`, { archived: true });
+        setTrainings(prev => prev.map(tr => tr.id === id ? (updated as TrainingRecord) : tr));
+      } catch (err) {
+        setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, archived: true } : tr));
+      }
+    })();
   };
 
   const getCertificateUrl = (id: string) => certUrls[id];
