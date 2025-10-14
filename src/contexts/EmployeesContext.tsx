@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { mockEmployees, Employee } from '@/data/mockData';
+import api from '@/lib/api';
 
 export type EmployeeRecord = Employee;
 
@@ -32,6 +33,24 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(employees)); } catch {}
   }, [employees]);
+
+  // Load employees from backend on mount, fallback to localStorage/mockData
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const rows = await api.get('/api/employees');
+        if (!mounted) return;
+        if (Array.isArray(rows) && rows.length > 0) {
+          setEmployees(rows as EmployeeRecord[]);
+        }
+      } catch (err) {
+        // keep local mock data if backend not reachable
+        // console.debug('employees load failed, using local', String(err));
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   // Removed legacy backfill from staffNumber; employeeNumber must be managed by HR
 
@@ -72,21 +91,45 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [employees]);
 
   const addEmployee: EmployeesContextType['addEmployee'] = (data) => {
-    const id = crypto.randomUUID();
-    const avatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.name || 'EMP')}`;
-    const hireDate = data.hireDate || new Date().toISOString().slice(0,10);
-    const status = data.status || 'active';
-    const employeeNumber = (data as any).employeeNumber ? String((data as any).employeeNumber) : undefined;
-    const rec: EmployeeRecord = { id, avatar, hireDate, status, ...(employeeNumber ? { employeeNumber } : {}), ...data } as EmployeeRecord;
-    setEmployees(prev => [rec, ...prev]);
+    (async () => {
+      try {
+        const payload = { ...data } as any;
+        const created = await api.post('/api/employees', payload);
+        setEmployees(prev => [created as EmployeeRecord, ...prev]);
+      } catch (err) {
+        // fallback to local when API fails
+        const id = crypto.randomUUID();
+        const avatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent((data as any).name || 'EMP')}`;
+        const hireDate = (data as any).hireDate || new Date().toISOString().slice(0,10);
+        const status = (data as any).status || 'active';
+        const employeeNumber = (data as any).employeeNumber ? String((data as any).employeeNumber) : undefined;
+        const rec: EmployeeRecord = { id, avatar, hireDate, status, ...(employeeNumber ? { employeeNumber } : {}), ...data } as EmployeeRecord;
+        setEmployees(prev => [rec, ...prev]);
+      }
+    })();
   };
 
   const updateEmployee: EmployeesContextType['updateEmployee'] = (id, updates) => {
-    setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...updates } as EmployeeRecord : e)));
+    (async () => {
+      try {
+        const updated = await api.put(`/api/employees/${id}`, updates);
+        setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...(updated as EmployeeRecord) } as EmployeeRecord : e)));
+      } catch (err) {
+        setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...updates } as EmployeeRecord : e)));
+      }
+    })();
   };
 
   const removeEmployee: EmployeesContextType['removeEmployee'] = (id) => {
-    setEmployees(prev => prev.filter(e => e.id !== id));
+    (async () => {
+      try {
+        await api.del(`/api/employees/${id}`);
+        setEmployees(prev => prev.filter(e => e.id !== id));
+      } catch (err) {
+        // fallback: remove locally
+        setEmployees(prev => prev.filter(e => e.id !== id));
+      }
+    })();
   };
 
   const value = useMemo(() => ({ employees, addEmployee, updateEmployee, removeEmployee }), [employees]);
