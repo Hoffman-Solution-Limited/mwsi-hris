@@ -10,8 +10,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog"
 import { mockEmployees } from "@/data/mockData"
+import { useSystemCatalog } from "@/contexts/SystemCatalogContext"
+import { useEmployees } from "@/contexts/EmployeesContext"
 
 
 // --- Types ---
@@ -23,26 +27,27 @@ type Designation = {
 
 export const DesignationPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("")
-  const [customDesignations, setCustomDesignations] = useState<Designation[]>([])
   const [newDesignation, setNewDesignation] = useState("")
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editingKey, setEditingKey] = useState<string | null>(null)
+  const [editingValue, setEditingValue] = useState("")
+  const { designations, addDesignation, editDesignation } = useSystemCatalog()
+  const { renameDesignationAcrossEmployees } = useEmployees()
 
-  // 🔹 Group employees by their "position" field
-  const employeeDesignations: Designation[] = useMemo(() => {
+  // 🔹 Build list with counts from mock employees for display
+  const allDesignations: Designation[] = useMemo(() => {
     const counts: Record<string, number> = {}
     mockEmployees.forEach((emp) => {
       const pos = emp.position || "Unassigned"
       counts[pos] = (counts[pos] || 0) + 1
     })
-
-    return Object.entries(counts).map(([name, count], index) => ({
-      id: `emp-${index + 1}`,
-      name,
-      employeeCount: count,
+    return designations.map((item, index) => ({
+      id: `sys-${index + 1}`,
+      name: item.value,
+      employeeCount: counts[item.value] || 0,
     }))
-  }, [])
-
-  // 🔹 Combine system designations (from employees) + custom ones
-  const allDesignations: Designation[] = [...employeeDesignations, ...customDesignations]
+  }, [designations])
 
   // 🔹 Filter by search
   const filteredDesignations = allDesignations.filter((d) =>
@@ -52,13 +57,29 @@ export const DesignationPage: React.FC = () => {
   // 🔹 Add new designation (starts with 0 employees)
   const handleAddDesignation = () => {
     if (!newDesignation.trim()) return
-    const newEntry: Designation = {
-      id: `custom-${customDesignations.length + 1}`,
-      name: newDesignation.trim(),
-      employeeCount: 0,
-    }
-    setCustomDesignations([...customDesignations, newEntry])
+    addDesignation(newDesignation.trim())
     setNewDesignation("")
+    setIsAddOpen(false)
+  }
+
+  const openEdit = (value: string) => {
+    setEditingKey(value)
+    setEditingValue(value)
+    setIsEditOpen(true)
+  }
+
+  const handleSaveEdit = () => {
+    if (!editingKey) return
+    const next = editingValue.trim()
+    if (!next || next === editingKey) {
+      setIsEditOpen(false)
+      return
+    }
+    editDesignation(editingKey, next)
+    try { renameDesignationAcrossEmployees?.(editingKey, next) } catch {}
+    setIsEditOpen(false)
+    setEditingKey(null)
+    setEditingValue("")
   }
 
   return (
@@ -77,8 +98,8 @@ export const DesignationPage: React.FC = () => {
             Export
           </Button>
 
-          {/* Add Designation Modal */}
-          <Dialog>
+          {/* Add Designation Dialog */}
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="w-4 h-4 mr-2" />
@@ -90,13 +111,14 @@ export const DesignationPage: React.FC = () => {
                 <DialogTitle>Add New Designation</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <Input
-                  placeholder="Enter designation name..."
-                  value={newDesignation}
-                  onChange={(e) => setNewDesignation(e.target.value)}
-                />
-                <Button onClick={handleAddDesignation}>Save</Button>
+                <Input placeholder="Enter designation name..." value={newDesignation} onChange={(e) => setNewDesignation(e.target.value)} />
               </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+                </DialogClose>
+                <Button onClick={handleAddDesignation}>Save</Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
@@ -139,6 +161,7 @@ export const DesignationPage: React.FC = () => {
                   <th>Designation</th>
                   <th>Employee Count</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -151,6 +174,9 @@ export const DesignationPage: React.FC = () => {
                         {d.employeeCount > 0 ? "Active" : "Vacant"}
                       </Badge>
                     </td>
+                    <td className="flex gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(d.name)}>Edit</Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -158,6 +184,23 @@ export const DesignationPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+      {/* Edit Dialog for designation */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Designation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input value={editingValue} onChange={(e) => setEditingValue(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleSaveEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
