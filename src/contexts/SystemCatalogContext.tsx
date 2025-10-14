@@ -9,6 +9,8 @@ export type SystemCatalogContextType = {
   designations: Item[];
   skillLevels: Item[];
   stations: StationItem[];
+  stationNames: string[]; // convenience array of station names (aka departments)
+  departmentNames: string[]; // alias for stationNames for clarity
   jobGroups: Item[];
   engagementTypes: Item[];
   ethnicities: Item[];
@@ -298,6 +300,8 @@ export const SystemCatalogProvider: React.FC<{ children: React.ReactNode }> = ({
     designations,
     skillLevels,
     stations,
+    stationNames: stations.map(s => s.name),
+    departmentNames: stations.map(s => s.name),
     jobGroups,
     engagementTypes,
     ethnicities,

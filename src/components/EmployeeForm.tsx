@@ -49,7 +49,11 @@ export function EmployeeForm({
   onSave: (data: EmployeeFormData) => void
   mode?: "add" | "edit"
 }) {
-  const { designations, skillLevels, stations, jobGroups, engagementTypes, ethnicities } = useSystemCatalog()
+  const { designations, skillLevels, stations, stationNames, jobGroups, engagementTypes, ethnicities } = useSystemCatalog()
+  const designationOptions = designations.map(d => d.value)
+  const jobGroupOptions = jobGroups.map(j => j.value)
+  const engagementOptions = engagementTypes.map(e => e.value)
+  const skillLevelOptions = skillLevels.map(s => s.value)
   const { findByEmail } = useUsers()
   const { users } = useUsers()
   const [managerQuery, setManagerQuery] = React.useState('')
@@ -244,9 +248,9 @@ export function EmployeeForm({
                   <SelectValue placeholder="Select ethnicity" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ethnicities.map((e) => (
-                    <SelectItem key={e} value={e}>{e}</SelectItem>
-                  ))}
+                    {ethnicities.map((e) => (
+                      <SelectItem key={e.value} value={e.value}>{e.value}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -260,9 +264,7 @@ export function EmployeeForm({
             <div>
               <Label htmlFor="employeeNumber">Employee Number *</Label>
               <Input id="employeeNumber" {...register("employeeNumber", { required: "Employee Number is required" })} />
-              {errors as any && (errors as any).employeeNumber && <p className="text-destructive text-sm">{(errors as any).employeeNumber.message as any}</p>}
             </div>
-
             <div>
               <Label htmlFor="nationalId">National ID</Label>
               <Input id="nationalId" {...register("nationalId")} />
@@ -313,7 +315,7 @@ export function EmployeeForm({
                   <SelectValue placeholder="Select position" />
                 </SelectTrigger>
                 <SelectContent>
-                  {designations.map((d) => (
+                  {designationOptions.map((d) => (
                     <SelectItem key={d} value={d}>{d}</SelectItem>
                   ))}
                 </SelectContent>
@@ -339,7 +341,6 @@ export function EmployeeForm({
                   value={managerQuery}
                   onChange={(e) => setManagerQuery(e.target.value)}
                   onBlur={() => {
-                    // Try to resolve managerQuery to a user and set managerId
                     const q = managerQuery.trim().toLowerCase();
                     if (!q) return;
                     const userMatch = users.find(u => (u.email && u.email.toLowerCase() === q) || (u.name && u.name.toLowerCase() === q));
@@ -382,7 +383,7 @@ export function EmployeeForm({
                   <SelectValue placeholder="Select Work Station" />
                 </SelectTrigger>
                 <SelectContent>
-                  {stations.map((s) => (
+                  {stationNames.map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>
@@ -397,7 +398,7 @@ export function EmployeeForm({
                   <SelectValue placeholder="Select employment type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {engagementTypes.map((t) => (
+                  {engagementOptions.map((t) => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
                   ))}
                 </SelectContent>
@@ -412,7 +413,7 @@ export function EmployeeForm({
                   <SelectValue placeholder="Select job group" />
                 </SelectTrigger>
                 <SelectContent>
-                  {jobGroups.map((g) => (
+                  {jobGroupOptions.map((g) => (
                     <SelectItem key={g} value={g}>{g}</SelectItem>
                   ))}
                 </SelectContent>
@@ -464,7 +465,7 @@ export function EmployeeForm({
                   <SelectValue placeholder="Select skill level" />
                 </SelectTrigger>
                 <SelectContent>
-                  {skillLevels.map((s) => (
+                  {skillLevelOptions.map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>

@@ -17,7 +17,7 @@ const DocumentTrackingPage: React.FC = () => {
   const { user } = useAuth();
   const { files, getFileByEmployeeId, moveFile, requestFile, listAllRequests, rejectRequest, approveRequest } = useFileTracking();
   const { employees } = useEmployees();
-  const { stations } = useSystemCatalog();
+  const { stations, stationNames, departmentNames } = useSystemCatalog();
   const [employeeFilter, setEmployeeFilter] = useState('');
   const [moveModal, setMoveModal] = useState<{ open: boolean; employeeId?: string; toLocation: string; assigneeId: string; assigneeName: string; remarks: string }>({ open: false, toLocation: '', assigneeId: '', assigneeName: '', remarks: '' });
   const [assigneeQuery, setAssigneeQuery] = useState('');
@@ -68,7 +68,8 @@ const DocumentTrackingPage: React.FC = () => {
     });
     return Array.from(set);
   }, [employees]);
-  const LOCATIONS = managerStations.length > 0 ? managerStations : (stations.length > 0 ? stations : ['Registry Office']);
+  // Prefer managerStations, else use station names (departments), else fallback
+  const LOCATIONS = managerStations.length > 0 ? managerStations : (stationNames.length > 0 ? stationNames : ['Registry Office']);
 
   const assigneeOptions = useMemo(() => {
     const base = employees.filter(e => /manager/i.test(e.position || '') || /hr/i.test(e.department || '') || /hr/i.test(e.position || ''));

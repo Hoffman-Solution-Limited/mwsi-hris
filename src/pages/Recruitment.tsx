@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { mockHiredCandidates, mockPositions } from "@/data/mockData";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,10 +20,36 @@ const Recruitment: React.FC = () => {
   const [activeTab, setActiveTab] = useState("positions");
   const [showJobDialog, setShowJobDialog] = useState(false);
   const [editingJob, setEditingJob] = useState<any>(null);
-  const [positions, setPositions] = useState<any[]>(mockPositions as any[]);
+  const [positions, setPositions] = useState<any[]>(() => {
+    try {
+      const raw = localStorage.getItem('hris-positions');
+      if (raw) return JSON.parse(raw) as any[];
+    } catch {}
+    return [];
+  });
+  // load positions from backend on mount
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const rows = await fetch('http://localhost:5000/api/positions').then(r => r.json());
+        if (!mounted) return;
+        if (Array.isArray(rows) && rows.length > 0) setPositions(rows as any[]);
+      } catch (err) {
+        // keep local positions
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
   const { addEmployee } = useEmployees();
   const { user } = useAuth();
   const { designations, stations, engagementTypes } = useSystemCatalog();
+  // designations: Item[] -> map to string[] for Select usage
+  const designationOptions = designations.map(d => d.value);
+  // stations: StationItem[] -> map to string[] for the multi-select UI
+  const stationOptions = stations.map(s => s.name);
+  // engagementTypes: Item[] -> map to string[]
+  const engagementTypeOptions = engagementTypes.map(e => e.value);
   const [jobForm, setJobForm] = useState({
     title: "", // kept for display, synced from designation
     designation: "",
@@ -53,7 +78,21 @@ const Recruitment: React.FC = () => {
   const [viewJob, setViewJob] = useState<any>(null);
   const [viewHiredOpen, setViewHiredOpen] = useState(false);
   const [viewHired, setViewHired] = useState<any>(null);
-  const [hiredCandidates, setHiredCandidates] = useState<any[]>(mockHiredCandidates as any[]);
+  const [hiredCandidates, setHiredCandidates] = useState<any[]>(() => {
+    try {
+      const raw = localStorage.getItem('hris-hired-candidates');
+      if (raw) return JSON.parse(raw) as any[];
+    } catch {}
+    return [];
+  });
+
+  // persist positions and hired candidates to localStorage
+  useEffect(() => {
+    try { localStorage.setItem('hris-positions', JSON.stringify(positions)); } catch {}
+  }, [positions]);
+  useEffect(() => {
+    try { localStorage.setItem('hris-hired-candidates', JSON.stringify(hiredCandidates)); } catch {}
+  }, [hiredCandidates]);
 
   // Create Employee dialog state (for hired candidates)
   const [createEmpOpen, setCreateEmpOpen] = useState(false);
@@ -123,12 +162,23 @@ const Recruitment: React.FC = () => {
       applicants: editingJob?.applicants ?? 0,
     } as any;
 
-    setPositions(prev => {
-      if (editingJob) {
-        return prev.map(p => (p.id === editingJob.id ? { ...p, ...job } : p));
+    (async () => {
+      try {
+        if (editingJob) {
+          const updated = await fetch(`http://localhost:5000/api/positions/${editingJob.id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(job) }).then(r => r.json());
+          setPositions(prev => prev.map(p => (p.id === editingJob.id ? updated : p)));
+        } else {
+          const created = await fetch('http://localhost:5000/api/positions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(job) }).then(r => r.json());
+          setPositions(prev => [created, ...prev]);
+        }
+      } catch (err) {
+        // fallback to local
+        setPositions(prev => {
+          if (editingJob) return prev.map(p => (p.id === editingJob.id ? { ...p, ...job } : p));
+          return [job, ...prev];
+        });
       }
-      return [job, ...prev];
-    });
+    })();
 
     setShowJobDialog(false);
     setEditingJob(null);
@@ -223,12 +273,12 @@ const Recruitment: React.FC = () => {
             {/* Designation (Position) */}
             <div>
               <label className="text-sm font-medium">Designation (Position)</label>
-              <Select value={jobForm.designation} onValueChange={(v) => setJobForm(prev => ({ ...prev, designation: v, title: v }))}>
+                <Select value={jobForm.designation} onValueChange={(v) => setJobForm(prev => ({ ...prev, designation: v, title: v }))}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select designation" />
                 </SelectTrigger>
                 <SelectContent>
-                  {designations.map(d => (
+                  {designationOptions.map(d => (
                     <SelectItem key={d} value={d}>{d}</SelectItem>
                   ))}
                 </SelectContent>
@@ -250,7 +300,7 @@ const Recruitment: React.FC = () => {
                     <CommandList>
                       <CommandEmpty>No stations found.</CommandEmpty>
                       <CommandGroup>
-                        {stations.map((s) => {
+                        {stationOptions.map((s) => {
                           const checked = jobForm.stations.includes(s);
                           return (
                             <CommandItem
@@ -303,7 +353,7 @@ const Recruitment: React.FC = () => {
                   <SelectValue placeholder="Select employment type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {engagementTypes.map(e => (
+                  {engagementTypeOptions.map(e => (
                     <SelectItem key={e} value={e}>{e}</SelectItem>
                   ))}
                 </SelectContent>

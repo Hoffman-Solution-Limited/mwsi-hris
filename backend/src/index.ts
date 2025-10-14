@@ -6,6 +6,7 @@ import usersRouter from './routes/users';
 import rolesRouter from './routes/roles';
 import performanceRouter from './routes/performance';
 import departmentGoalsRouter from './routes/departmentGoals';
+import positionsRouter from './routes/positions';
 import leavesRouter from './routes/leaves';
 import trainingsRouter from './routes/trainings';
 
@@ -62,6 +63,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/roles', rolesRouter);
 app.use('/api/performance', performanceRouter);
 app.use('/api/department-goals', departmentGoalsRouter);
+app.use('/api/positions', positionsRouter);
 app.use('/api/leaves', leavesRouter);
 app.use('/api/trainings', trainingsRouter);
 
