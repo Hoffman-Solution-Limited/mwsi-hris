@@ -69,6 +69,8 @@ export interface Employee {
   // Special Needs
   hasSpecialNeeds?: boolean;
   specialNeedsDescription?: string;
+  // Address details
+  homeSubcounty?: string;
   [key: string]: any;
 }
 

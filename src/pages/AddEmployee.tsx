@@ -62,8 +62,7 @@ const AddEmployeePage: React.FC = () => {
                 skillLevel: "",
                 company: "Ministry of Water, Sanitation and Irrigation",
                 dateOfBirth: "",
-                hireDate: "",
-                emergencyContact: "",
+                hireDate: new Date().toISOString().slice(0,10),
                 salary: undefined,
                 status: "active",
                 role: 'employee',
@@ -75,6 +74,7 @@ const AddEmployeePage: React.FC = () => {
                 // Special needs defaults
                 hasSpecialNeeds: false,
                 specialNeedsDescription: "",
+                homeSubcounty: "",
               }}
               onSave={async (data) => {
                 // Resolve manager name from managerId if provided
@@ -97,7 +97,6 @@ const AddEmployeePage: React.FC = () => {
                   status: (data.status as any) || "active",
                   avatar: "",
                   phone: data.phone,
-                  emergencyContact: data.emergencyContact,
                   salary: data.salary,
                   documents: [],
                   skills: [],
@@ -129,6 +128,7 @@ const AddEmployeePage: React.FC = () => {
                   // Special needs
                   hasSpecialNeeds: (data as any).hasSpecialNeeds,
                   specialNeedsDescription: (data as any).specialNeedsDescription,
+                  homeSubcounty: (data as any).homeSubcounty,
                 } as any);
                 // If this employee already has a user account, align the user's role
                 try {

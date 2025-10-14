@@ -10,7 +10,7 @@ import { CheckCircle, XCircle, Clock, Users } from 'lucide-react';
 // Preview component showcasing the new performance review flow
 const App = () => {
   return (
-    <BrowserRouter>
+  <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <EmployeesProvider>
           <PerformanceProvider>
@@ -138,7 +138,7 @@ const App = () => {
           </PerformanceProvider>
         </EmployeesProvider>
       </AuthProvider>
-    </BrowserRouter>
+  </BrowserRouter>
   );
 };
 

@@ -21,6 +21,7 @@ const allowedColumns = new Set([
     'next_of_kin_email',
     'has_special_needs',
     'special_needs_description',
+    'home_subcounty',
   ].forEach(c => allowedColumns.add(c))
 })();
 

@@ -118,7 +118,6 @@ const Recruitment: React.FC = () => {
       status: (data.status as any) || 'active',
       avatar: '',
       phone: data.phone,
-      emergencyContact: data.emergencyContact,
       salary: data.salary,
       documents: [],
       skills: [],
@@ -737,7 +736,6 @@ const Recruitment: React.FC = () => {
                 company: "Ministry of Water, Sanitation and Irrigation",
                 dateOfBirth: "",
                 hireDate: new Date().toISOString().slice(0,10),
-                emergencyContact: "",
                 salary: typeof prefillCandidate.grossSalary !== 'undefined' ? prefillCandidate.grossSalary : undefined,
                 status: 'active',
                 role: 'employee'

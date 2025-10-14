@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useSystemCatalog } from "@/contexts/SystemCatalogContext"
+import { KENYA_COUNTIES, KENYA_SUBCOUNTIES } from "@/lib/kenya-admin"
 import { useUsers } from "@/contexts/UsersContext"
 import { useToast } from '@/hooks/use-toast'
 import { Textarea } from "@/components/ui/textarea"
@@ -37,7 +38,6 @@ export type EmployeeFormData = {
   company?: string
   dateOfBirth?: string
   hireDate?: string
-  emergencyContact?: string
   salary?: number
   status?: 'active' | 'inactive' | 'terminated' | 'retired'
   cadre?: 'Support' | 'Technical' | 'Management'
@@ -51,6 +51,8 @@ export type EmployeeFormData = {
   // Special needs
   hasSpecialNeeds?: boolean
   specialNeedsDescription?: string
+  // Address details
+  homeSubcounty?: string
 }
 
 export function EmployeeForm({
@@ -101,21 +103,27 @@ export function EmployeeForm({
   const { toast } = useToast();
 
   // Kenyan counties list (47)
-  const counties = [
-    "Mombasa","Kwale","Kilifi","Tana River","Lamu","Taita-Taveta",
-    "Garissa","Wajir","Mandera","Marsabit","Isiolo","Meru","Tharaka-Nithi",
-    "Embu","Kitui","Machakos","Makueni","Nyandarua","Nyeri","Kirinyaga",
-    "Murang'a","Kiambu","Turkana","West Pokot","Samburu","Trans Nzoia",
-    "Uasin Gishu","Elgeyo-Marakwet","Nandi","Baringo","Laikipia","Nakuru",
-    "Narok","Kajiado","Kericho","Bomet","Kakamega","Vihiga","Bungoma",
-    "Busia","Siaya","Kisumu","Homa Bay","Migori","Kisii","Nyamira",
-    "Nairobi"
-  ]
+  const counties = KENYA_COUNTIES
+
+  // Basic county -> subcounty mapping (expandable). Used by Home subcounty select.
+  const subcountyMap: Record<string, string[]> = KENYA_SUBCOUNTIES
 
   // Phone dial code selection - default to Kenya (+254) regardless of current phone value
   const [phoneDial, setPhoneDial] = React.useState<string>("+254")
 
   const handleSave = (data: EmployeeFormData) => {
+    // Normalize Next of Kin phone to E.164 (+254...) if entered in local format
+    const normalizeKinPhone = (raw?: string) => {
+      if (!raw) return raw
+      const s = String(raw).replace(/\s+/g, '')
+      if (/^\+[1-9]\d{6,14}$/.test(s)) return s
+      const m = s.match(/^(?:\+?254|0)?(7\d{8}|1\d{8})$/)
+      if (m) return `+254${m[1]}`
+      return s
+    }
+    if ((data as any).nextOfKinPhone) {
+      ;(data as any).nextOfKinPhone = normalizeKinPhone((data as any).nextOfKinPhone)
+    }
     // Required validations for system-selected fields
     if (!data.position) {
       setError("position", { type: "required", message: "Position is required" });
@@ -131,6 +139,11 @@ export function EmployeeForm({
     }
     if (!data.role) {
       setError("role", { type: "required", message: "Role is required" });
+      return;
+    }
+    // If Home County selected, require Home Subcounty
+    if (data.homeCounty && !data.homeSubcounty) {
+      setError("homeSubcounty" as any, { type: "required", message: "Select a Home Subcounty" } as any);
       return;
     }
     // Enforce mapping: email should ideally exist in system users (created by Admin)
@@ -191,7 +204,7 @@ export function EmployeeForm({
       <form onSubmit={handleSubmit(handleSave)} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Personal Information */}
-          <div className="space-y-4">
+          <div className="space-y-4 rounded-lg border p-4">
             <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
             
             <div>
@@ -338,14 +351,58 @@ export function EmployeeForm({
               <Input id="children" type="number" {...register("children")} />
             </div>
 
+            {/* Emergency Contact removed; using Next of Kin section instead */}
+
+            {/* Home address details moved under Personal Information */}
             <div>
-              <Label htmlFor="emergencyContact">Emergency Contact</Label>
-              <Input id="emergencyContact" {...register("emergencyContact")} />
+              <Label htmlFor="homeCounty">Home County</Label>
+              <Select value={watch("homeCounty")} onValueChange={(value) => setValue("homeCounty", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select county" />
+                </SelectTrigger>
+                <SelectContent>
+                  {counties.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Home Subcounty dropdown dependent on Home County */}
+            {(() => {
+              const county = watch('homeCounty') || ''
+              const list = subcountyMap[county] || []
+              const disabled = !county
+              return (
+                <div>
+                  <Label htmlFor="homeSubcounty">Home Subcounty</Label>
+                  <Select value={watch('homeSubcounty') || ''} onValueChange={(v) => setValue('homeSubcounty', v)}>
+                    <SelectTrigger disabled={disabled}>
+                      <SelectValue placeholder={disabled ? 'Select county first' : 'Select subcounty'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {list.map(sc => (<SelectItem key={sc} value={sc}>{sc}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">{disabled ? 'Select Home County to enable subcounty list' : 'Choose the subcounty where the employee resides'}</p>
+                  {(errors as any).homeSubcounty && <p className="text-destructive text-sm">{(errors as any).homeSubcounty?.message}</p>}
+                </div>
+              )
+            })()}
+
+            <div>
+              <Label htmlFor="postalAddress">Postal Address</Label>
+              <Input id="postalAddress" {...register("postalAddress")} />
+            </div>
+
+            <div>
+              <Label htmlFor="postalCode">Postal Code</Label>
+              <Input id="postalCode" {...register("postalCode")} />
             </div>
           </div>
 
           {/* Employment Information */}
-          <div className="space-y-4">
+          <div className="space-y-4 rounded-lg border p-4">
             <h3 className="text-lg font-semibold mb-4">Employment Information</h3>
 
             <div>
@@ -487,6 +544,20 @@ export function EmployeeForm({
               </Select>
             </div>
 
+            <div>
+              <Label htmlFor="workCounty">Work County</Label>
+              <Select value={watch("workCounty")} onValueChange={(value) => setValue("workCounty", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select county" />
+                </SelectTrigger>
+                <SelectContent>
+                  {counties.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
 
             {/* Removed Staff Number for consistency with Employee Number */}
 
@@ -543,49 +614,10 @@ export function EmployeeForm({
           </div>
         </div>
 
-        {/* Address Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-          <div>
-            <Label htmlFor="workCounty">Work County</Label>
-            <Select value={watch("workCounty")} onValueChange={(value) => setValue("workCounty", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select county" />
-              </SelectTrigger>
-              <SelectContent>
-                {counties.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Address Information section removed; fields relocated above */}
 
-          <div>
-            <Label htmlFor="homeCounty">Home County</Label>
-            <Select value={watch("homeCounty")} onValueChange={(value) => setValue("homeCounty", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select county" />
-              </SelectTrigger>
-              <SelectContent>
-                {counties.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="postalAddress">Postal Address</Label>
-            <Input id="postalAddress" {...register("postalAddress")} />
-          </div>
-
-          <div>
-            <Label htmlFor="postalCode">Postal Code</Label>
-            <Input id="postalCode" {...register("postalCode")} />
-          </div>
-        </div>
-
-        {/* Next of Kin */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6 border-t">
+  {/* Next of Kin */}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg border p-4">
           <div className="md:col-span-2">
             <h3 className="text-lg font-semibold mb-2">Next of Kin</h3>
             <p className="text-sm text-muted-foreground mb-3">Provide details for the person to contact in case of emergency.</p>
@@ -600,11 +632,13 @@ export function EmployeeForm({
           </div>
           <div>
             <Label htmlFor="nextOfKinPhone">Phone</Label>
-            <Input id="nextOfKinPhone" placeholder="e.g., +2547XXXXXXXX" {...register('nextOfKinPhone', {
+            <Input id="nextOfKinPhone" placeholder="e.g., +2547XXXXXXXX or 07XXXXXXXX" {...register('nextOfKinPhone', {
               validate: (v) => {
                 if (!v) return true
+                const s = String(v).replace(/\s+/g, '')
                 const e164 = /^\+[1-9]\d{6,14}$/
-                return e164.test(v) || 'Enter a valid phone in international format'
+                const keLocal = /^(?:\+?254|0)?(7\d{8}|1\d{8})$/
+                return (e164.test(s) || keLocal.test(s)) || 'Enter a valid phone (e.g., +2547XXXXXXXX or 07XXXXXXXX)'
               }
             })} />
             {(errors as any).nextOfKinPhone && <p className="text-destructive text-sm">{(errors as any).nextOfKinPhone?.message}</p>}
@@ -622,8 +656,8 @@ export function EmployeeForm({
           </div>
         </div>
 
-        {/* Special Needs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6 border-t">
+  {/* Special Needs */}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg border p-4">
           <div className="md:col-span-2">
             <h3 className="text-lg font-semibold mb-2">Special Needs</h3>
             <p className="text-sm text-muted-foreground mb-3">Indicate if the employee has any special needs for accommodation.</p>

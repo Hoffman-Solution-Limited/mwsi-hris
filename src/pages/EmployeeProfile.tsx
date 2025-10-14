@@ -468,12 +468,6 @@ export const EmployeeProfile: React.FC = () => {
                   </div>
                   {showPersonalInfo && (
                     <>
-                      <div>
-                        <label className="text-sm font-medium text-foreground mb-1 block">Emergency Contact</label>
-                        <div className="bg-muted px-3 py-2 rounded-md text-sm font-medium">
-                          {employee.emergencyContact || 'Not specified'}
-                        </div>
-                      </div>
                       <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <label className="text-sm font-medium text-foreground mb-1 block">Next of Kin Name</label>
@@ -583,11 +577,18 @@ export const EmployeeProfile: React.FC = () => {
                       {employee.workCounty || 'Nairobi'}
                     </div>
                   </div>
+                  {/* Work Subcounty removed per request */}
                   
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">Home County</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm">
                       {employee.homeCounty || 'Nairobi'}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Home Subcounty</label>
+                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
+                      {(employee as any).homeSubcounty || '—'}
                     </div>
                   </div>
                   

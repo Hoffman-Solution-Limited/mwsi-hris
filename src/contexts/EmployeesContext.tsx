@@ -10,6 +10,7 @@ type EmployeesContextType = {
   loading: boolean;
   addEmployee: (data: Omit<EmployeeRecord, 'id' | 'avatar' | 'status' | 'hireDate'> & Partial<Pick<EmployeeRecord, 'status' | 'hireDate'>>) => Promise<EmployeeRecord | void>;
   updateEmployee: (id: string, updates: Partial<EmployeeRecord>) => Promise<void>;
+  updateEmployeeStrict?: (id: string, updates: Partial<EmployeeRecord>) => Promise<void>;
   updateEmployeeStatus?: (id: string, status: EmployeeRecord['status']) => Promise<void>;
   removeEmployee: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
@@ -92,8 +93,15 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const updated = await api.put(`/api/employees/${id}`, updates);
       setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...(updated as EmployeeRecord) } as EmployeeRecord : e)));
     } catch (err) {
+      // Optimistic fallback when API fails
       setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...updates } as EmployeeRecord : e)));
     }
+  };
+
+  // Strict updater: throws on API error (no optimistic fallback)
+  const updateEmployeeStrict: EmployeesContextType['updateEmployeeStrict'] = async (id, updates) => {
+    const updated = await api.put(`/api/employees/${id}`, updates);
+    setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...(updated as EmployeeRecord) } as EmployeeRecord : e)));
   };
 
   const updateEmployeeStatus: EmployeesContextType['updateEmployeeStatus'] = async (id, status) => {
@@ -116,7 +124,7 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  const value = useMemo(() => ({ employees, loading, addEmployee, updateEmployee, updateEmployeeStatus, removeEmployee, refresh }), [employees, loading, addEmployee, updateEmployee, updateEmployeeStatus, removeEmployee, refresh]);
+  const value = useMemo(() => ({ employees, loading, addEmployee, updateEmployee, updateEmployeeStrict, updateEmployeeStatus, removeEmployee, refresh }), [employees, loading, addEmployee, updateEmployee, updateEmployeeStrict, updateEmployeeStatus, removeEmployee, refresh]);
 
   // attach helper to rename stations across employees
   const renameStationAcrossEmployees = (oldName: string, newName:string) => {

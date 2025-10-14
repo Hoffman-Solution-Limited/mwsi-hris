@@ -29,7 +29,6 @@ type ProfileFormData = {
   company?: string
   dateOfBirth?: string
   hireDate?: string
-  emergencyContact?: string
   salary?: number
   status?: 'active' | 'inactive' | 'terminated'
   cadre?: 'Support' | 'Technical' | 'Management'
@@ -199,10 +198,7 @@ export function EditProfileForm({ defaultValues, onSave }: {
               <Input id="children" type="number" {...register("children")} />
             </div>
 
-            <div>
-              <Label htmlFor="emergencyContact">Emergency Contact</Label>
-              <Input id="emergencyContact" {...register("emergencyContact")} />
-            </div>
+            {/* Emergency Contact removed; Next of Kin section exists in Employee form */}
           </div>
 
           {/* Employment Information */}

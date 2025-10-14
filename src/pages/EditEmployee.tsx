@@ -11,7 +11,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 
 const EditEmployeePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { employees, updateEmployee, loading } = useEmployees();
+  const { employees, updateEmployeeStrict: updateEmployee, loading } = useEmployees();
   const { users, updateUser } = useUsers();
   const { user } = useAuth();
   const { can } = usePermissions();
@@ -101,9 +101,8 @@ const EditEmployeePage: React.FC = () => {
                 postalCode: employee.postalCode,
                 skillLevel: employee.skillLevel,
                 company: employee.company,
-                dateOfBirth: employee.dateOfBirth,
-                hireDate: employee.hireDate,
-                emergencyContact: employee.emergencyContact,
+                dateOfBirth: employee.dateOfBirth ? String(employee.dateOfBirth).slice(0,10) : '',
+                hireDate: employee.hireDate ? String(employee.hireDate).slice(0,10) : '',
                 salary: employee.salary,
                 status: employee.status as any,
                 employeeNumber: (employee as any).employeeNumber,
@@ -117,9 +116,10 @@ const EditEmployeePage: React.FC = () => {
                 // Special needs
                 hasSpecialNeeds: !!(employee as any).hasSpecialNeeds,
                 specialNeedsDescription: (employee as any).specialNeedsDescription || '',
+                homeSubcounty: (employee as any).homeSubcounty || '',
               }}
               mode="edit"
-              onSave={(data) => {
+              onSave={async (data) => {
                 // Resolve manager name and managerId.
                 // If a managerId was provided use it. Otherwise try to resolve managerId
                 // from a provided manager name/email by looking up in users or employees.
@@ -146,7 +146,8 @@ const EditEmployeePage: React.FC = () => {
                     }
                   }
                 }
-                updateEmployee(employee.id, {
+                try {
+                await updateEmployee!(employee.id, {
                   ...data,
                   name: data.name,
                   email: data.email,
@@ -168,9 +169,8 @@ const EditEmployeePage: React.FC = () => {
                   stationName: data.stationName,
                   skillLevel: data.skillLevel,
                   company: data.company,
-                  dateOfBirth: data.dateOfBirth,
-                  hireDate: data.hireDate,
-                  emergencyContact: data.emergencyContact,
+                  dateOfBirth: data.dateOfBirth ? String(data.dateOfBirth).slice(0,10) : undefined,
+                  hireDate: data.hireDate ? String(data.hireDate).slice(0,10) : undefined,
                   salary: data.salary,
                   status: data.status,
                   // Persist managerId and keep manager name for backward compatibility
@@ -185,6 +185,7 @@ const EditEmployeePage: React.FC = () => {
                   // Special needs
                   hasSpecialNeeds: (data as any).hasSpecialNeeds,
                   specialNeedsDescription: (data as any).specialNeedsDescription,
+                  homeSubcounty: (data as any).homeSubcounty,
                 });
                 // Align linked user role if present
                 try {
@@ -194,6 +195,9 @@ const EditEmployeePage: React.FC = () => {
                   }
                 } catch {}
                 navigate(`/employees/${employee.id}`);
+                } catch (err) {
+                  // Do not navigate; error toast handled in api.ts throw
+                }
               }}
             />
           )}
