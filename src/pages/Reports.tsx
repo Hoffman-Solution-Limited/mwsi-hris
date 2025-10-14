@@ -9,11 +9,12 @@ import { useLeave } from '@/contexts/LeaveContext';
 import { usePerformance } from '@/contexts/PerformanceContext';
 import { useTraining } from '@/contexts/TrainingContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { isAuthManager, mapRole } from '@/lib/roles';
 import { Progress } from '@/components/ui/progress';
 
 export const Reports: React.FC = () => {
   const { user } = useAuth();
-  const isHR = user && (user.role === 'hr_manager' || user.role === 'hr_staff' || user.role === 'admin');
+  const isHR = !!user && (mapRole(user.role) === 'hr' || mapRole(user.role) === 'admin');
 
   const { employees } = useEmployees();
   const { leaveRequests } = useLeave();

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useUsers } from './UsersContext'; // Import useUsers hook
 
-export type UserRole = 'admin' | 'hr_manager' | 'hr_staff' | 'employee' | 'manager' | 'registry_manager';
+export type UserRole = 'admin' | 'hr_manager' | 'hr_staff' | 'employee' | 'manager' | 'registry_manager' | 'testing';
 
 export interface User {
   id: string;
@@ -16,59 +17,11 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUser?: (updates: Partial<User>) => void;
   isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Mock users for demo
-const mockUsers: Record<string, User> = {
-  'admin@mwsi.com': {
-    id: '1',
-    name: 'John Smith',
-    email: 'admin@mwsi.com',
-    role: 'admin',
-    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=JS',
-    department: 'IT',
-    position: 'System Administrator'
-  },
-  'hr@mwsi.com': {
-    id: '2',
-    name: 'Sarah Johnson',
-    email: 'hr@mwsi.com',
-    role: 'hr_manager',
-    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=SJ',
-    department: 'Human Resources',
-    position: 'HR Manager'
-  },
-  'employee@mwsi.com': {
-    id: '3',
-    name: 'Michael Davis',
-    email: 'employee@mwsi.com',
-    role: 'employee',
-    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=MD',
-    department: 'Engineering',
-    position: 'Software Developer'
-  },
-  'david.manager@mwsi.com': {
-    id: '10',
-    name: 'David Manager',
-    email: 'david.manager@mwsi.com',
-    role: 'manager',
-    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=DM',
-    department: 'Engineering',
-    position: 'Engineering Manager'
-  },
-  'registry@mwsi.com': {
-    id: '12',
-    name: 'Rita Registry',
-    email: 'registry@mwsi.com',
-    role: 'registry_manager',
-    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=RR',
-    department: 'Registry',
-    position: 'Registry Manager'
-  }
-};
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -77,6 +30,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { findByEmail: findUserByEmail, users } = useUsers(); // Use the hook from UsersContext
 
   useEffect(() => {
     // Check for stored user session
@@ -93,10 +47,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const found = mockUsers[email];
-    if (found && password === 'demo123') {
-      setUser(found);
-      localStorage.setItem('hris-user', JSON.stringify(found));
+    const found = users.find(u => u.email === email); // Use findByEmail from UsersContext
+    if (found && password === 'demo123') { // Note: This still uses a hardcoded password for demo purposes
+      const userToLogin: User = {
+        id: found.id,
+        name: found.name || '',
+        email: found.email,
+        role: found.role.toLowerCase() as UserRole, // Normalize role
+      };
+      setUser(userToLogin);
+      localStorage.setItem('hris-user', JSON.stringify(userToLogin));
     } else {
       setIsLoading(false);
       throw new Error('Invalid credentials');
@@ -110,8 +70,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('hris-user');
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    setUser(prev => {
+      const next = prev ? { ...prev, ...updates } : null;
+      try { if (next) localStorage.setItem('hris-user', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

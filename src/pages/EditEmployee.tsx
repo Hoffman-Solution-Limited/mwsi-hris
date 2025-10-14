@@ -1,7 +1,8 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EditProfileForm } from "@/components/EditProfileForm";
+import { EmployeeForm } from "@/components/EmployeeForm";
+import { useUsers } from '@/contexts/UsersContext';
 import { useEmployees } from "@/contexts/EmployeesContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
@@ -11,6 +12,7 @@ import { ArrowLeft } from "lucide-react";
 const EditEmployeePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { employees, updateEmployee } = useEmployees();
+  const { users } = useUsers();
   const { user } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
@@ -53,12 +55,13 @@ const EditEmployeePage: React.FC = () => {
               You do not have permission to edit employees.
             </div>
           ) : (
-            <EditProfileForm
+            <EmployeeForm
               defaultValues={{
                 name: employee.name,
                 email: employee.email,
                 phone: employee.phone,
                 position: employee.position,
+                department: employee.department,
                 gender: employee.gender,
                 cadre: employee.cadre as any,
                 employmentType: employee.employmentType,
@@ -80,8 +83,37 @@ const EditEmployeePage: React.FC = () => {
                 salary: employee.salary,
                 status: employee.status,
                 employeeNumber: (employee as any).employeeNumber,
+                isManager: (employee as any).isManager,
+                managerId: (employee as any).managerId || '',
               }}
+              mode="edit"
               onSave={(data) => {
+                // Resolve manager name and managerId.
+                // If a managerId was provided use it. Otherwise try to resolve managerId
+                // from a provided manager name/email by looking up in users or employees.
+                let managerName: string | undefined = undefined;
+                let resolvedManagerId: string | undefined = undefined;
+
+                if ((data as any).managerId) {
+                  resolvedManagerId = (data as any).managerId;
+                  const m = users.find(u => u.id === resolvedManagerId || u.email === resolvedManagerId);
+                  if (m && m.name) managerName = m.name;
+                } else if ((data as any).manager) {
+                  const managerStr = String((data as any).manager).toLowerCase();
+                  // Try to find a matching user by exact email or name
+                  const userMatch = users.find(u => (u.email && u.email.toLowerCase() === managerStr) || (u.name && u.name.toLowerCase() === managerStr));
+                  if (userMatch) {
+                    resolvedManagerId = userMatch.id;
+                    managerName = userMatch.name;
+                  } else {
+                    // Fallback: try to find an employee with that name/email in employees
+                    const empMatch = employees.find(e => (e.email && e.email.toLowerCase() === managerStr) || (e.name && e.name.toLowerCase() === managerStr));
+                    if (empMatch) {
+                      resolvedManagerId = empMatch.id;
+                      managerName = empMatch.name;
+                    }
+                  }
+                }
                 updateEmployee(employee.id, {
                   name: data.name,
                   email: data.email,
@@ -108,6 +140,9 @@ const EditEmployeePage: React.FC = () => {
                   emergencyContact: data.emergencyContact,
                   salary: data.salary,
                   status: data.status,
+                  // Persist managerId and keep manager name for backward compatibility
+                  managerId: resolvedManagerId || (data as any).managerId || undefined,
+                  manager: managerName || (data as any).manager || undefined,
                 });
                 navigate(`/employees/${employee.id}`);
               }}

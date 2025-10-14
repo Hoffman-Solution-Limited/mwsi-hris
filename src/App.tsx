@@ -62,6 +62,7 @@ import MyFilesPage from "@/pages/MyFiles";
 import RequestsManagementPage from "@/pages/RequestsManagement";
 import EmploymentAttributesPage from "@/pages/EmploymentAttributes";
 import DocumentTypesPage from "@/pages/DocumentTypes";
+import ManagersOverview from '@/pages/ManagersOverview';
 
 const queryClient = new QueryClient();
 
@@ -118,6 +119,7 @@ const App = () => (
                           <Route path="/employee-files" element={<ProtectedRoute><RequirePermission permission="page.employee-files"><Layout><DocumentTrackingPage /></Layout></RequirePermission></ProtectedRoute>} />
                           <Route path="/my-files" element={<ProtectedRoute><Layout><MyFilesPage /></Layout></ProtectedRoute>} />
                           <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
+                          <Route path="/managers" element={<ProtectedRoute><Layout><ManagersOverview /></Layout></ProtectedRoute>} />
                           <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />
                           <Route path="/manager-apply-leave" element={<ProtectedRoute><Layout><ManagerApplyLeave /></Layout></ProtectedRoute>} />
                           <Route path="/performance/reviews/:id" element={<ReviewDetails />} />

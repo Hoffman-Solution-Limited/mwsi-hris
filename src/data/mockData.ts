@@ -180,6 +180,8 @@ export interface Employee {
   position: string;
   department: string;
   manager?: string;
+  // Stable reference to a manager user or employee id (preferred when available)
+  managerId?: string;
   hireDate: string;
   status: 'active' | 'inactive' | 'terminated';
   avatar?: string;
@@ -232,10 +234,13 @@ export interface TrainingRecord {
   employeeId: string;
   title: string;
   type: 'mandatory' | 'development' | 'compliance';
-  status: 'completed' | 'in_progress' | 'not_started';
+  // Added 'closed' to indicate a program that has been closed by admin
+  status: 'completed' | 'in_progress' | 'not_started' | 'closed';
   completionDate?: string;
   expiryDate?: string;
   provider: string;
+  // Archive flag to move records out of active lists and into history
+  archived?: boolean;
 }
 
 export interface LeaveRequest {
@@ -262,7 +267,8 @@ export const mockEmployees: Employee[] = [
     email: 'john.smith@mwsi.com',
     position: 'System Administrator',
     department: 'IT',
-    manager: 'Sarah Johnson',
+  manager: 'Sarah Johnson',
+  managerId: '2',
     hireDate: '2022-01-15',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=JS',
@@ -299,7 +305,7 @@ export const mockEmployees: Employee[] = [
     email: 'sarah.johnson@mwsi.com',
     position: 'HR Manager',
     department: 'Human Resources',
-    hireDate: '2021-03-20',
+  hireDate: '2021-03-20',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=SJ',
     phone: '+254-700-234567',
@@ -335,7 +341,7 @@ export const mockEmployees: Employee[] = [
       email: 'david.manager@mwsi.com',
       position: 'Operations Manager',
       department: 'Operations',
-      manager: undefined,
+  manager: undefined,
       hireDate: '2019-03-10',
       status: 'active',
       avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=DM',
@@ -372,6 +378,7 @@ export const mockEmployees: Employee[] = [
   position: 'Software Developer',
   department: 'Engineering',
   manager: 'David Manager',
+  managerId: '10',
   hireDate: '2022-07-10',
   status: 'active',
   avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=MD',
@@ -406,9 +413,10 @@ export const mockEmployees: Employee[] = [
     id: '4',
     name: 'Emily Chen',
     email: 'emily.chen@mwsi.com',
-    position: 'Marketing Coordinator',
-    department: 'Marketing',
-    manager: 'Sarah Johnson',
+    position: 'Registry Manager',
+    department: 'Registry',
+  manager: 'David Manager',
+  managerId: '10',
     hireDate: '2023-02-14',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=EC',
@@ -445,7 +453,9 @@ export const mockEmployees: Employee[] = [
     email: 'robert.wilson@mwsi.com',
     position: 'Finance Director',
     department: 'Finance',
-    hireDate: '2020-11-30',
+  hireDate: '2020-11-30',
+  manager: 'Sarah Johnson',
+  managerId: '2',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=RW',
     phone: '+254-700-567890',
@@ -476,12 +486,22 @@ export const mockEmployees: Employee[] = [
     dateOfBirth: '1978-12-18'
   },
   {
+    id: 'admin-001',
+    name: 'Main Admin',
+    email: 'admin@mwsi.com',
+    position: 'System Administrator',
+    department: 'IT',
+    hireDate: '2020-01-01',
+    status: 'active',
+  },
+  {
     id: '6',
     name: 'Jane Smith',
     email: 'jane.smith@mwsi.com',
     position: 'Senior Developer',
     department: 'Engineering',
-    manager: 'David Manager',
+  manager: 'David Manager',
+  managerId: '10',
     hireDate: '2021-08-15',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=JS2',
@@ -518,7 +538,8 @@ export const mockEmployees: Employee[] = [
     email: 'robert.chen@mwsi.com',
     position: 'DevOps Engineer',
     department: 'Engineering',
-    manager: 'David Manager',
+  manager: 'David Manager',
+  managerId: '10',
     hireDate: '2022-03-01',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=RC',
@@ -555,7 +576,9 @@ export const mockEmployees: Employee[] = [
     email: 'registry@mwsi.com',
     position: 'Registry Manager',
     department: 'Registry',
-    hireDate: '2021-08-15',
+  hireDate: '2021-08-15',
+  manager: 'Sarah Johnson',
+  managerId: '2',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=RR',
     phone: '+254-700-888888',
@@ -723,6 +746,17 @@ export const mockTrainingRecords: TrainingRecord[] = [
       status: 'in_progress',
       provider: 'Legal Compliance Corp'
     },
+    // Example archived training
+    {
+      id: 'arch-1',
+      employeeId: '3',
+      title: 'Old Compliance Course',
+      type: 'compliance',
+      status: 'completed',
+      provider: 'Legacy Provider',
+      completionDate: '2020-01-01',
+      archived: true
+    }
 ];
 
 export const mockLeaveRequests: LeaveRequest[] = [

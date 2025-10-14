@@ -121,7 +121,9 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             <Button variant="ghost" className="flex items-center gap-2 text-blue-900">
               <Avatar className="w-8 h-8">
                 <AvatarImage src={user?.avatar} />
-                <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                <AvatarFallback>{
+                  (user?.name ? user.name.split(' ').map(n => n[0]).slice(0,2).join('') : 'U')
+                }</AvatarFallback>
               </Avatar>
               <div className="text-left hidden md:block">
                 <p className="text-sm font-medium">{user?.name}</p>
@@ -132,10 +134,12 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
+             {(user?.role != 'admin') && (
             <DropdownMenuItem onClick={handleProfile} className="cursor-pointer">
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
+              )}
             <DropdownMenuItem onClick={handleSettings} className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               <span>Change Password</span>

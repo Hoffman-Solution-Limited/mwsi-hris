@@ -1,3 +1,4 @@
+import { mapRole } from '@/lib/roles'
 import React, { useState } from "react"
 import { Search, Plus, Download, Grid, List, Upload } from "lucide-react"
 
@@ -14,8 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useEmployees } from "@/contexts/EmployeesContext"
+import { useUsers } from "@/contexts/UsersContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
+import { useToast } from '@/hooks/use-toast'
 import {
   Dialog,
   DialogContent,
@@ -31,15 +34,19 @@ export const EmployeeDirectory: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("all")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const navigate = useNavigate()
-  const { employees, addEmployee } = useEmployees()
+  const { users: employees, addUser } = useUsers() // Use users as employees
+  const { users } = useUsers()
+  const { toast } = useToast()
 
   // Get logged-in user (manager) from context
   // Use useAuth hook for consistent logic
   const { user } = useAuth();
 
   // Scope employees by role (manager sees only direct reports; others see all)
-  const baseEmployees = user?.role === 'manager'
-    ? employees.filter(e => e.manager === user.name)
+  const canonical = mapRole(user?.role)
+  const isManager = canonical === 'manager';
+  const baseEmployees = canonical === 'manager'
+    ? user ? employees.filter(e => String(e.managerId || '') === String(user.id || '')) : []
     : employees;
 
   // Unique departments based on scoped employees
@@ -61,97 +68,103 @@ export const EmployeeDirectory: React.FC = () => {
     return matchesSearch && matchesDepartment && matchesStatus
   })
 
+  const canOpenProfile = canonical !== 'manager'
+
   const handleEmployeeClick = (employeeId: string) => {
+    if (!canOpenProfile) {
+      toast({ title: 'Access restricted', description: 'Managers cannot open employee profiles; contact HR for details.' })
+      return
+    }
     navigate(`/employees/${employeeId}`)
   }
 
-// Simple inline component to preview CSV uploads (frontend stub)
-const BulkUploadCsvDialog: React.FC = () => {
-  const [file, setFile] = useState<File | null>(null)
-  const [headers, setHeaders] = useState<string[]>([])
-  const [rows, setRows] = useState<string[][]>([])
-  const [error, setError] = useState<string | null>(null)
+  // Simple inline component to preview CSV uploads (frontend stub)
+  const BulkUploadCsvDialog: React.FC = () => {
+    const [file, setFile] = useState<File | null>(null)
+    const [headers, setHeaders] = useState<string[]>([])
+    const [rows, setRows] = useState<string[][]>([])
+    const [error, setError] = useState<string | null>(null)
 
-  const templateHeaders = [
-    'name','email','department','position','cadre','stationName','dateOfBirth','hireDate','gender','employmentType','phone','status'
-  ]
+    const templateHeaders = [
+      'name','email','department','position','cadre','stationName','dateOfBirth','hireDate','gender','employmentType','phone','status'
+    ]
 
-  const handleFile = (f: File | null) => {
-    setFile(f)
-    setError(null)
-    setHeaders([])
-    setRows([])
-    if (!f) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      const text = String(reader.result || '')
-      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0)
-      if (lines.length === 0) return
-      const hdr = lines[0].split(',').map(h => h.trim())
-      setHeaders(hdr)
-      const data = lines.slice(1).map(l => l.split(',').map(c => c.trim()))
-      setRows(data.slice(0, 20))
-      // Basic header validation
-      const missing = templateHeaders.filter(h => !hdr.includes(h))
-      if (missing.length) {
-        setError(`Missing required columns: ${missing.join(', ')}`)
+    const handleFile = (f: File | null) => {
+      setFile(f)
+      setError(null)
+      setHeaders([])
+      setRows([])
+      if (!f) return
+      const reader = new FileReader()
+      reader.onload = () => {
+        const text = String(reader.result || '')
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0)
+        if (lines.length === 0) return
+        const hdr = lines[0].split(',').map(h => h.trim())
+        setHeaders(hdr)
+        const data = lines.slice(1).map(l => l.split(',').map(c => c.trim()))
+        setRows(data.slice(0, 20))
+        // Basic header validation
+        const missing = templateHeaders.filter(h => !hdr.includes(h))
+        if (missing.length) {
+          setError(`Missing required columns: ${missing.join(', ')}`)
+        }
       }
+      reader.readAsText(f)
     }
-    reader.readAsText(f)
-  }
 
-  const downloadTemplate = () => {
-    const csv = templateHeaders.join(',') + '\n'
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'employees_template.csv'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+    const downloadTemplate = () => {
+      const csv = templateHeaders.join(',') + '\n'
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'employees_template.csv'
+      a.click()
+      URL.revokeObjectURL(url)
+    }
 
-  return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <input
-          type="file"
-          accept=".csv,text/csv"
-          onChange={e => handleFile(e.target.files?.[0] || null)}
-        />
-        <div className="text-xs text-muted-foreground">
-          Required columns: {templateHeaders.join(', ')}
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            onChange={e => handleFile(e.target.files?.[0] || null)}
+          />
+          <div className="text-xs text-muted-foreground">
+            Required columns: {templateHeaders.join(', ')}
+          </div>
         </div>
-      </div>
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={downloadTemplate}>Download Template</Button>
-        <Button size="sm" disabled={!!error || !file}>Import (stub)</Button>
-      </div>
-      {error && <div className="text-sm text-destructive">{error}</div>}
-      {headers.length > 0 && (
-        <div className="border rounded-md overflow-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr>
-                {headers.map(h => (<th key={h} className="p-2 text-left border-b bg-muted">{h}</th>))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={i} className="odd:bg-background even:bg-muted/30">
-                  {r.map((c, j) => (<td key={j} className="p-2 border-b">{c}</td>))}
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={downloadTemplate}>Download Template</Button>
+          <Button size="sm" disabled={!!error || !file}>Import (stub)</Button>
+        </div>
+        {error && <div className="text-sm text-destructive">{error}</div>}
+        {headers.length > 0 && (
+          <div className="border rounded-md overflow-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr>
+                  {headers.map(h => (<th key={h} className="p-2 text-left border-b bg-muted">{h}</th>))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {rows.length === 0 && (
-            <div className="p-4 text-sm text-muted-foreground">No data rows detected.</div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i} className="odd:bg-background even:bg-muted/30">
+                    {r.map((c, j) => (<td key={j} className="p-2 border-b">{c}</td>))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {rows.length === 0 && (
+              <div className="p-4 text-sm text-muted-foreground">No data rows detected.</div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -170,7 +183,7 @@ const BulkUploadCsvDialog: React.FC = () => {
           </Button>
 
           {/* Add Employee as separate page */}
-          {["admin", "hr_manager"].includes(user?.role as any) && (
+          {(mapRole(user?.role) === 'admin' || mapRole(user?.role) === 'hr') && (
             <Button size="sm" onClick={() => navigate("/employees/new") }>
               <Plus className="w-4 h-4 mr-2" />
               Add New Employee
@@ -178,13 +191,13 @@ const BulkUploadCsvDialog: React.FC = () => {
           )}
 
           {/* Bulk Upload (HR/Admin only) */}
-          {(["admin","hr_manager","hr_staff"] as const).includes(user?.role as any) && (
+          {(mapRole(user?.role) === 'admin' || mapRole(user?.role) === 'hr') && (
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="secondary" size="sm">
                   <Upload className="w-4 h-4 mr-2" />
                   Bulk Upload
-                </Button>
+              </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
@@ -210,26 +223,28 @@ const BulkUploadCsvDialog: React.FC = () => {
                 className="pl-10"
               />
             </div>
-            
+
             <div className="flex gap-2">
               {["admin", "hr_manager"].includes(user?.role) && (
-              <Select
-                value={departmentFilter}
-                onValueChange={setDepartmentFilter}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="All Departments" />
-                </SelectTrigger>
-                
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select> )}
+                <Select
+                  value={departmentFilter}
+                  onValueChange={setDepartmentFilter}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-32">
                   <SelectValue placeholder="All Status" />
@@ -241,6 +256,7 @@ const BulkUploadCsvDialog: React.FC = () => {
                   <SelectItem value="terminated">Terminated</SelectItem>
                 </SelectContent>
               </Select>
+
               <div className="flex border rounded-md">
                 <Button
                   variant={viewMode === "grid" ? "default" : "ghost"}
@@ -260,9 +276,8 @@ const BulkUploadCsvDialog: React.FC = () => {
                 </Button>
               </div>
             </div>
-            
           </div>
-         
+
         </CardContent>
       </Card>
 
@@ -313,14 +328,14 @@ const BulkUploadCsvDialog: React.FC = () => {
                   >
                     {employee.status}
                   </Badge>
-                  <div className="w-full text-xs text-muted-foreground space-y-1">
+                  {!isManager && (<div className="w-full text-xs text-muted-foreground space-y-1">
                     <p>📧 {employee.email}</p>
                     {employee.phone && <p>📞 {employee.phone}</p>}
                     <p>
                       📅 Joined{" "}
                       {new Date(employee.hireDate).toLocaleDateString()}
                     </p>
-                  </div>
+                  </div>)}
                 </div>
               </CardContent>
             </Card>
@@ -341,8 +356,8 @@ const BulkUploadCsvDialog: React.FC = () => {
                     <th>Department</th>
                     <th>Cadre</th>
                     <th>Status</th>
-                    <th>Hire Date</th>
-                    <th>Contact</th>
+                    {!isManager && (<><th>Hire Date</th>
+                    <th>Contact</th></>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -395,7 +410,7 @@ const BulkUploadCsvDialog: React.FC = () => {
                           {employee.status}
                         </Badge>
                       </td>
-                      <td>{new Date(employee.hireDate).toLocaleDateString()}</td>
+                      {!isManager && (<><td>{new Date(employee.hireDate).toLocaleDateString()}</td>
                       <td>
                         <div className="text-sm">
                           <p>{employee.email}</p>
@@ -405,7 +420,7 @@ const BulkUploadCsvDialog: React.FC = () => {
                             </p>
                           )}
                         </div>
-                      </td>
+                      </td></>)}
                     </tr>
                   ))}
                 </tbody>

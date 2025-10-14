@@ -13,8 +13,10 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUsers } from '@/contexts/UsersContext';
 import { useToast } from '@/hooks/use-toast';
 import logo from '@/assets/logo.png';
+import { mapRole } from '@/lib/roles';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState(() => localStorage.getItem('login_email') || '');
@@ -24,6 +26,7 @@ export const LoginPage: React.FC = () => {
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [remember, setRemember] = useState(() => !!localStorage.getItem('login_email'));
   const { login, isLoading } = useAuth();
+  const { users } = useUsers();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -48,13 +51,11 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const demoUsers = [
-    { email: 'admin@mwsi.com', role: 'Administrator', password: 'demo123' },
-    { email: 'hr@mwsi.com', role: 'HR Manager', password: 'demo123' },
-    { email: 'david.manager@mwsi.com', role: 'Manager', password: 'demo123' },
-    { email: 'employee@mwsi.com', role: 'Employee', password: 'demo123' },
-     { email: 'registry@mwsi.com', role: 'Registry', password: 'demo123' },
-  ];
+  const demoUsers = users
+    .filter(u => ['admin', 'hr_manager', 'manager', 'employee', 'registry_manager', 'testing'].includes(u.role))
+    .slice(0, 6)
+    .map(u => ({ ...u, role: mapRole(u.role), password: 'demo123' }));
+
 
   const showForgotPassword = ['hr@mwsi.com', 'employee@mwsi.com'].includes(email);
 
