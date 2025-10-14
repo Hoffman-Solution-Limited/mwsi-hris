@@ -112,11 +112,12 @@ export function EmployeeForm({
       setError("stationName", { type: "required", message: "Station is required" });
       return;
     }
-    // Enforce mapping: email must exist in system users (created by Admin)
+    // Enforce mapping: email should ideally exist in system users (created by Admin)
     const u = findByEmail(data.email || '')
     if (!u) {
-      alert('No matching user account found for this email. Please ensure Admin has created the user first.');
-      return;
+      // Don't block save outright — confirm with the user so the form doesn't appear to do nothing
+      const proceed = window.confirm('No matching user account was found for this email. It is recommended to create the user account first, but do you want to create the employee anyway?');
+      if (!proceed) return;
     }
     // If a managerId was chosen, set the manager name from employees or users list
     if (data.managerId) {

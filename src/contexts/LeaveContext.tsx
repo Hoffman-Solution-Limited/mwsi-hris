@@ -10,6 +10,8 @@ type LeaveContextType = {
   rejectManagerRequest: (id: string, comments?: string) => void;
   approveHrRequest: (id: string, comments?: string) => void;
   rejectHrRequest: (id: string, comments?: string) => void;
+  updateLeaveRequest: (id: string, changes: Partial<LeaveRequest>) => Promise<LeaveRequest | null>;
+  deleteLeaveRequest: (id: string) => Promise<LeaveRequest | null>;
 };
 
 const LeaveContext = createContext<LeaveContextType | undefined>(undefined);
@@ -158,6 +160,29 @@ export const LeaveProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     })();
   };
 
+  const updateLeaveRequest = async (id: string, changes: Partial<LeaveRequest>) => {
+    try {
+      const updated = await api.put(`/api/leaves/${id}`, changes);
+      setLeaveRequests(prev => prev.map(r => r.id === id ? (updated as LeaveRequest) : r));
+      return updated as LeaveRequest;
+    } catch (err) {
+      setLeaveRequests(prev => prev.map(r => r.id === id ? { ...r, ...changes } : r));
+      return null;
+    }
+  };
+
+  const deleteLeaveRequest = async (id: string) => {
+    try {
+  const deleted = await api.del(`/api/leaves/${id}`);
+      setLeaveRequests(prev => prev.filter(r => r.id !== id));
+      return deleted as LeaveRequest;
+    } catch (err) {
+      // fallback: remove locally
+      setLeaveRequests(prev => prev.filter(r => r.id !== id));
+      return null;
+    }
+  };
+
   const value = useMemo(() => ({ 
     leaveRequests, 
     addLeaveRequest, 
@@ -165,6 +190,7 @@ export const LeaveProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     rejectManagerRequest,
     approveHrRequest,
     rejectHrRequest
+    , updateLeaveRequest, deleteLeaveRequest
   }), [leaveRequests]);
 
   return (

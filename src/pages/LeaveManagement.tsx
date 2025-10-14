@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,7 +20,7 @@ import { Switch } from '@/components/ui/switch';
 
 export const LeaveManagement: React.FC = () => {
   const { user } = useAuth();
-  const { leaveRequests, addLeaveRequest, approveManagerRequest, rejectManagerRequest, approveHrRequest, rejectHrRequest } = useLeave();
+  const { leaveRequests, addLeaveRequest, approveManagerRequest, rejectManagerRequest, approveHrRequest, rejectHrRequest, updateLeaveRequest, deleteLeaveRequest } = useLeave();
   const { employees } = useEmployees();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,6 +39,8 @@ export const LeaveManagement: React.FC = () => {
   // Details dialog state
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<import('@/types/models').LeaveRequest | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ startDate: '', endDate: '', days: 1, reason: '' });
   const [actionComment, setActionComment] = useState('');
 
   // Reject confirmation state
@@ -505,6 +508,24 @@ export const LeaveManagement: React.FC = () => {
                           <Button size="sm" variant="outline" onClick={() => { setSelectedRequest(request); setActionComment(''); setDetailsOpen(true); }}>
                             Details
                           </Button>
+                          {request.employeeId === user?.id && request.status === 'pending_manager' && (
+                            <>
+                              <Button size="sm" variant="ghost" onClick={() => {
+                                setSelectedRequest(request);
+                                setEditForm({ startDate: request.startDate, endDate: request.endDate, days: request.days, reason: request.reason });
+                                setEditOpen(true);
+                              }}>
+                                Edit
+                              </Button>
+                              <Button size="sm" variant="destructive" onClick={() => {
+                                deleteLeaveRequest(request.id).then(() => {
+                                  toast({ title: 'Request withdrawn', description: 'Your leave request was withdrawn.' });
+                                });
+                              }}>
+                                Withdraw
+                              </Button>
+                            </>
+                          )}
                           {request.status === 'pending_manager' && user?.role === 'manager' && (
                             <div className="flex gap-1">
                               <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => {
@@ -869,6 +890,54 @@ export const LeaveManagement: React.FC = () => {
                     </Button>
                   </>
                 ) : null}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Request Dialog for employees */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Leave Request</DialogTitle>
+            <DialogDescription>Modify dates or reason and re-submit for approval.</DialogDescription>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Start Date</Label>
+                  <Input value={editForm.startDate} onChange={(e) => setEditForm(prev => ({ ...prev, startDate: e.target.value }))} type="date" />
+                </div>
+                <div>
+                  <Label>End Date</Label>
+                  <Input value={editForm.endDate} onChange={(e) => setEditForm(prev => ({ ...prev, endDate: e.target.value }))} type="date" />
+                </div>
+              </div>
+              <div>
+                <Label>Days</Label>
+                <Input type="number" value={String(editForm.days)} onChange={(e) => setEditForm(prev => ({ ...prev, days: Number(e.target.value) || 1 }))} />
+              </div>
+              <div>
+                <Label>Reason</Label>
+                <Textarea value={editForm.reason} onChange={(e) => setEditForm(prev => ({ ...prev, reason: e.target.value }))} />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => { setEditOpen(false); }}>Cancel</Button>
+                <Button onClick={() => {
+                  if (!selectedRequest) return;
+                  updateLeaveRequest(selectedRequest.id, {
+                    startDate: editForm.startDate,
+                    endDate: editForm.endDate,
+                    days: editForm.days,
+                    reason: editForm.reason,
+                    status: 'pending_manager'
+                  }).then(() => {
+                    toast({ title: 'Request updated', description: 'Your leave request was updated and re-submitted.' });
+                    setEditOpen(false);
+                  });
+                }}>Save</Button>
               </div>
             </div>
           )}
