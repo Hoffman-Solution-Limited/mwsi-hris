@@ -18,7 +18,6 @@ import { Copy } from "lucide-react"
 export type UserFormData = {
   name?: string
   email: string
-  phone?: string
   role: "Admin" | "HR" | "Employee" | "Manager"
   sendInvite?: boolean
   tempPassword?: string
@@ -129,28 +128,7 @@ export function UserForm({
               )}
             </div>
 
-            {watchedRole !== 'Admin' && (
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  placeholder="e.g., +254 712 345 678"
-                  disabled={isSubmitting}
-                  {...register("phone", {
-                    pattern: {
-                      value: /^[+()\d\s-]{7,}$/,
-                      message: "Enter a valid phone number",
-                    },
-                  })}
-                />
-                {errors.phone && (
-                  <p className="text-destructive text-sm">{errors.phone.message}</p>
-                )}
-                {!errors.phone && (
-                  <p className="text-xs text-muted-foreground mt-1">Optional. Include country code for external numbers.</p>
-                )}
-              </div>
-            )}
+            {/* phone removed: not required for user accounts in admin UI */}
 
             <div>
               <Label htmlFor="role">Role *</Label>
@@ -181,48 +159,55 @@ export function UserForm({
         </div>
 
         {/* Account Setup */}
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold mb-2">Account Setup</h3>
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div>
-              <p className="font-medium">Send invitation email</p>
-              <p className="text-sm text-muted-foreground">Email the user a link to set up their account using a temporary password.</p>
-            </div>
-            <Switch
-              checked={!!watchedInvite}
-              onCheckedChange={(checked) => setValue("sendInvite", checked)}
-            />
-          </div>
-
-          {watchedInvite && (
-            <div>
-              <Label htmlFor="tempPassword">Temporary Password</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="tempPassword"
-                  value={watchedPassword || ""}
-                  readOnly
+          
+          <div className="space-y-6">
+          {mode === 'add' && ( <h3 className="text-lg font-semibold mb-2">Account Setup</h3> 
+          )}
+          {/* Send invite only relevant when adding new users */}
+          {mode === 'add' && (
+            <>
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div>
+                  <p className="font-medium">Send invitation email</p>
+                  <p className="text-sm text-muted-foreground">Email the user a link to set up their account using a temporary password.</p>
+                </div>
+                <Switch
+                  checked={!!watchedInvite}
+                  onCheckedChange={(checked) => setValue("sendInvite", checked)}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setValue("tempPassword", generateTempPassword())}
-                >
-                  Regenerate
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    if (watchedPassword) navigator.clipboard.writeText(watchedPassword)
-                  }}
-                  className="inline-flex items-center gap-2"
-                >
-                  <Copy className="h-4 w-4" /> Copy
-                </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Share this with the user if they don't receive the invite email.</p>
-            </div>
+
+              {watchedInvite && (
+                <div>
+                  <Label htmlFor="tempPassword">Temporary Password</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="tempPassword"
+                      value={watchedPassword || ""}
+                      readOnly
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setValue("tempPassword", generateTempPassword())}
+                    >
+                      Regenerate
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        if (watchedPassword) navigator.clipboard.writeText(watchedPassword)
+                      }}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <Copy className="h-4 w-4" /> Copy
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Share this with the user if they don't receive the invite email.</p>
+                </div>
+              )}
+            </>
           )}
         </div>
 
