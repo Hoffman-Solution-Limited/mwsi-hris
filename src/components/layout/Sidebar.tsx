@@ -1,26 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  UserPlus, 
-  GraduationCap, 
-  Calendar, 
-  TrendingUp, 
-  FileText, 
-  BarChart3, 
-  Settings,
-  Search,
-  Building2,
-  User,
-  Briefcase,
-  MapPin,
-  AlertTriangle
+import logo from '@/assets/logo.png';
+import {
+  LayoutDashboard, Users, UserPlus, GraduationCap, Calendar,
+  TrendingUp, FileText, BarChart3, Settings, Search,
+  Building2, User, Briefcase, MapPin, AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-
-
 
 interface NavItem {
   path: string;
@@ -29,127 +16,111 @@ interface NavItem {
   roles?: string[];
 }
 
-const navItems: NavItem[] = [
-  {
-    path: '/',
-    label: 'Dashboard',
-    icon: <LayoutDashboard className="w-5 h-5" />,
-  },
-  {
-    path: '/search',
-    label: 'Global Search',
-    icon: <Search className="w-5 h-5" />,
-  },
-  {
-    path: '/employees',
-    label: 'Employee Directory',
-    icon: <Users className="w-5 h-5" />,
-    roles: ['admin', 'hr_manager', 'hr_staff', 'manager']
-  },
-  {
-  path: '/employees-by-county',
-  label: 'Employees by County',
-  icon: <MapPin className="w-5 h-5" />, // import { MapPin } from "lucide-react"
-  roles: ['admin', 'hr_manager', 'hr_staff', 'manager']
-  },
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
 
-  {
-    path: '/designation',
-    label: 'Designations',
-    icon: <Briefcase className="w-5 h-5" />,
-    roles: ['admin', 'hr_manager', 'hr_staff'] // adjust roles as needed
-  },
-  {
-    path: '/profile',
-    label: 'My Profile',
-    icon: <User className="w-5 h-5" />,
-    roles: ['employee']
-  },
-  {
-    path: '/recruitment',
-    label: 'Recruitment',
-    icon: <UserPlus className="w-5 h-5" />,
-    roles: ['admin', 'hr_manager', 'hr_staff']
-  },
-  {
-  path: '/disciplinary',
-  label: 'Disciplinary Cases',
-  icon: <AlertTriangle className="w-5 h-5" />, // import { AlertTriangle } from "lucide-react"
-  roles: ['admin', 'hr_manager', 'hr_staff'] 
- },
+interface SidebarProps extends React.HTMLAttributes<HTMLElement> {
+  collapsed?: boolean;
+  bgColor?: string;
+}
 
+const navGroups: NavGroup[] = [
   {
-    path: '/training',
-    label: 'Training & CPD',
-    icon: <GraduationCap className="w-5 h-5" />,
+    title: "Core",
+    items: [
+      { path: '/', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+      { path: '/search', label: 'Global Search', icon: <Search className="w-5 h-5" /> },
+      { path: '/profile', label: 'My Profile', icon: <User className="w-5 h-5" />, roles: ['employee'] }
+    ]
   },
   {
-    path: '/leave',
-    label: 'Leave Management',
-    icon: <Calendar className="w-5 h-5" />,
+    title: "HR Management",
+    items: [
+      { path: '/employees', label: 'Employee Directory', icon: <Users className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff','manager'] },
+      { path: '/designation', label: 'Designations', icon: <Briefcase className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff'] },
+      { path: '/recruitment', label: 'Recruitment', icon: <UserPlus className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff'] },
+      { path: '/disciplinary', label: 'Disciplinary Cases', icon: <AlertTriangle className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff'] },
+      { path: '/training', label: 'Training & CPD', icon: <GraduationCap className="w-5 h-5" /> },
+      { path: '/leave', label: 'Leave Management', icon: <Calendar className="w-5 h-5" /> },
+      { path: '/performance', label: 'Performance Reviews', icon: <TrendingUp className="w-5 h-5" /> }
+    ]
   },
   {
-    path: '/performance',
-    label: 'Performance Reviews',
-    icon: <TrendingUp className="w-5 h-5" />,
-  },
-  {
-    path: '/documents',
-    label: 'Document Registry',
-    icon: <FileText className="w-5 h-5" />,
-  },
-  {
-    path: '/reports',
-    label: 'Reports & Analytics',
-    icon: <BarChart3 className="w-5 h-5" />,
-    roles: ['admin', 'hr_manager', 'hr_staff']
-  },
-  {
-    path: '/admin',
-    label: 'Admin Panel',
-    icon: <Settings className="w-5 h-5" />,
-    roles: ['admin']
+    title: "Reports & Admin",
+    items: [
+      { path: '/documents', label: 'Document Registry', icon: <FileText className="w-5 h-5" /> },
+      { path: '/employees-by-county', label: 'Employees by County', icon: <MapPin className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff','manager'] },
+      { path: '/reports', label: 'Reports & Analytics', icon: <BarChart3 className="w-5 h-5" />, roles: ['admin','hr_manager','hr_staff'] },
+      { path: '/admin', label: 'Admin Panel', icon: <Settings className="w-5 h-5" />, roles: ['admin'] }
+    ]
   }
 ];
 
-export const Sidebar: React.FC = () => {
+export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, bgColor = 'bg-blue-900', className, ...rest }) => {
   const { user } = useAuth();
 
-  const filteredNavItems = navItems.filter(item => 
-    !item.roles || item.roles.includes(user?.role || '')
-  );
-
   return (
-    <aside className="w-64 min-h-screen bg-sidebar-background border-r border-sidebar-border">
-      <div className="p-6">
-        <div className="flex items-center gap-2 mb-8">
-          <Building2 className="w-8 h-8 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold text-sidebar-foreground">MWSI HRIS</h1>
-            <p className="text-xs text-sidebar-foreground/60">HR Management System</p>
-          </div>
-        </div>
+    <aside
+      {...rest}
+      className={cn(
+        'h-screen border-r flex flex-col transition-all duration-300',
+        collapsed ? 'w-20' : 'w-64',
+        bgColor,
+        className
+      )}
+    >
 
-        <nav className="space-y-2">
-          {filteredNavItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-sidebar-accent text-sidebar-primary-foreground bg-primary'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                )
-              }
-            >
-              {item.icon}
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-      </div>
+<div className="p-4 flex items-center gap-2">
+  <img
+    src={logo}
+    alt="MWSI Logo"
+    className={cn(
+      'h-8 w-auto object-contain transition-all duration-300',
+      collapsed ? 'mx-auto' : ''
+    )}
+  />
+  {!collapsed && (
+    <div>
+      <h1 className="text-xl font-bold text-white">MWSI HRIS</h1>
+      <p className="text-xs text-white/60">HR Management System</p>
+    </div>
+  )}
+</div>
+
+      <nav className="flex-1 overflow-y-auto sidebar-scroll p-2">
+        {navGroups.map((group) => (
+          <div key={group.title} className="mb-4">
+            {!collapsed && (
+              <h2 className="px-3 text-xs font-semibold text-white/60 uppercase tracking-wider mb-1">
+                {group.title}
+              </h2>
+            )}
+            <div className="space-y-1">
+              {group.items
+                .filter(item => !item.roles || item.roles.includes(user?.role || ''))
+                .map(item => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-white/80 hover:bg-blue-800 hover:text-white'
+                      )
+                    }
+                  >
+                    {item.icon}
+                    {!collapsed && <span>{item.label}</span>}
+                  </NavLink>
+                ))}
+            </div>
+          </div>
+        ))}
+      </nav>
     </aside>
   );
 };
