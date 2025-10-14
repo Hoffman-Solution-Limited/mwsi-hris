@@ -29,79 +29,10 @@ const STORAGE_KEY = 'hris-system-logs';
 
 const SystemLogsContext = createContext<SystemLogsContextType | undefined>(undefined);
 
-// Mock initial logs
-const mockLogs: SystemLog[] = [
-  {
-    id: '1',
-    action: 'User logged in',
-    actionType: 'login',
-    userId: '1',
-    userName: 'Alice Johnson',
-    userRole: 'admin',
-    details: 'Successful login from dashboard',
-    timestamp: new Date(Date.now() - 86400000).toISOString(),
-    status: 'success',
-    ipAddress: '192.168.1.100'
-  },
-  {
-    id: '2',
-    action: 'Leave request submitted',
-    actionType: 'create',
-    userId: '2',
-    userName: 'Brian Smith',
-    userRole: 'employee',
-    details: 'Annual leave request for 5 days',
-    entityType: 'leave_request',
-    entityId: 'leave_001',
-    timestamp: new Date(Date.now() - 172800000).toISOString(),
-    status: 'success',
-    ipAddress: '192.168.1.101'
-  },
-  {
-    id: '3',
-    action: 'Performance template created',
-    actionType: 'create',
-    userId: '1',
-    userName: 'Alice Johnson',
-    userRole: 'admin',
-    details: 'Created new quarterly review template',
-    entityType: 'performance_template',
-    entityId: 'template_001',
-    timestamp: new Date(Date.now() - 259200000).toISOString(),
-    status: 'success',
-    ipAddress: '192.168.1.100'
-  },
-  {
-    id: '4',
-    action: 'Training program assigned',
-    actionType: 'assign',
-    userId: '3',
-    userName: 'Carol Davis',
-    userRole: 'hr_manager',
-    details: 'Assigned cybersecurity training to 15 employees',
-    entityType: 'training_assignment',
-    timestamp: new Date(Date.now() - 345600000).toISOString(),
-    status: 'success',
-    ipAddress: '192.168.1.102'
-  },
-  {
-    id: '5',
-    action: 'Document uploaded',
-    actionType: 'upload',
-    userId: '2',
-    userName: 'Brian Smith',
-    userRole: 'employee',
-    details: 'Uploaded medical certificate',
-    entityType: 'document',
-    entityId: 'doc_001',
-    timestamp: new Date(Date.now() - 432000000).toISOString(),
-    status: 'success',
-    ipAddress: '192.168.1.101'
-  }
-];
 
 export const SystemLogsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  // Start with an empty logs list — UAT should source logs from the backend
   const [logs, setLogs] = useState<SystemLog[]>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -109,7 +40,7 @@ export const SystemLogsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return JSON.parse(stored);
       } catch {}
     }
-    return mockLogs;
+    return [];
   });
 
   useEffect(() => {

@@ -16,8 +16,8 @@ import { useTraining } from '@/contexts/TrainingContext';
 
 export const Training: React.FC = () => {
   const { user } = useAuth();
-  const { trainings, startTraining, completeTraining } = useTraining();
-  const { editTraining, closeTraining, archiveTraining } = useTraining();
+  const { trainings, startTraining, completeTraining, createTraining, editTraining, closeTraining, archiveTraining } = useTraining();
+  const [isAssigning, setIsAssigning] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [completeOpen, setCompleteOpen] = useState(false);
@@ -61,19 +61,29 @@ export const Training: React.FC = () => {
   const closedTrainings = filteredRecords.filter(tr => tr.status === 'closed');
   const archivedTrainings = trainings.filter(tr => tr.archived);
 
-  // Function to handle employee assignment
-  const handleAssignTraining = () => {
+  // Function to handle employee assignment and persist training records
+  const handleAssignTraining = async () => {
     if (!selectedProgram || selectedEmployees.length === 0) return;
-    
-    selectedEmployees.forEach(employeeId => {
-      // In a real app, this would call an API to create training records
-      console.log(`Assigned training ${selectedProgram.title} to employee ${employeeId}`);
-    });
-    
-    // Reset state
-    setAssignDialogOpen(false);
-    setSelectedProgram(null);
-    setSelectedEmployees([]);
+    setIsAssigning(true);
+    try {
+      for (const employeeId of selectedEmployees) {
+        // TrainingContext#createTraining will try the API and fall back to local storage.
+        await createTraining({
+          employeeId,
+          title: selectedProgram.title,
+          type: selectedProgram.type,
+          provider: selectedProgram.provider,
+          status: 'not_started'
+        });
+      }
+    } catch (err) {
+      console.error('Error assigning trainings', err);
+    } finally {
+      setIsAssigning(false);
+      setAssignDialogOpen(false);
+      setSelectedProgram(null);
+      setSelectedEmployees([]);
+    }
   };
 
   // Admin actions: edit and close
@@ -115,51 +125,31 @@ export const Training: React.FC = () => {
     }
   };
 
-  // Mock training programs
-  const trainingPrograms = [
-    {
-      id: '1',
-      title: 'Cybersecurity Awareness Training',
-      type: 'mandatory',
-      duration: '2 hours',
-      provider: 'CyberSafe Institute',
-      enrolled: 15,
-      completed: 12,
-      expiryMonths: 12,
-      description: 'Essential cybersecurity practices and awareness training for all employees.'
-    },
-    {
-      id: '2',
-      title: 'Leadership Development Program',
-      type: 'development',
-      duration: '40 hours',
-      provider: 'Management Excellence Academy',
-      enrolled: 8,
-      completed: 3,
-      description: 'Comprehensive leadership skills development for managers and senior staff.'
-    },
-    {
-      id: '3',
-      title: 'React Advanced Patterns',
-      type: 'development',
-      duration: '16 hours',
-      provider: 'Tech Learning Hub',
-      enrolled: 5,
-      completed: 4,
-      description: 'Advanced React.js patterns and best practices for developers.'
-    },
-    {
-      id: '4',
-      title: 'Data Protection & GDPR Compliance',
-      type: 'compliance',
-      duration: '3 hours',
-      provider: 'Legal Compliance Corp',
-      enrolled: 20,
-      completed: 18,
-      expiryMonths: 24,
-      description: 'Understanding data protection regulations and compliance requirements.'
-    }
-  ];
+  // Derive available training programs from backend training records.
+  // Collapse records by title and use the first matching record as a template for program metadata.
+  const trainingPrograms = useMemo(() => {
+    const map = new Map<string, any>();
+    trainings.forEach(tr => {
+      const key = tr.title || 'Untitled';
+      if (!map.has(key)) {
+        map.set(key, {
+          id: key,
+          title: key,
+          type: tr.type || 'development',
+          duration: (tr as any).duration || '',
+          provider: tr.provider || '',
+          enrolled: 0,
+          completed: 0,
+          expiryMonths: (tr as any).expiryMonths,
+          description: (tr as any).description || ''
+        });
+      }
+      const prog = map.get(key);
+      prog.enrolled = (prog.enrolled || 0) + 1;
+      if (tr.status === 'completed') prog.completed = (prog.completed || 0) + 1;
+    });
+    return Array.from(map.values());
+  }, [trainings]);
 
   // Mock compliance dashboard
   const complianceData = [
@@ -717,9 +707,9 @@ export const Training: React.FC = () => {
             </Button>
             <Button 
               onClick={handleAssignTraining}
-              disabled={selectedEmployees.length === 0}
+              disabled={selectedEmployees.length === 0 || isAssigning}
             >
-              Assign Training to {selectedEmployees.length} Employee{selectedEmployees.length !== 1 ? 's' : ''}
+              {isAssigning ? 'Assigning...' : `Assign Training to ${selectedEmployees.length} Employee${selectedEmployees.length !== 1 ? 's' : ''}`}
             </Button>
           </DialogFooter>
         </DialogContent>

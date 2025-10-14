@@ -62,10 +62,9 @@ export const EmployeeProfile: React.FC = () => {
         employee = fallback as any;
       }
     }
-    // Last-resort fallback to seeded mockEmployees (handles localStorage drift)
-    // If you maintain a seeded mock dataset, replace the empty array below with that dataset.
-    // Declaring an empty array prevents the "Cannot find name 'mockEmployees'" compile error.
-        const mockEmployees: any[] = [];
+  // Last-resort fallback disabled for UAT: rely on backend for employee data.
+  // If backend is unreachable, the UI will show "No data — connect to backend" instead of using seeded mocks.
+  const mockEmployees: any[] = [];
         if (!employee && targetEmployeeId) {
           const seedFallback = mockEmployees.find(m => String(m.id) === String(targetEmployeeId) || String(m.email) === String(targetEmployeeId));
           if (seedFallback) {

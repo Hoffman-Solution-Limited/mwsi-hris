@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 type TrainingContextType = {
   trainings: TrainingRecord[];
+  createTraining: (payload: Partial<TrainingRecord>) => Promise<TrainingRecord | null>;
   startTraining: (id: string) => void;
   completeTraining: (id: string, file?: File | null) => void;
   editTraining: (id: string, changes: Partial<TrainingRecord>) => void;
@@ -59,6 +60,29 @@ export const TrainingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     })();
   };
 
+  const createTraining = async (payload: Partial<TrainingRecord>) => {
+    try {
+      const created = await api.post('/api/trainings', payload);
+      setTrainings(prev => [created as TrainingRecord, ...prev]);
+      return created as TrainingRecord;
+    } catch (err) {
+      // fallback: create a local entry
+      const local: TrainingRecord = {
+        id: crypto.randomUUID(),
+        employeeId: (payload.employeeId as string) || '0',
+        title: payload.title || 'Untitled',
+        type: (payload.type as any) || 'development',
+        status: (payload.status as any) || 'not_started',
+        completionDate: payload.completionDate,
+        expiryDate: payload.expiryDate,
+        provider: payload.provider,
+        archived: payload.archived || false
+      };
+      setTrainings(prev => [local, ...prev]);
+      return local;
+    }
+  };
+
   const completeTraining = (id: string, file?: File | null) => {
     const completionDate = new Date().toISOString().slice(0,10);
     (async () => {
@@ -110,7 +134,7 @@ export const TrainingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const getCertificateUrl = (id: string) => certUrls[id];
 
-  const value = useMemo(() => ({ trainings, startTraining, completeTraining, editTraining, closeTraining, archiveTraining, getCertificateUrl }), [trainings, certUrls]);
+  const value = useMemo(() => ({ trainings, createTraining, startTraining, completeTraining, editTraining, closeTraining, archiveTraining, getCertificateUrl }), [trainings, certUrls]);
 
   return (
     <TrainingContext.Provider value={value}>

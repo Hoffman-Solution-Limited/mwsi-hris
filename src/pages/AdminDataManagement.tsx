@@ -88,7 +88,7 @@ export default function DataManagement() {
       <div className="mt-2">
         <h2 className="text-lg font-bold mb-2">Recent Logs</h2>
         {!hasLogs ? (
-          <div className="text-sm text-muted-foreground border rounded p-4">No logs available yet.</div>
+          <div className="text-sm text-muted-foreground border rounded p-4">No logs available — connect to backend to view system logs.</div>
         ) : (
           <ul className="space-y-2">
             {logs.map(log => (

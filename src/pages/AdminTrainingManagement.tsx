@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useSystemLogs } from '@/contexts/SystemLogsContext';
+import { useTraining } from '@/contexts/TrainingContext';
 
 interface TrainingProgram {
   id: string;
@@ -25,46 +26,13 @@ interface TrainingProgram {
   status: 'active' | 'inactive';
 }
 
-const mockTrainingPrograms: TrainingProgram[] = [
-  {
-    id: '1',
-    name: 'Cybersecurity Awareness',
-    description: 'Essential cybersecurity training covering phishing, passwords, and data protection',
-    category: 'mandatory',
-    duration: 2,
-    provider: 'Internal IT Department',
-    createdAt: '2024-01-15T10:00:00Z',
-    status: 'active'
-  },
-  {
-    id: '2',
-    name: 'Leadership Development Program',
-    description: 'Comprehensive leadership skills development for managers and supervisors',
-    category: 'leadership',
-    duration: 16,
-    provider: 'External Training Provider',
-    maxParticipants: 20,
-    prerequisites: 'Management position or 3+ years experience',
-    createdAt: '2024-02-01T09:00:00Z',
-    status: 'active'
-  },
-  {
-    id: '3',
-    name: 'Data Protection & GDPR Compliance',
-    description: 'Understanding GDPR requirements and data protection best practices',
-    category: 'compliance',
-    duration: 4,
-    provider: 'Legal Department',
-    createdAt: '2024-01-20T14:00:00Z',
-    status: 'active'
-  }
-];
+// training programs are sourced from backend via `useTraining()` (no local mock data)
 
 export default function AdminTrainingManagement() {
   const navigate = useNavigate();
   const { addLog } = useSystemLogs();
   
-  const [programs, setPrograms] = useState<TrainingProgram[]>(mockTrainingPrograms);
+  const { trainings: programs, createTraining } = useTraining();
   const [isCreateProgramOpen, setIsCreateProgramOpen] = useState(false);
 
   const [newProgram, setNewProgram] = useState<Omit<TrainingProgram, 'id' | 'createdAt'>>({
@@ -78,23 +46,25 @@ export default function AdminTrainingManagement() {
 
   const handleCreateProgram = () => {
     if (newProgram.name && newProgram.description && newProgram.provider) {
-      const program: TrainingProgram = {
-        ...newProgram,
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString()
-      };
-
-      setPrograms(prev => [program, ...prev]);
-      
-      addLog({
-        action: 'Created training program',
-        actionType: 'create',
-        details: `Created program: ${newProgram.name} (${newProgram.category})`,
-        entityType: 'training_program',
-        entityId: program.id,
-        status: 'success'
+      // create on server (or fallback to local if API unavailable)
+      createTraining({
+        employeeId: '0',
+        title: newProgram.name,
+        type: 'development' as any,
+        status: newProgram.status as any,
+        provider: newProgram.provider,
+      }).then((program) => {
+        // log uses program id when available
+        addLog({
+          action: 'Created training program',
+          actionType: 'create',
+          details: `Created program: ${newProgram.name} (${newProgram.category})`,
+          entityType: 'training_program',
+          entityId: program ? program.id : 'local',
+          status: 'success'
+        });
       });
-
+      
       setNewProgram({
         name: '',
         description: '',
@@ -269,16 +239,16 @@ export default function AdminTrainingManagement() {
                   <div className="flex-1">
                     <CardTitle className="flex items-center gap-2">
                       <BookOpen className="w-5 h-5" />
-                      {program.name}
-                      <Badge className={getCategoryColor(program.category)}>
-                        {program.category.replace('_', ' ')}
+                      {(program as any).title || (program as any).name}
+                      <Badge className={getCategoryColor((program as any).category)}>
+                        {((program as any).category || '').replace('_', ' ')}
                       </Badge>
-                      <Badge className={getStatusColor(program.status)}>
-                        {program.status}
+                      <Badge className={getStatusColor((program as any).status)}>
+                        {(program as any).status}
                       </Badge>
                     </CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {program.description}
+                      {(program as any).description || (program as any).details || ''}
                     </p>
                   </div>
                   {/* Assignment actions removed for Admin */}
@@ -288,17 +258,17 @@ export default function AdminTrainingManagement() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                     <div>
-                      <span className="font-medium">Duration:</span> {program.duration} hours
+                      <span className="font-medium">Duration:</span> {(program as any).duration ? `${(program as any).duration} hours` : 'N/A'}
                     </div>
                     <div>
-                      <span className="font-medium">Provider:</span> {program.provider}
+                      <span className="font-medium">Provider:</span> {(program as any).provider || 'N/A'}
                     </div>
                   </div>
 
-                  {program.prerequisites && (
+                  {(program as any).prerequisites && (
                     <div>
                       <span className="font-medium text-sm">Prerequisites:</span>
-                      <p className="text-sm text-muted-foreground">{program.prerequisites}</p>
+                      <p className="text-sm text-muted-foreground">{(program as any).prerequisites}</p>
                     </div>
                   )}
                 </div>
