@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Employee, mockEmployees } from '@/data/mockData'; // Import Employee type and mockEmployees
+import api from '@/lib/api';
 import { UserRole } from './AuthContext';
 
 // AppUser now extends Employee and uses a consistent UserRole type
@@ -85,6 +86,32 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return seedUsers;
   });
 
+  // Load users from backend on mount; keep local fallback
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const rows = await api.get('/api/users');
+        if (!mounted) return;
+        if (Array.isArray(rows) && rows.length > 0) {
+          // Map backend rows into AppUser shape conservatively
+          const mapped = (rows as any[]).map(r => ({
+            id: r.id,
+            email: r.email,
+            name: r.name,
+            role: r.role || 'employee',
+            status: r.status || 'active',
+            // keep other fields if present
+          })) as AppUser[];
+          setUsers(mapped.concat(users.filter(u => !mapped.find(m => m.email === u.email))));
+        }
+      } catch (err) {
+        // ignore, fallback to local seedUsers/localStorage
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
@@ -92,20 +119,43 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [users]);
 
   const addUser = (u: Omit<AppUser, 'id' | 'status'> & { status?: AppUser['status'] }) => {
-    const newUser: AppUser = {
-      id: crypto.randomUUID(),
-      status: 'active',
-      ...u,
-    };
-    setUsers(prev => [...prev, newUser]);
+    (async () => {
+      try {
+        const payload = { ...u } as any;
+        const created = await api.post('/api/users', payload);
+        setUsers(prev => [...prev, { ...(created as AppUser), status: created.status || 'active' }]);
+      } catch (err) {
+        const newUser: AppUser = {
+          id: crypto.randomUUID(),
+          status: 'active',
+          ...u,
+        };
+        setUsers(prev => [...prev, newUser]);
+      }
+    })();
   };
 
   const changePassword = (id: string, newPassword: string | null) => {
-    setUsers(prev => prev.map(u => (u.id === id ? { ...u, password: newPassword } : u)));
+    (async () => {
+      try {
+        // backend currently does not expose password change; we update locally for now
+        await api.put(`/api/users/${id}`, { password: newPassword });
+        setUsers(prev => prev.map(u => (u.id === id ? { ...u, password: newPassword } : u)));
+      } catch (err) {
+        setUsers(prev => prev.map(u => (u.id === id ? { ...u, password: newPassword } : u)));
+      }
+    })();
   };
 
   const updateUser = (id: string, updates: Partial<AppUser>) => {
-    setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
+    (async () => {
+      try {
+        const updated = await api.put(`/api/users/${id}`, updates);
+        setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...(updated as any) } : u)));
+      } catch (err) {
+        setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
+      }
+    })();
   };
 
   const toggleStatus = (id: string) => {

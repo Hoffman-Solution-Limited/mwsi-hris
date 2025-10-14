@@ -28,4 +28,37 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
+router.put('/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const updates = req.body;
+  try {
+    const keys = Object.keys(updates);
+    if (keys.length === 0) return res.status(400).json({ error: 'no updates provided' });
+
+    // handle password separately (hash it)
+    const values: any[] = [];
+    const sets: string[] = [];
+    let idx = 1;
+    for (const k of keys) {
+      if (k === 'password') {
+        const hashed = updates.password ? await bcrypt.hash(updates.password, 10) : null;
+        sets.push(`password = $${idx}`);
+        values.push(hashed);
+        idx++;
+      } else {
+        sets.push(`${k} = $${idx}`);
+        values.push((updates as any)[k]);
+        idx++;
+      }
+    }
+    values.push(id);
+    const q = `UPDATE users SET ${sets.join(', ')} WHERE id = $${idx} RETURNING id, email, name, role, status`;
+    const result = await pool.query(q, values);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 export default router;

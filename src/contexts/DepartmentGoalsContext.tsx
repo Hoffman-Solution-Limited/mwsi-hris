@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { mockDepartmentGoals, DepartmentGoal } from '@/data/mockData';
+import api from '@/lib/api';
 
 export type DepartmentGoalRecord = DepartmentGoal;
 
@@ -24,6 +25,23 @@ export const DepartmentGoalsProvider: React.FC<{ children: React.ReactNode }> = 
     } catch {}
     return mockDepartmentGoals;
   });
+
+  // Try to load department goals from backend on mount
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const rows = await api.get('/api/department-goals');
+        if (!mounted) return;
+        if (Array.isArray(rows) && rows.length > 0) {
+          setGoals(rows as DepartmentGoalRecord[]);
+        }
+      } catch (err) {
+        // fallback to local
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(goals)); } catch {}

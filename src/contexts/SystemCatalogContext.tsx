@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { mockEmployees } from '@/data/mockData';
+import api from '@/lib/api';
 
 export type Item = { value: string; active: boolean };
 export type StationItem = { name: string; active: boolean };
@@ -66,7 +67,7 @@ export const SystemCatalogProvider: React.FC<{ children: React.ReactNode }> = ({
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
   };
 
-  // Seed from existing data to make the system feel populated
+  // Seed from backend employees when available, else from mockEmployees
   const seededDesignations = useMemo(() => {
     const set = new Set<string>();
     mockEmployees.forEach(emp => { if (emp.position) set.add(emp.position); });
@@ -76,7 +77,6 @@ export const SystemCatalogProvider: React.FC<{ children: React.ReactNode }> = ({
   const seededSkillLevels = useMemo(() => {
     const set = new Set<string>();
     mockEmployees.forEach(emp => { if (emp.skillLevel) set.add(emp.skillLevel); });
-    // Also include distinct skills.level entries as potential levels (optional)
     mockEmployees.forEach(emp => (emp.skills || []).forEach(s => { if (s.level) set.add(s.level); }));
     return Array.from(set).map(s => ({ value: s, active: true }));
   }, []);
@@ -123,6 +123,44 @@ export const SystemCatalogProvider: React.FC<{ children: React.ReactNode }> = ({
   const [jobGroups, setJobGroups] = useState<Item[]>(normalizeList(stored?.jobGroups ?? seededJobGroups, seededJobGroups));
   const [engagementTypes, setEngagementTypes] = useState<Item[]>(normalizeList(stored?.engagementTypes ?? seededEngagementTypes, seededEngagementTypes));
   const [ethnicities, setEthnicities] = useState<Item[]>(normalizeList(stored?.ethnicities ?? seededEthnicities, seededEthnicities));
+
+  // Attempt to derive catalog values from backend employees on mount
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const rows = await api.get('/api/employees');
+        if (!mounted) return;
+        if (Array.isArray(rows) && rows.length > 0) {
+          const designSet = new Set<string>(designations.map(d => d.value));
+          const skillSet = new Set<string>(skillLevels.map(s => s.value));
+          const stationSet = new Set<string>(stations.map(s => s.name));
+          const jobGroupSet = new Set<string>(jobGroups.map(j => j.value));
+          const engagementSet = new Set<string>(engagementTypes.map(e => e.value));
+          const ethnicitySet = new Set<string>(ethnicities.map(e => e.value));
+
+          for (const e of rows as any[]) {
+            if (e.position) designSet.add(e.position);
+            if (e.skill_level) skillSet.add(e.skill_level);
+            if (e.station_name) stationSet.add(e.station_name);
+            if (e.job_group) jobGroupSet.add(String(e.job_group));
+            if (e.engagement_type) engagementSet.add(e.engagement_type);
+            if (e.ethnicity) ethnicitySet.add(e.ethnicity);
+          }
+
+          setDesignations(Array.from(designSet).map(v => ({ value: v, active: true })));
+          setSkillLevels(Array.from(skillSet).map(v => ({ value: v, active: true })));
+          setStations(Array.from(stationSet).map(n => ({ name: n, active: true })));
+          setJobGroups(Array.from(jobGroupSet).map(v => ({ value: v, active: true })));
+          setEngagementTypes(Array.from(engagementSet).map(v => ({ value: v, active: true })));
+          setEthnicities(Array.from(ethnicitySet).map(v => ({ value: v, active: true })));
+        }
+      } catch (err) {
+        // keep local seeds if backend unavailable
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     // Persist as simpler shapes where possible (store Item[] for attributes and StationItem[] for stations)
