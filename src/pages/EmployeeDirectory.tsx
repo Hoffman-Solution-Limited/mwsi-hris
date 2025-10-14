@@ -169,88 +169,13 @@ const BulkUploadCsvDialog: React.FC = () => {
             Export
           </Button>
 
-          {/* Add Employee Modal */}
-          <Dialog>
-            <DialogTrigger asChild>
-             {[("admin" as const), ("hr_manager" as const)].includes(user?.role as any) && ( 
-              <Button size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                Add New Employee
-              </Button>)}
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>Add New Employee</DialogTitle>
-              </DialogHeader>
-              <EmployeeForm
-                defaultValues={{
-                  name: "",
-                  email: "",
-                  phone: "",
-                  position: "",
-                  department: "",
-                  cadre: undefined as any,
-                  gender: undefined,
-                  employmentType: "Permanent",
-                  jobGroup: undefined as any,
-                  ethnicity: undefined as any,
-                  employeeNumber: "",
-                  nationalId: "",
-                  kraPin: "",
-                  children: "",
-                  workCounty: "",
-                  homeCounty: "",
-                  postalAddress: "",
-                  postalCode: "",
-                  stationName: "",
-                  skillLevel: "",
-                  company: "Ministry of Water, Sanitation and Irrigation",
-                  dateOfBirth: "",
-                  hireDate: "",
-                  emergencyContact: "",
-                  salary: undefined,
-                  status: "active"
-                }}
-                onSave={(data) => {
-                  addEmployee({
-                    id: undefined as any, // will be generated in context
-                    name: data.name,
-                    email: data.email,
-                    position: data.position,
-                    department: data.department,
-                    manager: undefined,
-                    hireDate: data.hireDate || new Date().toISOString().slice(0,10),
-                    status: (data.status as any) || 'active',
-                    avatar: '',
-                    phone: data.phone,
-                    emergencyContact: data.emergencyContact,
-                    salary: data.salary,
-                    documents: [],
-                    skills: [],
-                    gender: data.gender,
-                    cadre: data.cadre,
-                    employmentType: data.employmentType,
-                    engagementType: data.employmentType,
-                    jobGroup: data.jobGroup,
-                    ethnicity: data.ethnicity,
-                    employeeNumber: (data as any).employeeNumber,
-                    nationalId: data.nationalId,
-                    kraPin: data.kraPin,
-                    children: data.children,
-                    workCounty: data.workCounty,
-                    homeCounty: data.homeCounty,
-                    postalAddress: data.postalAddress,
-                    postalCode: data.postalCode,
-                    stationName: data.stationName,
-                    skillLevel: data.skillLevel,
-                    company: data.company,
-                    dateOfBirth: data.dateOfBirth,
-                  } as any)
-                  alert(`Employee ${data.name} saved!`)
-                }}
-              />
-            </DialogContent>
-          </Dialog>
+          {/* Add Employee as separate page */}
+          {["admin", "hr_manager"].includes(user?.role as any) && (
+            <Button size="sm" onClick={() => navigate("/employees/new") }>
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Employee
+            </Button>
+          )}
 
           {/* Bulk Upload (HR/Admin only) */}
           {(["admin","hr_manager","hr_staff"] as const).includes(user?.role as any) && (

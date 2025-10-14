@@ -12,7 +12,6 @@ type ProfileFormData = {
   email: string
   phone?: string
   position: string
-  department: string
   gender?: 'male' | 'female' | 'other'
   employmentType?: string
   jobGroup?: string
@@ -240,12 +239,6 @@ export function EditProfileForm({ defaultValues, onSave }: {
             </div>
 
             <div>
-              <Label htmlFor="department">Department *</Label>
-              <Input id="department" {...register("department", { required: "Department is required" })} />
-              {errors.department && <p className="text-destructive text-sm">{errors.department.message}</p>}
-            </div>
-
-            <div>
               <Label htmlFor="employmentType">Engagement Type</Label>
               <Select value={watchedEmploymentType} onValueChange={(value) => setValue("employmentType", value)}>
                 <SelectTrigger>
@@ -323,7 +316,7 @@ export function EditProfileForm({ defaultValues, onSave }: {
             </div>
 
             <div>
-              <Label htmlFor="stationName">Station Name</Label>
+              <Label htmlFor="stationName">Department (Work Station)</Label>
               <Select value={watch("stationName")} onValueChange={(value) => setValue("stationName", value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select station" />

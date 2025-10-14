@@ -11,6 +11,7 @@ export type SystemCatalogContextType = {
   addDesignation: (name: string) => void;
   addSkillLevel: (name: string) => void;
   addStation: (name: string) => void;
+  removeStation: (name: string) => void;
   addJobGroup: (name: string) => void;
   addEngagementType: (name: string) => void;
   addEthnicity: (name: string) => void;
@@ -93,6 +94,11 @@ export const SystemCatalogProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!n) return;
     setStations(prev => (prev.includes(n) ? prev : [...prev, n]));
   };
+  const removeStation = (name: string) => {
+    const n = name.trim();
+    if (!n) return;
+    setStations(prev => prev.filter(s => s !== n));
+  };
   const addJobGroup = (name: string) => {
     const n = name.trim().toUpperCase();
     if (!n) return;
@@ -119,6 +125,7 @@ export const SystemCatalogProvider: React.FC<{ children: React.ReactNode }> = ({
     addDesignation,
     addSkillLevel,
     addStation,
+    removeStation,
     addJobGroup,
     addEngagementType,
     addEthnicity,
