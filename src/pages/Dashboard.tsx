@@ -24,11 +24,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useLeave } from '@/contexts/LeaveContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePerformance } from '@/contexts/PerformanceContext';
-import { useDocuments } from '@/contexts/DocumentContext';
 import {
   mockEmployees,
   mockLeaveRequests,
-  mockDocuments,
   mockPositions,
   mockTrainingRecords,
   mockPerformanceReviews
@@ -38,7 +36,6 @@ export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { leaveRequests, approveManagerRequest, rejectManagerRequest } = useLeave();
   const { reviews } = usePerformance();
-  const { documents } = useDocuments();
   const navigate = useNavigate();
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const { toast } = useToast();
@@ -140,9 +137,7 @@ export const Dashboard: React.FC = () => {
     // Employee-specific metrics
     const myLeaves = leaveRequests.filter(req => req.employeeId === user.id);
     const myTrainings = mockTrainingRecords.filter(tr => tr.employeeId === user.id);
-    const myReviews = mockPerformanceReviews.filter(rev => rev.employeeId === user.id);
-    const myDocuments = mockDocuments.filter(doc => doc.uploadedBy === user.name);
-    
+  const myReviews = mockPerformanceReviews.filter(rev => rev.employeeId === user.id);    
     const pendingLeaves = myLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr').length;
     const approvedLeaves = myLeaves.filter(req => req.status === 'approved').length;
     const completedTrainings = myTrainings.filter(tr => tr.status === 'completed').length;
@@ -481,7 +476,6 @@ export const Dashboard: React.FC = () => {
   const totalEmployees = mockEmployees.length;
   const activeEmployees = mockEmployees.filter(emp => emp.status === 'active').length;
   const pendingLeaves = leaveRequests.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr').length;
-  const pendingDocuments = documents.filter(doc => doc.status === 'pending').length;
   const openPositions = mockPositions.filter(pos => pos.status === 'open').length;
   const completedTrainings = mockTrainingRecords.filter(tr => tr.status === 'completed').length;
   const pendingReviews = reviews.filter(pr => pr.status === 'hr_review').length;
@@ -613,10 +607,6 @@ export const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                <p className="font-medium text-sm text-destructive">Urgent</p>
-                <p className="text-xs">{pendingDocuments} documents need approval</p>
-              </div>
               <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
                 <p className="font-medium text-sm text-warning">Reminder</p>
                 <p className="text-xs">{pendingReviews} performance reviews due</p>

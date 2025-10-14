@@ -616,63 +616,6 @@ export const mockEmployees: Employee[] = [
   },
 ];
 
-export const mockDocuments: Document[] = [
-  {
-    id: '1',
-    name: 'Employee Handbook 2024.pdf',
-    type: 'policy',
-    uploadDate: '2024-01-15',
-    createdAt: '2024-01-10',
-    size: '2.3 MB',
-    status: 'approved',
-    uploadedBy: 'Sarah Johnson',
-    category: 'Policies & Procedures'
-  },
-  {
-    id: '2',
-    name: 'Training Certificate - Data Protection.pdf',
-    type: 'certificate',
-    uploadDate: '2024-02-20',
-    createdAt: '2024-02-18',
-    size: '856 KB',
-    status: 'approved',
-    uploadedBy: 'Michael Davis',
-    category: 'Training Records'
-  },
-  {
-    id: '3',
-    name: 'Performance Review Q1 2024.docx',
-    type: 'form',
-    uploadDate: '2024-03-10',
-    size: '1.2 MB',
-    status: 'pending',
-    uploadedBy: 'John Smith',
-    category: 'Performance Management'
-  },
-  {
-    id: '4',
-    name: 'Employment Contract - Emily Chen.pdf',
-    type: 'contract',
-    uploadDate: '2024-02-14',
-    size: '945 KB',
-    status: 'approved',
-    uploadedBy: 'Sarah Johnson',
-    category: 'Contracts'
-  },
-  // Testing document uploaded by an employee (unassigned -> should be under Registry)
-  {
-    id: 'TEST-EMP-1',
-    name: 'Test Upload from Employee.pdf',
-    type: 'form',
-    uploadDate: '2025-09-22',
-    createdAt: '2025-09-22',
-    size: '123 KB',
-    status: 'pending',
-    uploadedBy: 'Michael Davis',
-    category: 'Employee Uploads'
-  }
-];
-
 export const mockPositions: Position[] = [
   {
     id: "1",
