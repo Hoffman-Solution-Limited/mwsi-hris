@@ -180,6 +180,8 @@ export interface Employee {
   position: string;
   department: string;
   manager?: string;
+  // Stable reference to a manager user or employee id (preferred when available)
+  managerId?: string;
   hireDate: string;
   status: 'active' | 'inactive' | 'terminated';
   avatar?: string;
@@ -265,7 +267,8 @@ export const mockEmployees: Employee[] = [
     email: 'john.smith@mwsi.com',
     position: 'System Administrator',
     department: 'IT',
-    manager: 'Sarah Johnson',
+  manager: 'Sarah Johnson',
+  managerId: '2',
     hireDate: '2022-01-15',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=JS',
@@ -302,7 +305,7 @@ export const mockEmployees: Employee[] = [
     email: 'sarah.johnson@mwsi.com',
     position: 'HR Manager',
     department: 'Human Resources',
-    hireDate: '2021-03-20',
+  hireDate: '2021-03-20',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=SJ',
     phone: '+254-700-234567',
@@ -338,7 +341,7 @@ export const mockEmployees: Employee[] = [
       email: 'david.manager@mwsi.com',
       position: 'Operations Manager',
       department: 'Operations',
-      manager: undefined,
+  manager: undefined,
       hireDate: '2019-03-10',
       status: 'active',
       avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=DM',
@@ -375,6 +378,7 @@ export const mockEmployees: Employee[] = [
   position: 'Software Developer',
   department: 'Engineering',
   manager: 'David Manager',
+  managerId: '10',
   hireDate: '2022-07-10',
   status: 'active',
   avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=MD',
@@ -411,7 +415,8 @@ export const mockEmployees: Employee[] = [
     email: 'emily.chen@mwsi.com',
     position: 'Marketing Coordinator',
     department: 'Marketing',
-    manager: 'Sarah Johnson',
+  manager: 'David Manager',
+  managerId: '10',
     hireDate: '2023-02-14',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=EC',
@@ -448,7 +453,9 @@ export const mockEmployees: Employee[] = [
     email: 'robert.wilson@mwsi.com',
     position: 'Finance Director',
     department: 'Finance',
-    hireDate: '2020-11-30',
+  hireDate: '2020-11-30',
+  manager: 'Sarah Johnson',
+  managerId: '2',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=RW',
     phone: '+254-700-567890',
@@ -484,7 +491,8 @@ export const mockEmployees: Employee[] = [
     email: 'jane.smith@mwsi.com',
     position: 'Senior Developer',
     department: 'Engineering',
-    manager: 'David Manager',
+  manager: 'David Manager',
+  managerId: '10',
     hireDate: '2021-08-15',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=JS2',
@@ -521,7 +529,8 @@ export const mockEmployees: Employee[] = [
     email: 'robert.chen@mwsi.com',
     position: 'DevOps Engineer',
     department: 'Engineering',
-    manager: 'David Manager',
+  manager: 'David Manager',
+  managerId: '10',
     hireDate: '2022-03-01',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=RC',
@@ -558,7 +567,9 @@ export const mockEmployees: Employee[] = [
     email: 'registry@mwsi.com',
     position: 'Registry Manager',
     department: 'Registry',
-    hireDate: '2021-08-15',
+  hireDate: '2021-08-15',
+  manager: 'Sarah Johnson',
+  managerId: '2',
     status: 'active',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=RR',
     phone: '+254-700-888888',
@@ -1360,3 +1371,41 @@ export const mockDisciplinaryCases: DisciplinaryCaseMock[] = [
     ]
   }
 ];
+
+// Auto-populate managerId for mock data when possible.
+// This keeps the mock dataset consistent for the managerId-first lookup
+// without manually editing every record. It attempts exact name/email
+// matches within the mockEmployees array and assigns managerId in-place.
+(() => {
+  try {
+    const nameToId = new Map<string, string>();
+    const emailToId = new Map<string, string>();
+    for (const e of mockEmployees) {
+      if (e.name) nameToId.set(e.name.toLowerCase(), e.id);
+      if (e.email) emailToId.set(e.email.toLowerCase(), e.id);
+    }
+
+    for (const e of mockEmployees) {
+      if (!e.managerId && e.manager) {
+        const m = String(e.manager).toLowerCase();
+        // Try email match first (in case manager stored as email)
+        if (emailToId.has(m)) {
+          e.managerId = emailToId.get(m) as string;
+          continue;
+        }
+        // Exact name match
+        if (nameToId.has(m)) {
+          e.managerId = nameToId.get(m) as string;
+          continue;
+        }
+        // Loose name match (contains or startsWith)
+        const loose = mockEmployees.find(x => x.name && (x.name.toLowerCase().includes(m) || m.includes(x.name.toLowerCase())));
+        if (loose) e.managerId = loose.id;
+      }
+    }
+  } catch (err) {
+    // Non-fatal in demo data; leave managerId as-is if anything goes wrong
+    // eslint-disable-next-line no-console
+    console.warn('Failed to auto-populate managerId for mockEmployees', err);
+  }
+})();

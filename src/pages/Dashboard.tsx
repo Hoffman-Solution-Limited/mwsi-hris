@@ -278,14 +278,14 @@ export const Dashboard: React.FC = () => {
 
   if (isManager) {
     // Manager-specific metrics
-    const myTeam = mockEmployees.filter(emp => emp.manager === user.name);
+    const myTeam = mockEmployees.filter(emp => (emp.managerId && emp.managerId === user.id) || emp.manager === user.name);
     const teamLeaves = leaveRequests.filter(req => {
       const employee = mockEmployees.find(emp => emp.id === req.employeeId);
-      return employee?.manager === user.name;
+      return (employee?.managerId && employee.managerId === user.id) || employee?.manager === user.name;
     });
     const teamReviews = reviews.filter(review => {
       const employee = mockEmployees.find(emp => emp.id === review.employeeId);
-      return employee?.manager === user.name;
+      return (employee?.managerId && employee.managerId === user.id) || employee?.manager === user.name;
     });
     const pendingTeamLeaves = teamLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr');
     const pendingTeamReviews = teamReviews.filter(review => review.status === 'targets_set');
