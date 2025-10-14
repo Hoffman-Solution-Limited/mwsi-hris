@@ -444,7 +444,7 @@ const BulkUploadCsvDialog: React.FC = () => {
                               ID: {employee.id}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Employee No: {(employee as any).employeeNumber || employee.staffNumber || '—'}
+                              Employee No: {(employee as any).employeeNumber}
                             </p>
                           </div>
                         </div>
