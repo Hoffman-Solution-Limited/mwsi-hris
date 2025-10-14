@@ -9,6 +9,7 @@ import departmentGoalsRouter from './routes/departmentGoals';
 import positionsRouter from './routes/positions';
 import leavesRouter from './routes/leaves';
 import trainingsRouter from './routes/trainings';
+import disciplinaryRouter from './routes/disciplinary';
 
 const app = express();
 app.use(express.json());
@@ -66,6 +67,7 @@ app.use('/api/department-goals', departmentGoalsRouter);
 app.use('/api/positions', positionsRouter);
 app.use('/api/leaves', leavesRouter);
 app.use('/api/trainings', trainingsRouter);
+app.use('/api/disciplinary', disciplinaryRouter);
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Backend listening on ${port}`));

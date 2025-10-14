@@ -15,15 +15,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 
 import { useEmployees } from "@/contexts/EmployeesContext";
+import { useDisciplinary } from '@/contexts/DisciplinaryContext';
 import { DisciplinaryCaseMock } from '@/types/models';
 
-// Local disciplinary cases type (seeded empty - add via UI)
 type DisciplinaryCase = DisciplinaryCaseMock;
-const mockCases: DisciplinaryCase[] = [];
 
 export const DisciplinaryCases: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [cases, setCases] = useState<DisciplinaryCase[]>(mockCases);
+  const { cases, addCase, updateCase } = useDisciplinary();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<DisciplinaryCase | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
@@ -48,16 +47,14 @@ export const DisciplinaryCases: React.FC = () => {
     return e?.name || "";
   }, [employees, newCase.employeeNumber]);
 
-  // Add new case (mapped to employee by ID)
-  const handleAddCase = () => {
-    // Lookup by employeeNumber and use the internal employee.id when creating the case
+  // Add new case (mapped to employee by ID) — persists via API/context
+  const handleAddCase = async () => {
     const employee = employees.find(e => ((e as any)?.employeeNumber || "").toString() === newCase.employeeNumber.trim());
     if (!employee) {
       alert("Employee number not found. Please enter a valid Employee Number.");
       return;
     }
-    const caseWithId: DisciplinaryCase = {
-      id: cases.length + 1,
+    const payload = {
       employeeId: employee.id,
       employeeName: employee.name,
       caseType: newCase.caseType,
@@ -65,7 +62,7 @@ export const DisciplinaryCases: React.FC = () => {
       date: newCase.date,
       description: newCase.description,
     };
-    setCases(prev => [...prev, caseWithId]);
+    await addCase(payload as any);
     setNewCase({ employeeNumber: "", employeeName: "", caseType: "", status: "open", date: "", description: "" });
   };
 
@@ -78,25 +75,18 @@ export const DisciplinaryCases: React.FC = () => {
     setModalOpen(true);
   };
 
-  const handleModalSubmit = () => {
+  const handleModalSubmit = async () => {
     if (!selectedCase) return;
     const now = new Date().toISOString();
-    setCases((prev) =>
-      prev.map((c) => {
-        if (c.id !== selectedCase.id) return c;
-        const next: DisciplinaryCase = {
-          ...c,
-          status: selectedStatus as "open" | "closed" | "pending",
-          verdict: selectedStatus === "closed" ? (verdictNotes || c.verdict) : c.verdict,
-          updates: [...(c.updates || [])]
-        };
-        const trimmed = statusUpdateNotes.trim();
-        if (trimmed) {
-          next.updates!.push({ timestamp: now, text: trimmed });
-        }
-        return next;
-      })
-    );
+    // persist update through context (updates is an array of update objects)
+    const trimmed = statusUpdateNotes.trim();
+    const updatesArr = (selectedCase?.updates || []).slice();
+    if (trimmed) updatesArr.push({ timestamp: now, text: trimmed });
+    await updateCase(selectedCase!.id, {
+      status: selectedStatus as any,
+      verdict: selectedStatus === 'closed' ? (verdictNotes || selectedCase?.verdict) : selectedCase?.verdict,
+      updates: updatesArr,
+    } as any);
     setModalOpen(false);
     setSelectedCase(null);
     setSelectedStatus("");
