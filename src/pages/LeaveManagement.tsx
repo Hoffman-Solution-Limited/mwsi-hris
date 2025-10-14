@@ -58,7 +58,7 @@ export const LeaveManagement: React.FC = () => {
       return leaveRequests.filter(leave => leave.employeeId === user.id);
     }
     if (user?.role === 'manager') {
-      const directReportIds = mockEmployees.filter(emp => (emp.managerId && emp.managerId === user.id) || emp.manager === user.name).map(emp => emp.id);
+  const directReportIds = mockEmployees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase())).map(emp => emp.id);
       return leaveRequests.filter(leave => directReportIds.includes(leave.employeeId));
     }
     return leaveRequests;
@@ -77,7 +77,7 @@ export const LeaveManagement: React.FC = () => {
 
   const leaveBalances = useMemo(() => {
     if (user?.role === 'manager') {
-      const directReports = mockEmployees.filter(emp => (emp.managerId && emp.managerId === user.id) || emp.manager === user.name);
+  const directReports = mockEmployees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase()));
       return directReports.map(emp => ({
         employeeId: emp.id,
         employeeName: emp.name,

@@ -36,7 +36,7 @@ export const GlobalSearch: React.FC = () => {
 
     // Manager sees self + direct reports (by matching employee.manager === manager.name)
   if (mapRole(user.role) === 'manager') {
-      const teamEmployees = mockEmployees.filter(e => (e.managerId && e.managerId === user.id) || e.manager === user.name || e.id === user.id || e.email === user.email || e.name === user.name);
+  const teamEmployees = mockEmployees.filter(e => (e.managerId && String(e.managerId) === String(user.id)) || (e.manager && user?.name && String(e.manager).toLowerCase() === String(user.name).toLowerCase()) || e.id === user.id || e.email === user.email || e.name === user.name);
       const teamNames = new Set(teamEmployees.map(e => e.name).concat([user.name]));
       const teamIds = new Set(teamEmployees.map(e => e.id).concat([user.id]));
 
