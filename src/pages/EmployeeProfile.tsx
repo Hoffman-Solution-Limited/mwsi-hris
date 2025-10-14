@@ -110,7 +110,7 @@ export const EmployeeProfile: React.FC = () => {
               // Iteratively attempt to get under maxBytes by lowering quality
               let quality = 0.92;
               let dataUrl = canvas.toDataURL('image/jpeg', quality);
-              const toBytes = (d: string) => Math.ceil((d.length - 'data:image/jpeg;base64,'.length) * 3 / 4);
+              const toBytes = (d: string) => Math.ceil((d.length - 'data:image/jpeg;base64.'.length) * 3 / 4);
               let bytes = toBytes(dataUrl);
               while (bytes > maxBytes && quality > 0.3) {
                 quality -= 0.07;
@@ -354,12 +354,12 @@ export const EmployeeProfile: React.FC = () => {
                     <>
                       <div className="flex items-center gap-2">
                         <Mail className="w-4 h-4 text-muted-foreground" />
-                        <span>{employee.email}</span>
+                        <a className="text-blue-600 hover:underline" href={`mailto:${employee.email}`}>{employee.email}</a>
                       </div>
                       {employee.phone && (
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4 text-muted-foreground" />
-                          <span>{employee.phone}</span>
+                          <a className="text-blue-600 hover:underline" href={`tel:${employee.phone}`}>{employee.phone}</a>
                         </div>
                       )}
                       <div className="flex items-center gap-2">
@@ -435,6 +435,7 @@ export const EmployeeProfile: React.FC = () => {
                   <InfoItem label="National ID" value={employee.nationalId || '—'} isMonospace />
                   <InfoItem label="KRA PIN" value={employee.kraPin || '—'} isMonospace />
                   <InfoItem label="Ethnicity" value={(employee as any).ethnicity || '—'} />
+                  <InfoItem label="Marital Status" value={(employee as any).maritalStatus || '—'} className="capitalize" />
                   <InfoItem label="Children" value={employee.children || '0'} />
                   <InfoItem label="Special Needs" value={((employee as any).hasSpecialNeeds ? 'Yes' : 'No') + (((employee as any).hasSpecialNeeds && (employee as any).specialNeedsDescription) ? ` — ${(employee as any).specialNeedsDescription}` : '')} />
                 </CardContent>
@@ -470,10 +471,14 @@ export const EmployeeProfile: React.FC = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <InfoItem label="Home County" value={employee.homeCounty || '—'} />
-                  <InfoItem label="Home Subcounty" value={(employee as any).homeSubcounty || '—'} />
-                  <InfoItem label="Postal Address" value={employee.postalAddress || '—'} />
-                  <InfoItem label="Postal Code" value={employee.postalCode || '—'} />
+                  <div className="border-t pt-2">
+                    <InfoItem label="Home County" value={employee.homeCounty || '—'} />
+                    <InfoItem label="Home Subcounty" value={(employee as any).homeSubcounty || '—'} />
+                  </div>
+                  <div className="border-t pt-2">
+                    <InfoItem label="Postal Address" value={employee.postalAddress || '—'} />
+                    <InfoItem label="Postal Code" value={employee.postalCode || '—'} />
+                  </div>
                 </CardContent>
               </Card>
 
@@ -485,10 +490,14 @@ export const EmployeeProfile: React.FC = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <InfoItem label="Name" value={(employee as any).nextOfKinName || '—'} />
-                  <InfoItem label="Relationship" value={(employee as any).nextOfKinRelationship || '—'} />
-                  <InfoItem label="Phone" value={(employee as any).nextOfKinPhone || '—'} />
-                  <InfoItem label="Email" value={(employee as any).nextOfKinEmail || '—'} />
+                  <div className="border-t pt-2">
+                    <InfoItem label="Name" value={(employee as any).nextOfKinName || '—'} />
+                    <InfoItem label="Relationship" value={(employee as any).nextOfKinRelationship || '—'} />
+                  </div>
+                  <div className="border-t pt-2">
+                    <InfoItem label="Phone" value={(employee as any).nextOfKinPhone || '—'} />
+                    <InfoItem label="Email" value={(employee as any).nextOfKinEmail || '—'} />
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -512,220 +521,244 @@ export const EmployeeProfile: React.FC = () => {
         {/* Performance */}
         <TabsContent value="performance">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Reviews</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {employeeReviews.map((review) => (
-                    <div key={review.id} className="p-4 border rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-medium">{review.reviewPeriod}</h4>
-                        <Badge className={`status-${review.status}`}>
-                          {review.status}
-                        </Badge>
-                      </div>
-                      {review.score && (
-                        <div className="mb-2">
-                          <div className="flex justify-between text-sm mb-1">
-                            <span>Overall Score</span>
-                            <span>{review.score}/5.0</span>
-                          </div>
-                          <Progress value={(review.score / 5) * 100} />
+            <details className="lg:col-span-1" open>
+              <summary className="cursor-pointer list-none">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Performance Reviews</CardTitle>
+                  </CardHeader>
+                </Card>
+              </summary>
+              <Card className="mt-2">
+                <CardContent>
+                  <div className="space-y-4">
+                    {employeeReviews.map((review) => (
+                      <div key={review.id} className="p-4 border rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-medium">{review.reviewPeriod}</h4>
+                          <Badge className={`status-${review.status}`}>
+                            {review.status}
+                          </Badge>
                         </div>
-                      )}
-                      {/* Per-criteria details */}
-                      {(() => {
-                        const template = templates.find(t => t.id === review.templateId);
-                        return (
-                          <div className="space-y-3 mt-3">
-                            {/* Employee Targets mapped to criteria */}
-                            {review.employeeTargets && review.employeeTargets.length > 0 && (
-                              <div>
-                                <p className="font-medium mb-1">Employee Targets</p>
-                                <div className="space-y-2">
-                                  {review.employeeTargets.map((t, idx) => {
-                                    const c = template?.criteria.find(c => c.id === t.criteriaId);
-                                    return (
-                                      <div key={idx} className="bg-muted/30 p-3 rounded">
-                                        <div className="flex justify-between text-sm">
-                                          <span className="font-medium">{c?.name || t.criteriaId}</span>
-                                        </div>
-                                        <p className="text-sm">{t.target}</p>
-                                        {t.description && (
-                                          <p className="text-xs text-muted-foreground mt-1">{t.description}</p>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Manager Scores mapped to criteria */}
-                            {review.managerScores && review.managerScores.length > 0 && (
-                              <div>
-                                <p className="font-medium mb-1">Manager Scores</p>
-                                <div className="space-y-2">
-                                  {review.managerScores.map((s, idx) => {
-                                    const c = template?.criteria.find(c => c.id === s.criteriaId);
-                                    return (
-                                      <div key={idx} className="p-3 border rounded">
-                                        <div className="flex justify-between text-sm">
-                                          <span>{c?.name || s.criteriaId}</span>
-                                          <span>{s.score}/5</span>
-                                        </div>
-                                        {s.comments && (
-                                          <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* HR Comments */}
-                            {review.hrComments && (
-                              <div>
-                                <p className="font-medium mb-1">HR Comments</p>
-                                <div className="p-3 border rounded">
-                                  <p className="text-sm">{review.hrComments}</p>
-                                </div>
-                              </div>
-                            )}
+                        {review.score && (
+                          <div className="mb-2">
+                            <div className="flex justify-between text-sm mb-1">
+                              <span>Overall Score</span>
+                              <span>{review.score}/5.0</span>
+                            </div>
+                            <Progress value={(review.score / 5) * 100} />
                           </div>
-                        );
-                      })()}
-                      {(review as any).feedback && (
-                        <p className="text-sm text-muted-foreground mb-2">{(review as any).feedback}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        Next review: {new Date(review.nextReviewDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ))}
-                  {employeeReviews.length === 0 && (
-                    <div className="text-center py-8">
-                      <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">No performance reviews yet</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                        )}
+                        {/* Per-criteria details */}
+                        {(() => {
+                          const template = templates.find(t => t.id === review.templateId);
+                          return (
+                            <div className="space-y-3 mt-3">
+                              {/* Employee Targets mapped to criteria */}
+                              {review.employeeTargets && review.employeeTargets.length > 0 && (
+                                <div>
+                                  <p className="font-medium mb-1">Employee Targets</p>
+                                  <div className="space-y-2">
+                                    {review.employeeTargets.map((t, idx) => {
+                                      const c = template?.criteria.find(c => c.id === t.criteriaId);
+                                      return (
+                                        <div key={idx} className="bg-muted/30 p-3 rounded">
+                                          <div className="flex justify-between text-sm">
+                                            <span className="font-medium">{c?.name || t.criteriaId}</span>
+                                          </div>
+                                          <p className="text-sm">{t.target}</p>
+                                          {t.description && (
+                                            <p className="text-xs text-muted-foreground mt-1">{t.description}</p>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Goals & Objectives</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {employeeReviews.length > 0 && (employeeReviews[0] as any).goals ? (
-                  <div className="space-y-3">
-                    {(employeeReviews[0] as any).goals.map((goal: any, index: number) => (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                        <div className="w-2 h-2 bg-primary rounded-full"></div>
-                        <p className="text-sm">{goal}</p>
+                              {/* Manager Scores mapped to criteria */}
+                              {review.managerScores && review.managerScores.length > 0 && (
+                                <div>
+                                  <p className="font-medium mb-1">Manager Scores</p>
+                                  <div className="space-y-2">
+                                    {review.managerScores.map((s, idx) => {
+                                      const c = template?.criteria.find(c => c.id === s.criteriaId);
+                                      return (
+                                        <div key={idx} className="p-3 border rounded">
+                                          <div className="flex justify-between text-sm">
+                                            <span>{c?.name || s.criteriaId}</span>
+                                            <span>{s.score}/5</span>
+                                          </div>
+                                          {s.comments && (
+                                            <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* HR Comments */}
+                              {review.hrComments && (
+                                <div>
+                                  <p className="font-medium mb-1">HR Comments</p>
+                                  <div className="p-3 border rounded">
+                                    <p className="text-sm">{review.hrComments}</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                        {(review as any).feedback && (
+                          <p className="text-sm text-muted-foreground mb-2">{(review as any).feedback}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Next review: {new Date(review.nextReviewDate).toLocaleDateString()}
+                        </p>
                       </div>
                     ))}
+                    {employeeReviews.length === 0 && (
+                      <div className="text-center py-8">
+                        <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No performance reviews yet</p>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No goals set yet</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </details>
+
+            <details className="lg:col-span-1" open>
+              <summary className="cursor-pointer list-none">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Goals & Objectives</CardTitle>
+                  </CardHeader>
+                </Card>
+              </summary>
+              <Card className="mt-2">
+                <CardContent>
+                  {employeeReviews.length > 0 && (employeeReviews[0] as any).goals ? (
+                    <div className="space-y-3">
+                      {(employeeReviews[0] as any).goals.map((goal: any, index: number) => (
+                        <div key={index} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                          <div className="w-2 h-2 bg-primary rounded-full"></div>
+                          <p className="text-sm">{goal}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No goals set yet</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </details>
           </div>
         </TabsContent>
 
         {/* Training */}
         <TabsContent value="training">
-          <Card>
-            <CardHeader>
-              <CardTitle>Training & Development</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {employeeTrainings.map((training) => (
-                  <div key={training.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-success/10 p-2 rounded">
-                        <GraduationCap className="w-5 h-5 text-success" />
+          <details open>
+            <summary className="cursor-pointer list-none">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Training & Development</CardTitle>
+                </CardHeader>
+              </Card>
+            </summary>
+            <Card className="mt-2">
+              <CardContent>
+                <div className="space-y-4">
+                  {employeeTrainings.map((training) => (
+                    <div key={training.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-success/10 p-2 rounded">
+                          <GraduationCap className="w-5 h-5 text-success" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{training.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {training.provider} • {training.type}
+                          </p>
+                          {training.completionDate && (
+                            <p className="text-xs text-muted-foreground">
+                              Completed: {new Date(training.completionDate).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{training.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {training.provider} • {training.type}
-                        </p>
-                        {training.completionDate && (
-                          <p className="text-xs text-muted-foreground">
-                            Completed: {new Date(training.completionDate).toLocaleDateString()}
+                      <div className="text-right">
+                        <Badge className={`status-${training.status === 'completed' ? 'approved' : training.status === 'in_progress' ? 'pending' : 'draft'}`}>
+                          {training.status.replace('_', ' ')}
+                        </Badge>
+                        {training.expiryDate && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Expires: {new Date(training.expiryDate).toLocaleDateString()}
                           </p>
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <Badge className={`status-${training.status === 'completed' ? 'approved' : training.status === 'in_progress' ? 'pending' : 'draft'}`}>
-                        {training.status.replace('_', ' ')}
-                      </Badge>
-                      {training.expiryDate && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Expires: {new Date(training.expiryDate).toLocaleDateString()}
-                        </p>
-                      )}
+                  ))}
+                  {employeeTrainings.length === 0 && (
+                    <div className="text-center py-8">
+                      <GraduationCap className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No training records yet</p>
                     </div>
-                  </div>
-                ))}
-                {employeeTrainings.length === 0 && (
-                  <div className="text-center py-8">
-                    <GraduationCap className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No training records yet</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </details>
         </TabsContent>
 
         {/* Leave */}
         <TabsContent value="leave">
-          <Card>
-            <CardHeader>
-              <CardTitle>Leave History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {employeeLeaves.map((leave) => (
-                  <div key={leave.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-medium">{leave.type.replace('_', ' ').toUpperCase()}</p>
-                        <Badge className={`status-${leave.status}`}>
-                          {leave.status}
-                        </Badge>
+          <details open>
+            <summary className="cursor-pointer list-none">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Leave History</CardTitle>
+                </CardHeader>
+              </Card>
+            </summary>
+            <Card className="mt-2">
+              <CardContent>
+                <div className="space-y-4">
+                  {employeeLeaves.map((leave) => (
+                    <div key={leave.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-medium">{leave.type.replace('_', ' ').toUpperCase()}</p>
+                          <Badge className={`status-${leave.status}`}>
+                            {leave.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-1">
+                          {leave.startDate} to {leave.endDate} • {leave.days} day{leave.days > 1 ? 's' : ''}
+                        </p>
+                        <p className="text-sm">{leave.reason}</p>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        {leave.startDate} to {leave.endDate} • {leave.days} day{leave.days > 1 ? 's' : ''}
-                      </p>
-                      <p className="text-sm">{leave.reason}</p>
+                      <div className="text-right text-xs text-muted-foreground">
+                        <p>Applied: {new Date(leave.appliedDate).toLocaleDateString()}</p>
+                      </div>
                     </div>
-                    <div className="text-right text-xs text-muted-foreground">
-                      <p>Applied: {new Date(leave.appliedDate).toLocaleDateString()}</p>
+                  ))}
+                  {employeeLeaves.length === 0 && (
+                    <div className="text-center py-8">
+                      <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No leave requests yet</p>
                     </div>
-                  </div>
-                ))}
-                {employeeLeaves.length === 0 && (
-                  <div className="text-center py-8">
-                    <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No leave requests yet</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </details>
         </TabsContent>
       </Tabs>
     </div>

@@ -41,8 +41,8 @@ export type EmployeeFormData = {
   salary?: number
   status?: 'active' | 'inactive' | 'terminated' | 'retired'
   cadre?: 'Support' | 'Technical' | 'Management'
-  role?: 'hr_manager' | 'hr_staff' | 'manager' | 'employee'
   managerId?: string
+  maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed'
   // Next of kin details
   nextOfKinName?: string
   nextOfKinRelationship?: string
@@ -98,7 +98,6 @@ export function EmployeeForm({
   const watchedStatus = watch("status")
   const watchedCadre = watch("cadre")
   const watchedStationName = watch("stationName")
-  const watchedRole = watch("role")
   const watchedHasSpecialNeeds = watch("hasSpecialNeeds")
   const { toast } = useToast();
 
@@ -135,10 +134,6 @@ export function EmployeeForm({
     }
     if (!data.stationName) {
       setError("stationName", { type: "required", message: "Station is required" });
-      return;
-    }
-    if (!data.role) {
-      setError("role", { type: "required", message: "Role is required" });
       return;
     }
     // If Home County selected, require Home Subcounty
@@ -331,6 +326,21 @@ export function EmployeeForm({
             </div>
 
             <div>
+              <Label htmlFor="maritalStatus">Marital Status</Label>
+              <Select value={watch('maritalStatus') as any} onValueChange={(value: any) => setValue('maritalStatus', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="single">Single</SelectItem>
+                  <SelectItem value="married">Married</SelectItem>
+                  <SelectItem value="divorced">Divorced</SelectItem>
+                  <SelectItem value="widowed">Widowed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
               <Label htmlFor="dateOfBirth">Date of Birth *</Label>
               <Input id="dateOfBirth" type="date" {...register("dateOfBirth", { required: "Date of birth is required" })} />
               {errors.dateOfBirth && <p className="text-destructive text-sm">{errors.dateOfBirth.message}</p>}
@@ -447,22 +457,7 @@ export function EmployeeForm({
               {errors.position && <p className="text-destructive text-sm">{errors.position.message}</p>}
             </div>
 
-            <div>
-              <Label htmlFor="role">Role *</Label>
-              <Select value={watchedRole} onValueChange={(value: 'hr_manager' | 'hr_staff' | 'manager' | 'employee') => setValue('role', value, { shouldValidate: true })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hr_manager">HR Manager</SelectItem>
-                  <SelectItem value="hr_staff">HR Staff</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="employee">Employee</SelectItem>
-                </SelectContent>
-              </Select>
-              {(errors as any).role && <p className="text-destructive text-sm">{(errors as any).role?.message}</p>}
-              <p className="text-xs text-muted-foreground mt-1">Determines access in the system. Managers and HR Managers can have direct reports.</p>
-            </div>
+            {/* Role selection removed: Admin assigns roles when creating users */}
 
             <div>
               <Label htmlFor="managerId">Manager</Label>
