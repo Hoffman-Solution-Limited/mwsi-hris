@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LeaveProvider } from "@/contexts/LeaveContext";
 import { DocumentProvider } from "@/contexts/DocumentContext";
+import { PerformanceProvider } from "@/contexts/PerformanceContext";
+import { TrainingProvider } from "@/contexts/TrainingContext";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { Layout } from "@/components/layout/Layout";
 import { Dashboard } from "@/pages/Dashboard";
@@ -48,6 +50,8 @@ const App = () => (
     <AuthProvider>
       <LeaveProvider>
         <DocumentProvider>
+          <PerformanceProvider>
+            <TrainingProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -155,6 +159,8 @@ const App = () => (
 
         </BrowserRouter>
       </TooltipProvider>
+            </TrainingProvider>
+          </PerformanceProvider>
         </DocumentProvider>
       </LeaveProvider>
     </AuthProvider>

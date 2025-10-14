@@ -14,6 +14,8 @@ type DocumentContextType = {
   documents: Document[];
   addDocument: (input: NewDocumentInput) => void;
   getDocumentUrl: (id: string) => string | undefined;
+  approveDocument: (id: string) => void;
+  rejectDocument: (id: string) => void;
 };
 
 const STORAGE_KEY = 'hris-documents';
@@ -61,7 +63,25 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const getDocumentUrl = (id: string) => blobUrls[id];
 
-  const value = useMemo(() => ({ documents, addDocument, getDocumentUrl }), [documents, blobUrls]);
+  const approveDocument = (id: string) => {
+    setDocuments(prev => prev.map(doc => 
+      doc.id === id ? { ...doc, status: 'approved' } : doc
+    ));
+  };
+
+  const rejectDocument = (id: string) => {
+    setDocuments(prev => prev.map(doc => 
+      doc.id === id ? { ...doc, status: 'rejected' } : doc
+    ));
+  };
+
+  const value = useMemo(() => ({ 
+    documents, 
+    addDocument, 
+    getDocumentUrl, 
+    approveDocument, 
+    rejectDocument 
+  }), [documents, blobUrls]);
 
   return (
     <DocumentContext.Provider value={value}>
