@@ -16,6 +16,7 @@ import {
   User
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLeave } from '@/contexts/LeaveContext';
 import {
   mockEmployees,
   mockLeaveRequests,
@@ -27,6 +28,7 @@ import {
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const { leaveRequests } = useLeave();
   
   // Calculate metrics based on user role
   const isEmployee = user?.role === 'employee';
@@ -34,7 +36,7 @@ export const Dashboard: React.FC = () => {
   
   if (isEmployee) {
     // Employee-specific metrics
-    const myLeaves = mockLeaveRequests.filter(req => req.employeeId === user.id);
+    const myLeaves = leaveRequests.filter(req => req.employeeId === user.id);
     const myTrainings = mockTrainingRecords.filter(tr => tr.employeeId === user.id);
     const myReviews = mockPerformanceReviews.filter(rev => rev.employeeId === user.id);
     const myDocuments = mockDocuments.filter(doc => doc.uploadedBy === user.name);
@@ -166,7 +168,7 @@ export const Dashboard: React.FC = () => {
   // HR/Admin/Manager view - existing dashboard
   const totalEmployees = mockEmployees.length;
   const activeEmployees = mockEmployees.filter(emp => emp.status === 'active').length;
-  const pendingLeaves = mockLeaveRequests.filter(req => req.status === 'pending').length;
+  const pendingLeaves = leaveRequests.filter(req => req.status === 'pending').length;
   const pendingDocuments = mockDocuments.filter(doc => doc.status === 'pending').length;
   const openPositions = mockPositions.filter(pos => pos.status === 'open').length;
   const completedTrainings = mockTrainingRecords.filter(tr => tr.status === 'completed').length;
