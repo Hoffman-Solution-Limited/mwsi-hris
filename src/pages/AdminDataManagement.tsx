@@ -51,12 +51,7 @@ export default function DataManagement() {
 
   return (
     <div className="p-6">
-      <button
-        onClick={() => navigate('/admin')}
-        className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition"
-      >
-        ← Back to Admin Panel
-      </button>
+
 
       <h1 className="text-2xl font-semibold mb-2">Data Management</h1>
       <p className="text-sm text-muted-foreground mb-6">Export data and manage system backups. These operations may take a few minutes.</p>
