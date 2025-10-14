@@ -23,7 +23,7 @@ CREATE TABLE employees (
   manager VARCHAR(200),
   manager_id VARCHAR(50),
   hire_date DATE,
-  status VARCHAR(20) CHECK (status IN ('active', 'inactive', 'terminated')) DEFAULT 'active',
+  status VARCHAR(20) CHECK (status IN ('active', 'inactive', 'terminated', 'retired')) DEFAULT 'active',
   avatar TEXT,
   phone VARCHAR(50),
   emergency_contact TEXT,
@@ -314,7 +314,6 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Roles table (allow dynamic roles and metadata)
-+
 CREATE TABLE IF NOT EXISTS roles (
   id VARCHAR(100) PRIMARY KEY,
   name VARCHAR(200) NOT NULL,
@@ -322,12 +321,10 @@ CREATE TABLE IF NOT EXISTS roles (
   meta JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-+
 -- Role permissions mapping: each row represents a single permission assigned to a role
-+
 CREATE TABLE IF NOT EXISTS role_permissions (
   role_id VARCHAR(100) REFERENCES roles(id) ON DELETE CASCADE,
   permission_key VARCHAR(200) NOT NULL,
   PRIMARY KEY (role_id, permission_key)
 );
-+
+-- Role permissions mapping: each row represents a single permission assigned to a role
