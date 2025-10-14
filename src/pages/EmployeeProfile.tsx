@@ -28,6 +28,7 @@ import {
   mockLeaveRequests 
 } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePerformance } from '@/contexts/PerformanceContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { EditProfileForm } from "@/components/EditProfileForm"
 import { useDocuments } from '@/contexts/DocumentContext';
@@ -39,6 +40,7 @@ export const EmployeeProfile: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { templates } = usePerformance();
   const [activeTab, setActiveTab] = useState('personal');
   const { documents, addDocument, getDocumentUrl } = useDocuments();
   const [docOpen, setDocOpen] = useState(false);
@@ -220,10 +222,13 @@ export const EmployeeProfile: React.FC = () => {
             <User className="w-4 h-4" />
             Personal
           </TabsTrigger>
-          <TabsTrigger value="documents" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Documents
-          </TabsTrigger>
+        {(isMyProfile 
+          || ["admin", "hr_manager", "hr_staff"].includes(user?.role || "")) && (
+            <TabsTrigger value="documents" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Documents
+            </TabsTrigger>
+        )}
           <TabsTrigger value="performance" className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
             Performance
@@ -418,12 +423,14 @@ export const EmployeeProfile: React.FC = () => {
         </TabsContent>
 
         {/* Documents */}
+        {(isMyProfile || ["admin", "hr_manager", "hr_staff"].includes(user?.role || "")) && (
         <TabsContent value="documents">
+
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Employee Documents</CardTitle>
-                {(isMyProfile || user?.role === 'employee') && (
+                {isMyProfile && (
                   <Dialog open={docOpen} onOpenChange={setDocOpen}>
                     <DialogTrigger asChild>
                       <Button size="sm">
@@ -525,10 +532,10 @@ export const EmployeeProfile: React.FC = () => {
                   </div>
                 )}
               </div>
-            </CardContent>
+            </CardContent> 
           </Card>
         </TabsContent>
-
+        )}
         {/* Performance */}
         <TabsContent value="performance">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -555,6 +562,82 @@ export const EmployeeProfile: React.FC = () => {
                           <Progress value={(review.score / 5) * 100} />
                         </div>
                       )}
+                      {/* Per-criteria details */}
+                      {(() => {
+                        const template = templates.find(t => t.id === review.templateId);
+                        return (
+                          <div className="space-y-3 mt-3">
+                            {/* Employee Targets mapped to criteria */}
+                            {review.employeeTargets && review.employeeTargets.length > 0 && (
+                              <div>
+                                <p className="font-medium mb-1">Employee Targets</p>
+                                <div className="space-y-2">
+                                  {review.employeeTargets.map((t, idx) => {
+                                    const c = template?.criteria.find(c => c.id === t.criteriaId);
+                                    return (
+                                      <div key={idx} className="bg-muted/30 p-3 rounded">
+                                        <div className="flex justify-between text-sm">
+                                          <span className="font-medium">{c?.name || t.criteriaId}</span>
+                                        </div>
+                                        <p className="text-sm">{t.target}</p>
+                                        {t.description && (
+                                          <p className="text-xs text-muted-foreground mt-1">{t.description}</p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Manager Scores mapped to criteria */}
+                            {review.managerScores && review.managerScores.length > 0 && (
+                              <div>
+                                <p className="font-medium mb-1">Manager Scores</p>
+                                <div className="space-y-2">
+                                  {review.managerScores.map((s, idx) => {
+                                    const c = template?.criteria.find(c => c.id === s.criteriaId);
+                                    return (
+                                      <div key={idx} className="p-3 border rounded">
+                                        <div className="flex justify-between text-sm">
+                                          <span>{c?.name || s.criteriaId}</span>
+                                          <span>{s.score}/5</span>
+                                        </div>
+                                        {s.comments && (
+                                          <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* HR Scores mapped to criteria */}
+                            {review.hrScores && review.hrScores.length > 0 && (
+                              <div>
+                                <p className="font-medium mb-1">HR Scores</p>
+                                <div className="space-y-2">
+                                  {review.hrScores.map((s, idx) => {
+                                    const c = template?.criteria.find(c => c.id === s.criteriaId);
+                                    return (
+                                      <div key={idx} className="p-3 border rounded">
+                                        <div className="flex justify-between text-sm">
+                                          <span>{c?.name || s.criteriaId}</span>
+                                          <span>{s.score}/5</span>
+                                        </div>
+                                        {s.comments && (
+                                          <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                       <p className="text-sm text-muted-foreground mb-2">{review.feedback}</p>
                       <p className="text-xs text-muted-foreground">
                         Next review: {new Date(review.nextReviewDate).toLocaleDateString()}

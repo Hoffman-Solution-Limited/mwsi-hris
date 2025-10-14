@@ -144,7 +144,7 @@ export const Training: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold mb-2">Training & CPD</h1>
           <p className="text-muted-foreground">
-            {user?.role === 'employee' ? 'Your assigned trainings and completions' : 'Manage training programs and compliance'}
+            {(user?.role === 'employee' || user?.role === 'manager') ? 'Your assigned trainings and completions' : 'Manage training programs and compliance'}
           </p>
         </div>
         {/* Training assignment should now be handled by HR, not Admin */}
@@ -247,7 +247,7 @@ export const Training: React.FC = () => {
                 value="records"
                 className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
               >
-                {user?.role === 'employee' ? 'My Trainings' : 'Employee Trainings'}
+                {(user?.role === 'employee' || user?.role === 'manager') ? 'My Trainings' : 'Employee Trainings'}
               </TabsTrigger>
             </>
           )}
@@ -386,7 +386,7 @@ export const Training: React.FC = () => {
         <TabsContent value="records">
           <Card>
             <CardHeader>
-              <CardTitle>{user?.role === 'employee' ? 'My Training Records' : 'Individual Training Records'}</CardTitle>
+              <CardTitle>{(user?.role === 'employee' || user?.role === 'manager') ? 'My Training Records' : 'Individual Training Records'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -400,7 +400,7 @@ export const Training: React.FC = () => {
                         </div>
                         <div>
                           <h4 className="font-medium">{training.title}</h4>
-                          {user?.role !== 'employee' && (
+                          {['hr_manager', 'hr_staff'].includes(user?.role || '') && (
                             <p className="text-sm text-muted-foreground">
                               {employee?.name} • {employee?.department}
                             </p>
@@ -424,7 +424,7 @@ export const Training: React.FC = () => {
                             Expires: {new Date(training.expiryDate).toLocaleDateString()}
                           </p>
                         )}
-                        {user?.role === 'employee' && training.status !== 'completed' && (
+                        {(user?.role === 'employee' || user?.role === 'manager') && training.status !== 'completed' && (
                           <div className="flex justify-end gap-2 mt-2">
                             {training.status === 'not_started' && (
                               <Button size="sm" variant="outline" onClick={() => startTraining(training.id)}>Start Training</Button>
