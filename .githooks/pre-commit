@@ -1,0 +1,34 @@
+#!/bin/sh
+# Commit author guard (deny-list)
+#
+# Allows any author except explicitly denied names/emails.
+# This lets your teammates commit with their own verified identities,
+# while preventing known-bad identities from slipping in.
+
+# Deny-list: add names/emails to block
+DENY_NAMES="shubh2294"
+DENY_EMAILS="12345678+nguni@users.noreply.github.com"
+
+NAME=$(git config user.name)
+EMAIL=$(git config user.email)
+
+for n in $DENY_NAMES; do
+  if [ "$NAME" = "$n" ]; then
+    echo "ERROR: Commit blocked. Author name '$NAME' is denied for this repo." 1>&2
+    echo "Set your identity for this repo, e.g.:" 1>&2
+    echo "  git config user.name \"<your-name>\"" 1>&2
+    echo "  git config user.email \"<your-verified-email>\"" 1>&2
+    exit 1
+  fi
+done
+
+for e in $DENY_EMAILS; do
+  if [ "$EMAIL" = "$e" ]; then
+    echo "ERROR: Commit blocked. Author email '$EMAIL' is denied for this repo." 1>&2
+    echo "Use a verified email, e.g.:" 1>&2
+    echo "  git config user.email \"johnmuthokak@gmail.com\"" 1>&2
+    exit 1
+  fi
+done
+
+exit 0

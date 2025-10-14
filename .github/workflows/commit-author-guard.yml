@@ -1,0 +1,61 @@
+name: Commit Author Guard
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  author-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit authors
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Deny-list emails and names
+          DENY_EMAILS=("12345678+nguni@users.noreply.github.com")
+          DENY_NAMES=("shubh2294")
+
+          # Determine range: for PRs, check the PR commits; else, last 100 commits
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            RANGE="${{ github.event.pull_request.base.sha }}..${{ github.sha }}"
+          else
+            RANGE="HEAD~100..HEAD"
+          fi
+
+          echo "Checking commit authors in range: $RANGE"
+          emails=$(git log --format='%ae' $RANGE | sort -u)
+          names=$(git log --format='%an' $RANGE | sort -u)
+
+          echo "Emails found:\n$emails"
+          echo "Names found:\n$names"
+
+          failed=0
+
+          for bad in "${DENY_EMAILS[@]}"; do
+            if echo "$emails" | grep -Fxq "$bad"; then
+              echo "::error title=Denied author email detected::Email '$bad' is not allowed in this repo.";
+              failed=1
+            fi
+          done
+
+          for bad in "${DENY_NAMES[@]}"; do
+            if echo "$names" | grep -Fxq "$bad"; then
+              echo "::error title=Denied author name detected::Name '$bad' is not allowed in this repo.";
+              failed=1
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            echo "One or more denied authors detected. Please amend commits with a verified name/email and push again.";
+            exit 1
+          fi
+
+          echo "Commit author guard passed."
