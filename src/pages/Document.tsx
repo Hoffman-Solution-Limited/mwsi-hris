@@ -112,7 +112,7 @@ const DocumentTrackingPage: React.FC = () => {
           {employeeFilter ? (
             (() => {
               const file = getFileByEmployeeId(employeeFilter);
-              return (
+                return (
                 <Tabs defaultValue="file">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="file">Employee File</TabsTrigger>
@@ -120,7 +120,13 @@ const DocumentTrackingPage: React.FC = () => {
                   <TabsContent value="file">
                     <Card>
                       <CardHeader>
-                        <CardTitle>Employee File: </CardTitle>
+                      <CardTitle>
+                            Employee File:{' '}
+                            {(() => {
+                              const emp = employees.find(e => e.id === employeeFilter);
+                              return (emp as any)?.employeeNumber || employeeFilter;
+                            })()}
+                          </CardTitle>
                       </CardHeader>
                       <CardContent>
                         {!file ? (
