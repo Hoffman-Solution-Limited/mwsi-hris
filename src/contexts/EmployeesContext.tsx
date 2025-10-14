@@ -8,6 +8,12 @@ type EmployeesContextType = {
   addEmployee: (data: Omit<EmployeeRecord, 'id' | 'avatar' | 'status' | 'hireDate'> & Partial<Pick<EmployeeRecord, 'status' | 'hireDate'>>) => void;
   updateEmployee: (id: string, updates: Partial<EmployeeRecord>) => void;
   removeEmployee: (id: string) => void;
+  renameStationAcrossEmployees?: (oldName: string, newName: string) => void;
+  renameDesignationAcrossEmployees?: (oldName: string, newName: string) => void;
+  renameSkillLevelAcrossEmployees?: (oldName: string, newName: string) => void;
+  renameJobGroupAcrossEmployees?: (oldName: string, newName: string) => void;
+  renameEngagementTypeAcrossEmployees?: (oldName: string, newName: string) => void;
+  renameEthnicityAcrossEmployees?: (oldName: string, newName: string) => void;
 };
 
 const STORAGE_KEY = 'hris-employees';
@@ -85,7 +91,52 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const value = useMemo(() => ({ employees, addEmployee, updateEmployee, removeEmployee }), [employees]);
 
-  return <EmployeesContext.Provider value={value}>{children}</EmployeesContext.Provider>;
+  // attach helper to rename stations across employees
+  const renameStationAcrossEmployees = (oldName: string, newName: string) => {
+    const o = oldName?.trim();
+    const n = newName?.trim();
+    if (!o || !n) return;
+    setEmployees(prev => prev.map(e => (e.stationName === o ? { ...e, stationName: n } : e)));
+  };
+
+  const renameDesignationAcrossEmployees = (oldName: string, newName: string) => {
+    const o = oldName?.trim();
+    const n = newName?.trim();
+    if (!o || !n) return;
+    setEmployees(prev => prev.map(e => (e.position === o ? { ...e, position: n } : e)));
+  };
+
+  const renameSkillLevelAcrossEmployees = (oldName: string, newName: string) => {
+    const o = oldName?.trim();
+    const n = newName?.trim();
+    if (!o || !n) return;
+    setEmployees(prev => prev.map(e => (e.skillLevel === o ? { ...e, skillLevel: n } : e)));
+  };
+
+  const renameJobGroupAcrossEmployees = (oldName: string, newName: string) => {
+    const o = oldName?.trim();
+    const n = newName?.trim();
+    if (!o || !n) return;
+    setEmployees(prev => prev.map(e => (e.jobGroup === o ? { ...e, jobGroup: n } : e)));
+  };
+
+  const renameEngagementTypeAcrossEmployees = (oldName: string, newName: string) => {
+    const o = oldName?.trim();
+    const n = newName?.trim();
+    if (!o || !n) return;
+    setEmployees(prev => prev.map(e => ((e.engagementType || e.employmentType) === o ? { ...e, engagementType: n } : e)));
+  };
+
+  const renameEthnicityAcrossEmployees = (oldName: string, newName: string) => {
+    const o = oldName?.trim();
+    const n = newName?.trim();
+    if (!o || !n) return;
+    setEmployees(prev => prev.map(e => (e.ethnicity === o ? { ...e, ethnicity: n } : e)));
+  };
+
+  const fullValue = useMemo(() => ({ ...value, renameStationAcrossEmployees, renameDesignationAcrossEmployees, renameSkillLevelAcrossEmployees, renameJobGroupAcrossEmployees, renameEngagementTypeAcrossEmployees, renameEthnicityAcrossEmployees }), [value]);
+
+  return <EmployeesContext.Provider value={fullValue}>{children}</EmployeesContext.Provider>;
 };
 
 export const useEmployees = () => {
