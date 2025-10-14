@@ -1,6 +1,8 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { pool } from '../db';
 import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
+import { requireAuth, requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -19,12 +21,26 @@ router.get('/', async (_req: Request, res: Response) => {
 });
 
 // POST /api/disciplinary
-router.post('/', async (req: Request, res: Response) => {
-  const data = req.body;
+const postSchema = z.object({
+  id: z.string().optional(),
+  employeeId: z.string().nullable().optional(),
+  employeeName: z.string().nullable().optional(),
+  caseType: z.string(),
+  status: z.string().optional().default('open'),
+  date: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  verdict: z.string().optional().nullable(),
+  updates: z.array(z.any()).optional().default([]),
+});
+
+router.post('/', requireAuth, requireRole(['hr','admin']), async (req: Request, res: Response) => {
+  const parsed = postSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'invalid payload', details: parsed.error.errors });
+  const data = parsed.data as any;
   const id = data.id || uuidv4();
   try {
-  const q = `INSERT INTO disciplinary_cases(id, employee_id, employee_name, case_type, status, date, description, verdict, updates) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`;
-  const vals = [id, data.employeeId || null, data.employeeName || null, data.caseType || null, data.status || 'open', data.date || null, data.description || null, data.verdict || null, JSON.stringify(data.updates || [])];
+    const q = `INSERT INTO disciplinary_cases(id, employee_id, employee_name, case_type, status, date, description, verdict, updates) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`;
+    const vals = [id, data.employeeId || null, data.employeeName || null, data.caseType || null, data.status || 'open', data.date || null, data.description || null, data.verdict || null, JSON.stringify(data.updates || [])];
     const result = await pool.query(q, vals);
     res.status(201).json(result.rows[0]);
   } catch (err) {
