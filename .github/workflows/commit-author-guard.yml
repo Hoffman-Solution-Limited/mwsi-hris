@@ -15,6 +15,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch base branch (PRs only)
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Ensure the PR base branch exists locally so range ops work
+          BASE_REF='${{ github.event.pull_request.base.ref }}'
+          git fetch --no-tags --prune origin "$BASE_REF":"$BASE_REF"
+
       - name: Validate commit authors
         shell: bash
         run: |
@@ -23,19 +32,43 @@ jobs:
           DENY_EMAILS=("12345678+nguni@users.noreply.github.com")
           DENY_NAMES=("shubh2294")
 
-          # Determine range: for PRs, check the PR commits; else, last 100 commits
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            RANGE="${{ github.event.pull_request.base.sha }}..${{ github.sha }}"
+          EVENT='${{ github.event_name }}'
+          RANGE=""
+
+          if [[ "$EVENT" == "pull_request" ]]; then
+            BASE='${{ github.event.pull_request.base.sha }}'
+            HEAD='${{ github.event.pull_request.head.sha }}'
+            RANGE="$BASE..$HEAD"
+          elif [[ "$EVENT" == "push" ]]; then
+            BEFORE='${{ github.event.before }}'
+            AFTER='${{ github.event.after }}'
+            if [[ "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
+              # New branch or history not available; derive a safe window from AFTER
+              OLDEST=$(git rev-list --max-count=100 "$AFTER" | tail -n 1 2>/dev/null || true)
+              if [[ -n "${OLDEST:-}" ]]; then
+                RANGE="$OLDEST..$AFTER"
+              else
+                RANGE="$AFTER"
+              fi
+            else
+              RANGE="$BEFORE..$AFTER"
+            fi
           else
-            RANGE="HEAD~100..HEAD"
+            # Fallback: check up to the last 100 commits on the current ref
+            OLDEST=$(git rev-list --max-count=100 HEAD | tail -n 1 2>/dev/null || true)
+            if [[ -n "${OLDEST:-}" ]]; then
+              RANGE="$OLDEST..HEAD"
+            else
+              RANGE="HEAD"
+            fi
           fi
 
-          echo "Checking commit authors in range: $RANGE"
+          printf 'Checking commit authors in range: %s\n' "$RANGE"
           emails=$(git log --format='%ae' $RANGE | sort -u)
           names=$(git log --format='%an' $RANGE | sort -u)
 
-          echo "Emails found:\n$emails"
-          echo "Names found:\n$names"
+          printf 'Emails found:\n%s\n' "$emails"
+          printf 'Names found:\n%s\n' "$names"
 
           failed=0
 
@@ -53,7 +86,7 @@ jobs:
             fi
           done
 
-          if [ "$failed" -ne 0 ]; then
+          if [[ "$failed" -ne 0 ]]; then
             echo "One or more denied authors detected. Please amend commits with a verified name/email and push again.";
             exit 1
           fi
