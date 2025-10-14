@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Search, Filter, TrendingUp, Star, Calendar, Eye, Clock, CheckCircle, Users, Target, Edit } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,15 +9,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { mockEmployees } from '@/data/mockData';
+import { TemplateCriteriaList } from '@/components/performance/TemplateCriteriaList';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePerformance, PerformanceTemplate, PerformanceReview } from '@/contexts/PerformanceContext';
 
 export const PerformanceReviews: React.FC = () => {
   const { user } = useAuth();
   const { templates, reviews, createTemplate, createReview, setEmployeeTargets, submitManagerReview, submitHrReview, updateReview } = usePerformance();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('active');
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
@@ -27,7 +30,19 @@ export const PerformanceReviews: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
   const [editComments, setEditComments] = useState('');
   const [editScore, setEditScore] = useState<number | ''>('');
-  
+  const [managerScoresDraft, setManagerScoresDraft] = useState<{ criteriaId: string; score: number; comments: string }[]>([]);
+  const [hrScoresDraft, setHrScoresDraft] = useState<{ criteriaId: string; score: number; comments: string }[]>([]);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+
+  // Set default tab based on role
+  useEffect(() => {
+    if (user?.role === 'hr_manager' || user?.role === 'hr_staff') {
+      setActiveTab('assign');
+    } else {
+      setActiveTab('active');
+    }
+  }, [user?.role]);
+
   // Manager-specific review filters
   const myAppraisals = useMemo(() => {
     if (!user || user.role !== 'manager') return [];
@@ -61,7 +76,25 @@ export const PerformanceReviews: React.FC = () => {
       : 0,
     completionRate: reviews.length > 0 ? (completedReviews.length / reviews.length) * 100 : 0,
     pendingManager: reviews.filter(r => r.status === 'targets_set').length,
-    pendingHr: reviews.filter(r => r.status === 'manager_review').length
+    pendingHr: reviews.filter(r => r.status === 'hr_review').length
+  };
+
+  // Helper: days until deadline (positive = days remaining, 0 = today, negative = overdue by abs(days))
+  const getDaysUntil = (date?: string) => {
+    if (!date) return undefined as number | undefined;
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const target = new Date(date).getTime();
+    return Math.ceil((target - startOfToday) / (1000 * 60 * 60 * 24));
+  };
+
+  // HR Assign: helper to select all employees
+  const handleSelectAllEmployees = (checked: boolean) => {
+    if (checked) {
+      setSelectedEmployees(mockEmployees.map(emp => emp.id));
+    } else {
+      setSelectedEmployees([]);
+    }
   };
 
   // Template creation form
@@ -98,32 +131,43 @@ export const PerformanceReviews: React.FC = () => {
     templateId: '',
     reviewPeriod: ''
   });
+  // HR Assign: multi-employee selection and deadline
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [deadlineDate, setDeadlineDate] = useState('');
 
   const createNewReview = () => {
-    if (!user || !reviewForm.employeeId || !reviewForm.templateId) return;
-    
-    const employee = mockEmployees.find(emp => emp.id === reviewForm.employeeId);
-    if (!employee) return;
-
+    if (!user) return;
     const template = templates.find(t => t.id === reviewForm.templateId);
-    if (!template) return;
+    if (!template || !reviewForm.templateId) return;
 
-    createReview({
-      employeeId: reviewForm.employeeId,
-      employeeName: employee.name,
-      templateId: reviewForm.templateId,
-      reviewPeriod: reviewForm.reviewPeriod,
-      status: 'draft',
-      employeeTargets: [],
-      managerScores: [],
-      hrScores: [],
-      managerComments: '',
-      hrComments: '',
-      nextReviewDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-      createdBy: user.name
+    // If using the HR Assign tab, selectedEmployees will be populated. Otherwise fall back to single employeeId.
+    const employeeIds = selectedEmployees.length > 0 ? selectedEmployees : (reviewForm.employeeId ? [reviewForm.employeeId] : []);
+    if (employeeIds.length === 0) return;
+
+    employeeIds.forEach(empId => {
+      const employee = mockEmployees.find(emp => emp.id === empId);
+      if (!employee) return;
+      createReview({
+        employeeId: empId,
+        employeeName: employee.name,
+        templateId: reviewForm.templateId,
+        reviewPeriod: reviewForm.reviewPeriod,
+        status: 'draft',
+        employeeTargets: [],
+        managerScores: [],
+        hrScores: [],
+        managerComments: '',
+        hrComments: '',
+        deadlineDate: deadlineDate || undefined,
+        nextReviewDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        createdBy: user.name
+      });
     });
-    
+
+    // Reset relevant state
     setReviewForm({ employeeId: '', templateId: '', reviewPeriod: '' });
+    setSelectedEmployees([]);
+    setDeadlineDate('');
     setReviewDialogOpen(false);
   };
 
@@ -135,6 +179,26 @@ export const PerformanceReviews: React.FC = () => {
     setEmployeeTargets(selectedReview.id, targets);
     setTargetDialogOpen(false);
     setTargets([]);
+  };
+
+  // Save draft of targets without changing to manager review
+  const handleSaveTargetsDraft = () => {
+    if (!selectedReview) return;
+    updateReview(selectedReview.id, {
+      employeeTargets: targets,
+      status: 'draft'
+    });
+    setTargetDialogOpen(false);
+  };
+
+  // Submit targets to manager for review
+  const handleSubmitTargetsToManager = () => {
+    if (!selectedReview) return;
+    updateReview(selectedReview.id, {
+      employeeTargets: targets,
+      status: 'manager_review'
+    });
+    setTargetDialogOpen(false);
   };
 
   const openTargetDialog = (review: PerformanceReview) => {
@@ -211,7 +275,8 @@ const handleSubmitToManager = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          {user?.role !== 'employee' && (
+          {user?.role !== 'employee' &&
+          user?.role !== 'manager' && user?.role !== 'hr_manager' && (
             <>
               <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
                 <DialogTrigger asChild>
@@ -323,19 +388,125 @@ const handleSubmitToManager = () => {
                       </div>
                     </div>
                   </div>
-                  <DialogFooter>
+                       <DialogFooter>
                     <Button onClick={createNewTemplate}>Create Template</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+
+      {/* View Details Dialog (read-only) */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Review Details</DialogTitle>
+            <DialogDescription>Summary of targets, scores and template criteria.</DialogDescription>
+          </DialogHeader>
+          {selectedReview && (
+            <div className="space-y-4">
+              {(() => {
+                const template = templates.find(t => t.id === selectedReview.templateId);
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left: Summary, Template, Targets */}
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="font-medium">Employee: {selectedReview.employeeName}</p>
+                          <p className="text-sm text-muted-foreground">Period: {selectedReview.reviewPeriod}</p>
+                          <p className="text-sm text-muted-foreground capitalize">Status: {selectedReview.status.replace('_',' ')}</p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Template: {template?.name || '-'}</p>
+                          <p className="text-sm text-muted-foreground">Type: {template?.type || '-'}</p>
+                          {selectedReview.overallScore !== undefined && (
+                            <p className="text-sm text-muted-foreground">Overall: {selectedReview.overallScore?.toFixed(1)}/5.0</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {template && <TemplateCriteriaList template={template} />}
+
+                      {selectedReview.employeeTargets && selectedReview.employeeTargets.length > 0 && (
+                        <div>
+                          <p className="font-medium mb-2">Employee Targets</p>
+                          <div className="space-y-2">
+                            {selectedReview.employeeTargets.map((t, idx) => {
+                              const c = template?.criteria.find(c => c.id === t.criteriaId);
+                              return (
+                                <div key={idx} className="bg-muted/30 p-3 rounded">
+                                  <p className="text-sm font-medium">{c?.name || 'Target'}</p>
+                                  <p className="text-sm">{t.target}</p>
+                                  {t.description && <p className="text-xs text-muted-foreground mt-1">{t.description}</p>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: Manager/HR Scores */}
+                    <div className="space-y-4">
+                      {selectedReview.managerScores && selectedReview.managerScores.length > 0 && (
+                        <div>
+                          <p className="font-medium mb-2">Manager Scores</p>
+                          <div className="space-y-2">
+                            {selectedReview.managerScores.map((s, idx) => {
+                              const c = template?.criteria.find(c => c.id === s.criteriaId);
+                              return (
+                                <div key={idx} className="p-3 border rounded">
+                                  <div className="flex justify-between text-sm">
+                                    <span>{c?.name || 'Criteria'}</span>
+                                    <span>{s.score}/5</span>
+                                  </div>
+                                  {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedReview.hrScores && selectedReview.hrScores.length > 0 && (
+                        <div>
+                          <p className="font-medium mb-2">HR Scores</p>
+                          <div className="space-y-2">
+                            {selectedReview.hrScores.map((s, idx) => {
+                              const c = template?.criteria.find(c => c.id === s.criteriaId);
+                              return (
+                                <div key={idx} className="p-3 border rounded">
+                                  <div className="flex justify-between text-sm">
+                                    <span>{c?.name || 'Criteria'}</span>
+                                    <span>{s.score}/5</span>
+                                  </div>
+                                  {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
               
               <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+              {["admin"].includes(user?.role) && (
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
                     New Review
                   </Button>
                 </DialogTrigger>
+              )}  
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Create Performance Review</DialogTitle>
@@ -452,19 +623,25 @@ const handleSubmitToManager = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-  {user?.role === 'manager' ? (
-          <TabsList className="grid w-full grid-cols-2 gap-2">
+        {user?.role === 'manager' ? (
+          <TabsList className="grid w-full grid-cols-3 gap-2">
             <TabsTrigger
-              value="my-appraisals"
+              value="active"
               className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
             >
-              My Appraisals
+              My Performance
             </TabsTrigger>
             <TabsTrigger
-              value="team-appraisals"
+              value="history"
               className="bg-gray-200 text-gray-800 data-[state=active]:bg-yellow-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
             >
-              Team Appraisals
+              History
+            </TabsTrigger>
+            <TabsTrigger
+              value="review-submissions"
+              className="bg-green-600 text-white data-[state=active]:bg-green-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+            >
+              Review Submissions
             </TabsTrigger>
           </TabsList>
         ) : user?.role === 'hr_manager' || user?.role === 'hr_staff' ? (
@@ -488,140 +665,15 @@ const handleSubmitToManager = () => {
               value="active"
               className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
             >
-              Active Appraisal
+              My Performance
             </TabsTrigger>
             <TabsTrigger
               value="history"
               className="bg-gray-200 text-gray-800 data-[state=active]:bg-yellow-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
             >
-              Appraisal History
+              History
             </TabsTrigger>
           </TabsList>
-        )}
-
-        {/* Manager: My Appraisals Tab */}
-        {user?.role === 'manager' && (
-          <TabsContent value="my-appraisals">
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold mb-2">My Active Appraisals</h2>
-              {myAppraisals.filter(r => r.status !== 'completed').length === 0 ? (
-                <Card><CardContent className="p-6 text-center text-muted-foreground">No active appraisals.</CardContent></Card>
-              ) : (
-                myAppraisals.filter(r => r.status !== 'completed').map((review) => {
-                  const template = templates.find(t => t.id === review.templateId);
-                  return (
-                    <Card key={review.id}>
-                      <CardHeader>
-                        <CardTitle>{review.reviewPeriod} {template ? `- ${template.name}` : ''}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div><span className="font-semibold">Status:</span> <Badge>{review.status}</Badge></div>
-                          <div><span className="font-semibold">Score:</span> {review.overallScore || '-'} / 5</div>
-                          <div><span className="font-semibold">Feedback:</span> {review.managerComments || 'No feedback.'}</div>
-                          <div><span className="font-semibold">Goals:</span> {review.employeeTargets && review.employeeTargets.length > 0 ? review.employeeTargets.map(t => t.target).join(', ') : 'No goals.'}</div>
-                          <div className="flex gap-2 mt-2">
-                            <Button variant="default" size="sm" onClick={() => {
-                              setSelectedReview(review);
-                              setEditMode(true);
-                              // Prepare editable targets for modal
-                              const template = templates.find(t => t.id === review.templateId);
-                              if (template) {
-                                setTargets(
-                                  template.criteria.map(criteria => {
-                                    const existing = review.employeeTargets?.find(t => t.criteriaId === criteria.id);
-                                    return {
-                                      criteriaId: criteria.id,
-                                      target: existing?.target || '',
-                                      description: existing?.description || ''
-                                    };
-                                  })
-                                );
-                              }
-                            }}>Edit</Button>
-                            {/* Modal for editing manager's own goals/targets */}
-                            <Dialog open={!!selectedReview && editMode} onOpenChange={(open) => { if (!open) setSelectedReview(null); }}>
-                              <DialogContent className="max-w-xl">
-                                <DialogHeader>
-                                  <DialogTitle>Edit Your Goals</DialogTitle>
-                                  <DialogDescription>Edit your performance targets for this review period.</DialogDescription>
-                                </DialogHeader>
-                                {selectedReview && (
-                                  <div className="space-y-4">
-                                    {targets.map((target, idx) => {
-                                      const criteria = templates.find(t => t.id === selectedReview.templateId)?.criteria.find(c => c.id === target.criteriaId);
-                                      return (
-                                        <div key={target.criteriaId} className="space-y-2">
-                                          <label className="text-sm font-medium">{criteria?.name}</label>
-                                          <p className="text-xs text-muted-foreground">{criteria?.description}</p>
-                                          <Input
-                                            placeholder="Your target for this criteria"
-                                            value={target.target}
-                                            onChange={e => {
-                                              const newTargets = [...targets];
-                                              newTargets[idx].target = e.target.value;
-                                              setTargets(newTargets);
-                                            }}
-                                          />
-                                          <Textarea
-                                            placeholder="Describe how you plan to achieve this target"
-                                            value={target.description}
-                                            onChange={e => {
-                                              const newTargets = [...targets];
-                                              newTargets[idx].description = e.target.value;
-                                              setTargets(newTargets);
-                                            }}
-                                            rows={2}
-                                          />
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                                <DialogFooter>
-                                  <div className="flex gap-2">
-                                    <Button variant="outline" onClick={() => setSelectedReview(null)}>Close</Button>
-                                    {selectedReview && (
-                                      <Button variant="default" onClick={() => {
-                                        setEmployeeTargets(selectedReview.id, targets);
-                                        setSelectedReview(null);
-                                      }}>Save</Button>
-                                    )}
-                                  </div>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
-              <h2 className="text-xl font-bold mt-8 mb-2">My Appraisal History</h2>
-              {myAppraisals.filter(r => r.status === 'completed').length === 0 ? (
-                <Card><CardContent className="p-6 text-center text-muted-foreground">No appraisal history.</CardContent></Card>
-              ) : (
-                myAppraisals.filter(r => r.status === 'completed').map((review) => {
-                  const template = templates.find(t => t.id === review.templateId);
-                  return (
-                    <Card key={review.id}>
-                      <CardHeader>
-                        <CardTitle>{review.reviewPeriod} {template ? `- ${template.name}` : ''}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div><span className="font-semibold">Score:</span> {review.overallScore || '-'} / 5</div>
-                          <div><span className="font-semibold">Feedback:</span> {review.managerComments || 'No feedback.'}</div>
-                          <div><span className="font-semibold">Goals:</span> {review.employeeTargets && review.employeeTargets.length > 0 ? review.employeeTargets.map(t => t.target).join(', ') : 'No goals.'}</div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
-            </div>
-          </TabsContent>
         )}
 
         {/* HR: Assign Reviews Tab */}
@@ -649,19 +701,6 @@ const handleSubmitToManager = () => {
                       </Select>
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Employee</label>
-                      <Select value={reviewForm.employeeId} onValueChange={(v) => setReviewForm(prev => ({ ...prev, employeeId: v }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select employee" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mockEmployees.map(emp => (
-                            <SelectItem key={emp.id} value={emp.id.toString()}>{emp.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
                       <label className="text-sm font-medium">Review Period</label>
                       <Input 
                         value={reviewForm.reviewPeriod} 
@@ -669,10 +708,50 @@ const handleSubmitToManager = () => {
                         placeholder="e.g. Q1 2024"
                       />
                     </div>
+                    <div>
+                      <label className="text-sm font-medium">Deadline Date</label>
+                      <Input 
+                        type="date"
+                        value={deadlineDate}
+                        onChange={(e) => setDeadlineDate(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <Button onClick={createNewReview}>
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium">Select Employees</h4>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={selectedEmployees.length === mockEmployees.length}
+                          onCheckedChange={handleSelectAllEmployees}
+                        />
+                        <span className="text-sm">Select All</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
+                      {mockEmployees.map((emp) => (
+                        <div key={emp.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                          <Checkbox
+                            checked={selectedEmployees.includes(emp.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedEmployees(prev => [...prev, emp.id]);
+                              } else {
+                                setSelectedEmployees(prev => prev.filter(id => id !== emp.id));
+                              }
+                            }}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{emp.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{emp.position} • {emp.department}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <Button onClick={createNewReview} disabled={!reviewForm.templateId || selectedEmployees.length === 0}>
                     <Plus className="w-4 h-4 mr-2" />
-                    Assign Review
+                    Assign to {selectedEmployees.length || 0} Employee{selectedEmployees.length === 1 ? '' : 's'}
                   </Button>
                 </div>
               </CardContent>
@@ -690,9 +769,27 @@ const handleSubmitToManager = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {reviews.filter(r => r.status === 'manager_review').map((review) => {
+                  {reviews
+                    .filter(r => r.status === 'hr_review')
+                    .sort((a, b) => {
+                      const da = getDaysUntil(a.deadlineDate);
+                      const db = getDaysUntil(b.deadlineDate);
+                      if (da === undefined && db === undefined) return 0;
+                      if (da === undefined) return 1;
+                      if (db === undefined) return -1;
+                      return da - db;
+                    })
+                    .map((review) => {
                     const employee = mockEmployees.find(emp => emp.id.toString() === review.employeeId);
                     const template = templates.find(t => t.id === review.templateId);
+                    const days = getDaysUntil(review.deadlineDate);
+                    const dueBadgeClass = days === undefined
+                      ? 'bg-muted text-muted-foreground'
+                      : days < 0
+                        ? 'bg-destructive text-destructive-foreground'
+                        : days <= 7
+                          ? 'bg-yellow-500 text-white'
+                          : 'bg-secondary text-secondary-foreground';
                     return (
                       <div key={review.id} className="p-4 border rounded-lg">
                         <div className="flex justify-between items-start">
@@ -700,8 +797,20 @@ const handleSubmitToManager = () => {
                             <h4 className="font-medium">{review.employeeName}</h4>
                             <p className="text-sm text-muted-foreground">{review.reviewPeriod} • {template?.name}</p>
                             <p className="text-sm text-muted-foreground">Department: {employee?.department}</p>
+                            {review.deadlineDate && (
+                              <p className="text-sm text-muted-foreground">Deadline: {new Date(review.deadlineDate).toLocaleDateString()}</p>
+                            )}
                             <div className="mt-2">
                               <Badge variant="outline" className="bg-yellow-50">Pending HR Review</Badge>
+                              <Badge variant="outline" className={`ml-2 ${dueBadgeClass}`}>
+                                {days === undefined
+                                  ? 'No deadline'
+                                  : days < 0
+                                  ? `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'}`
+                                  : days === 0
+                                  ? 'Due today'
+                                  : `Due in ${days} day${days === 1 ? '' : 's'}`}
+                              </Badge>
                             </div>
                             {review.managerComments && (
                               <div className="mt-2">
@@ -718,6 +827,17 @@ const handleSubmitToManager = () => {
                                   setSelectedReview(review);
                                   setEditComments(review.hrComments || '');
                                   setEditScore(review.overallScore || '');
+                                  // Initialize HR per-criteria scores from template if available
+                                  const tpl = templates.find(t => t.id === review.templateId);
+                                  if (tpl) {
+                                    const existing = review.hrScores || [];
+                                    setHrScoresDraft(tpl.criteria.map(c => {
+                                      const match = existing.find(s => s.criteriaId === c.id);
+                                      return { criteriaId: c.id, score: match?.score || 0, comments: match?.comments || '' };
+                                    }));
+                                  } else {
+                                    setHrScoresDraft([]);
+                                  }
                                 }}>
                                   <Eye className="w-4 h-4 mr-2" />
                                   Review & Approve
@@ -739,8 +859,72 @@ const handleSubmitToManager = () => {
                                     </div>
                                     <div>
                                       <p className="font-medium">Manager Score: {review.overallScore?.toFixed(1)}/5.0</p>
+                                      <div className="mt-1">
+                                        <Badge variant="outline" className={dueBadgeClass}>
+                                          {days === undefined
+                                            ? 'No deadline'
+                                            : days < 0
+                                            ? `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'}`
+                                            : days === 0
+                                            ? 'Due today'
+                                            : `Due in ${days} day${days === 1 ? '' : 's'}`}
+                                        </Badge>
+                                      </div>
+                                      {review.deadlineDate && (
+                                        <p className="text-sm text-muted-foreground mt-1">Deadline: {new Date(review.deadlineDate).toLocaleDateString()}</p>
+                                      )}
                                     </div>
                                   </div>
+                                  {/* Unified template criteria view (collapsible) */}
+                                  <details className="rounded border bg-muted/20">
+                                    <summary className="cursor-pointer px-3 py-2 font-medium">Template Criteria</summary>
+                                    <div className="p-3">
+                                      <TemplateCriteriaList template={template} />
+                                    </div>
+                                  </details>
+
+                                  {/* HR per-criteria scoring (collapsible) */}
+                                  {template && (
+                                    <details open className="rounded border">
+                                      <summary className="cursor-pointer px-3 py-2 font-medium">HR Scores</summary>
+                                      <div className="space-y-3 p-3">
+                                        {template.criteria.map((c, idx) => (
+                                          <div key={c.id} className="grid grid-cols-12 gap-2 items-center">
+                                            <div className="col-span-6 text-sm">{c.name}</div>
+                                            <Input
+                                              className="col-span-2"
+                                              type="number"
+                                              min={1}
+                                              max={5}
+                                              value={hrScoresDraft[idx]?.score ?? 0}
+                                              onChange={(e) => {
+                                                const v = Math.max(0, Math.min(5, Number(e.target.value) || 0));
+                                                setHrScoresDraft(prev => {
+                                                  const copy = [...prev];
+                                                  copy[idx] = { ...copy[idx], criteriaId: c.id, score: v };
+                                                  return copy;
+                                                });
+                                              }}
+                                            />
+                                            <Textarea
+                                              className="col-span-4"
+                                              placeholder="Comments"
+                                              value={hrScoresDraft[idx]?.comments ?? ''}
+                                              onChange={(e) => {
+                                                const v = e.target.value;
+                                                setHrScoresDraft(prev => {
+                                                  const copy = [...prev];
+                                                  copy[idx] = { ...copy[idx], criteriaId: c.id, comments: v, score: copy[idx]?.score ?? 0 };
+                                                  return copy;
+                                                });
+                                              }}
+                                              rows={2}
+                                            />
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </details>
+                                  )}
                                   
                                   {review.employeeTargets && review.employeeTargets.length > 0 && (
                                     <div>
@@ -785,9 +969,10 @@ const handleSubmitToManager = () => {
                                   </Button>
                                   <Button onClick={() => {
                                     if (selectedReview) {
-                                      submitHrReview(selectedReview.id, [], editComments);
+                                      submitHrReview(selectedReview.id, hrScoresDraft, editComments);
                                       setSelectedReview(null);
                                       setEditComments('');
+                                      setHrScoresDraft([]);
                                     }
                                   }}>
                                     Approve & Complete Review
@@ -800,7 +985,7 @@ const handleSubmitToManager = () => {
                       </div>
                     );
                   })}
-                  {reviews.filter(r => r.status === 'manager_review').length === 0 && (
+                  {reviews.filter(r => r.status === 'hr_review').length === 0 && (
                     <div className="text-center py-8">
                       <CheckCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground">No pending HR reviews</p>
@@ -811,31 +996,204 @@ const handleSubmitToManager = () => {
             </Card>
           </TabsContent>
         )}
+        {/* Manager: Review Submissions Tab */}
         {user?.role === 'manager' && (
-          <TabsContent value="team-appraisals">
+          <TabsContent value="review-submissions">
             <div className="space-y-4">
-              <h2 className="text-xl font-bold mb-2">Team Appraisals</h2>
-              {teamAppraisals.length === 0 ? (
-                <Card><CardContent className="p-6 text-center text-muted-foreground">No team appraisals found.</CardContent></Card>
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold">Employee Appraisal Submissions</h2>
+                <div className="text-sm text-muted-foreground">
+                  Review and provide feedback on employee-submitted appraisals
+                </div>
+              </div>
+              
+              {teamAppraisals.filter(r => r.status === 'manager_review').length === 0 ? (
+                <Card>
+                  <CardContent className="p-6 text-center text-muted-foreground">
+                    <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No employee submissions pending review</p>
+                  </CardContent>
+                </Card>
               ) : (
-                teamAppraisals.map((review) => {
+                teamAppraisals.filter(r => r.status === 'manager_review').map((review) => {
                   const template = templates.find(t => t.id === review.templateId);
-                  const canReview = ['manager_review', 'targets_set'].includes(review.status);
+                  const employee = mockEmployees.find(emp => emp.id === review.employeeId);
                   return (
-                    <Card key={review.id}>
+                    <Card key={review.id} className="border-l-4 border-l-yellow-500">
                       <CardHeader>
-                        <CardTitle>{review.employeeName} - {review.reviewPeriod} {template ? `- ${template.name}` : ''}</CardTitle>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="flex items-center gap-2">
+                              <Avatar className="w-8 h-8">
+                                <AvatarImage src={employee?.avatar} />
+                                <AvatarFallback>{employee?.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                              </Avatar>
+                              {review.employeeName}
+                            </CardTitle>
+                            <CardDescription>
+                              {review.reviewPeriod} • {template?.name} • {employee?.department}
+                            </CardDescription>
+                          </div>
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                            Pending Review
+                          </Badge>
+                        </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="space-y-2">
-                          <div><span className="font-semibold">Score:</span> {review.overallScore || '-'} / 5</div>
-                          <div><span className="font-semibold">Feedback:</span> {review.managerComments || 'No feedback.'}</div>
-                          <div><span className="font-semibold">Goals:</span> {review.employeeTargets && review.employeeTargets.length > 0 ? review.employeeTargets.map(t => t.target).join(', ') : 'No goals.'}</div>
-                          {canReview && (
-                            <Button variant="outline" size="sm" onClick={() => setSelectedReview(review)}>
-                              Review & Submit
-                            </Button>
+                        <div className="space-y-4">
+                          {/* Employee Targets mapped to criteria */}
+                          {review.employeeTargets && review.employeeTargets.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-sm mb-2">Employee Targets</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {review.employeeTargets.map((t, idx) => {
+                                  const c = template?.criteria.find(c => c.id === t.criteriaId);
+                                  return (
+                                    <div key={idx} className="bg-blue-50 p-3 rounded-lg">
+                                      <div className="text-sm font-medium">{c?.name || t.criteriaId}</div>
+                                      <div className="text-sm">{t.target}</div>
+                                      {t.description && <div className="text-xs text-muted-foreground mt-1">{t.description}</div>}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           )}
+                          
+                          <div className="flex gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                  onClick={() => {
+                                    setSelectedReview(review);
+                                    setEditComments(review.managerComments || '');
+                                    setEditScore(review.overallScore || '');
+                                    setEditMode(true);
+                                  }}
+                                >
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Review & Score
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle>Manager Review - {review.employeeName}</DialogTitle>
+                                  <DialogDescription>
+                                    Provide your feedback and score for this employee's performance
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <p className="font-medium">Employee: {review.employeeName}</p>
+                                      <p className="text-sm text-muted-foreground">Period: {review.reviewPeriod}</p>
+                                      <p className="text-sm text-muted-foreground">Department: {employee?.department}</p>
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">Template: {template?.name}</p>
+                                      <p className="text-sm text-muted-foreground">Type: {template?.type}</p>
+                                    </div>
+                                  </div>
+
+                                  {/* Unified template criteria view */}
+                                  <details className="rounded border bg-muted/20">
+                                    <summary className="cursor-pointer px-3 py-2 font-medium">Template Criteria</summary>
+                                    <div className="space-y-2 p-3">
+                                      <TemplateCriteriaList template={template} />
+                                    </div>
+                                  </details>
+                                  
+                                  {review.employeeTargets && review.employeeTargets.length > 0 && (
+                                    <details className="rounded border bg-muted/20">
+                                      <summary className="cursor-pointer px-3 py-2 font-medium">Employee Targets</summary>
+                                      <div className="space-y-2 p-3">
+                                        {review.employeeTargets.map((target, idx) => (
+                                          <div key={idx} className="bg-muted/30 p-3 rounded">
+                                            <p className="text-sm font-medium">{target.target}</p>
+                                            {target.description && <p className="text-xs text-muted-foreground mt-1">{target.description}</p>}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </details>
+                                  )}
+                                  
+                                  {/* Manager per-criteria scoring (collapsible) */}
+                                  {template && (
+                                    <details open className="rounded border">
+                                      <summary className="cursor-pointer px-3 py-2 font-medium">Manager Scores</summary>
+                                      <div className="space-y-3 p-3">
+                                        {template.criteria.map((c, idx) => (
+                                          <div key={c.id} className="grid grid-cols-12 gap-2 items-center">
+                                            <div className="col-span-6 text-sm">{c.name}</div>
+                                            <Input
+                                              className="col-span-2"
+                                              type="number"
+                                              min={1}
+                                              max={5}
+                                              value={managerScoresDraft[idx]?.score ?? 0}
+                                              onChange={(e) => {
+                                                const v = Math.max(0, Math.min(5, Number(e.target.value) || 0));
+                                                setManagerScoresDraft(prev => {
+                                                  const copy = [...prev];
+                                                  copy[idx] = { ...copy[idx], criteriaId: c.id, score: v };
+                                                  return copy;
+                                                });
+                                              }}
+                                            />
+                                            <Textarea
+                                              className="col-span-4"
+                                              placeholder="Comments"
+                                              value={managerScoresDraft[idx]?.comments ?? ''}
+                                              onChange={(e) => {
+                                                const v = e.target.value;
+                                                setManagerScoresDraft(prev => {
+                                                  const copy = [...prev];
+                                                  copy[idx] = { ...copy[idx], criteriaId: c.id, comments: v, score: copy[idx]?.score ?? 0 };
+                                                  return copy;
+                                                });
+                                              }}
+                                              rows={2}
+                                            />
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </details>
+                                  )}
+                                  
+                                  <div>
+                                    <label className="font-medium block mb-2">Manager Comments:</label>
+                                    <Textarea 
+                                      value={editComments}
+                                      onChange={(e) => setEditComments(e.target.value)}
+                                      placeholder="Provide detailed feedback on the employee's performance..."
+                                      rows={4}
+                                    />
+                                  </div>
+                                </div>
+                                <DialogFooter>
+                                  <Button variant="outline" onClick={() => setSelectedReview(null)}>
+                                    Cancel
+                                  </Button>
+                                  <Button 
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                    onClick={() => {
+                                      if (selectedReview && editComments) {
+                                        submitManagerReview(selectedReview.id, managerScoresDraft, editComments);
+                                        setSelectedReview(null);
+                                        setEditComments('');
+                                        setManagerScoresDraft([]);
+                                        setEditMode(false);
+                                      }
+                                    }}
+                                    disabled={!editComments}
+                                  >
+                                    Submit Review
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -843,151 +1201,130 @@ const handleSubmitToManager = () => {
                 })
               )}
             </div>
-            {/* Review dialog/modal for selectedReview */}
-            <Dialog open={!!selectedReview} onOpenChange={(open) => { if (!open) setSelectedReview(null); }}>
-              <DialogContent className="max-w-xl">
-                <DialogHeader>
-                  <DialogTitle>{editMode ? 'Edit Appraisal' : 'View Appraisal'}</DialogTitle>
-                  <DialogDescription>
-                    {editMode ? 'Edit your feedback and score for this appraisal.' : 'View appraisal details.'}
-                  </DialogDescription>
-                </DialogHeader>
-                {selectedReview && (
-                  <div className="space-y-4">
-                    <div><span className="font-semibold">Employee:</span> {selectedReview.employeeName}</div>
-                    <div><span className="font-semibold">Review Period:</span> {selectedReview.reviewPeriod}</div>
-                    <div><span className="font-semibold">Status:</span> <Badge>{selectedReview.status}</Badge></div>
-                    <div><span className="font-semibold">Goals:</span> {selectedReview.employeeTargets && selectedReview.employeeTargets.length > 0 ? selectedReview.employeeTargets.map(t => t.target).join(', ') : 'No goals.'}</div>
-                    {editMode ? (
-                      <>
-                        <div>
-                          <label className="font-semibold">Score:</label>
-                          <Input type="number" min={1} max={5} value={editScore} onChange={e => setEditScore(Number(e.target.value))} className="mt-1" />
-                        </div>
-                        <div>
-                          <label className="font-semibold">Manager Comments:</label>
-                          <Textarea value={editComments} onChange={e => setEditComments(e.target.value)} rows={3} className="mt-1" />
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div><span className="font-semibold">Score:</span> {selectedReview.overallScore || '-'} / 5</div>
-                        <div><span className="font-semibold">Manager Comments:</span> {selectedReview.managerComments || 'No feedback.'}</div>
-                      </>
-                    )}
-                  </div>
-                )}
-                <DialogFooter>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setSelectedReview(null)}>Close</Button>
-                    {editMode && selectedReview && (
-                      <Button variant="default" onClick={() => {
-                        // Save logic: update review with new comments and score
-                        submitManagerReview(
-                          selectedReview.id,
-                          [], // managerScores (criteria-level scores not edited here)
-                          editComments
-                        );
-                        if (typeof editScore === 'number') {
-                          updateReview(selectedReview.id, { overallScore: editScore });
-                        }
-                        setSelectedReview(null);
-                      }}>Save</Button>
-                    )}
-                  </div>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
           </TabsContent>
-  )}
-
-<TabsContent value="active">
-      <div className="space-y-4">
-        {reviews.filter(r => r.employeeId === user?.id && r.status !== "completed").length === 0 ? (
-          <Card>
-            <CardContent className="p-6 text-center text-muted-foreground">
-              No active appraisals.
-            </CardContent>
-          </Card>
-        ) : (
-          reviews
-            .filter(r => r.employeeId === user?.id && r.status !== "completed")
-            .map((review) => {
-              const template = templates.find(t => t.id === review.templateId);
-
-              return (
-                <Card key={review.id}>
-                  <CardHeader>
-                    <CardTitle>
-                      {review.reviewPeriod} {template ? `- ${template.name}` : ""}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div>
-                        <span className="font-semibold">Status:</span> {review.status}
-                      </div>
-
-                      {review.status === "new" && (
-                        <div className="space-y-3">
-                          <p className="text-muted-foreground">
-                            This is a new appraisal. Please start filling it out.
-                          </p>
-                          <Button
-                            className="bg-blue-600 text-white hover:bg-blue-700"
-                            onClick={() => handleOpenModal(review)}
-                          >
-                            Start Appraisal
-                          </Button>
-                        </div>
-                      )}
-
-                      {review.status === "draft" && (
-                        <div className="space-y-3">
-                          <div>
-                            <span className="font-semibold">Goals:</span>{" "}
-                            {review.employeeTargets?.length
-                              ? review.employeeTargets.map(t => t.target).join(", ")
-                              : "No goals yet."}
-                          </div>
-                          <Button
-                            className="bg-blue-600 text-white hover:bg-blue-700"
-                            onClick={() => handleOpenModal(review)}
-                          >
-                            Edit Appraisal
-                          </Button>
-                        </div>
-                      )}
-
-                      {review.status !== "new" && review.status !== "draft" && (
-                        <>
-                          <div>
-                            <span className="font-semibold">Goals:</span>{" "}
-                            {review.employeeTargets?.length
-                              ? review.employeeTargets.map(t => t.target).join(", ")
-                              : "No goals."}
-                          </div>
-                          <div>
-                            <span className="font-semibold">Manager Feedback:</span>{" "}
-                            {review.managerComments || "No feedback."}
-                          </div>
-                          <div>
-                            <span className="font-semibold">HR Feedback:</span>{" "}
-                            {review.hrComments || "No feedback."}
-                          </div>
-                          <div>
-                            <span className="font-semibold">Next Review Date:</span>{" "}
-                            {review.nextReviewDate}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
         )}
-      </div>
+
+        <TabsContent value="active">
+          <div className="space-y-4">
+            {reviews.filter(r => r.employeeId === user?.id && r.status !== "completed").length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  No active appraisals.
+                </CardContent>
+              </Card>
+            ) : (
+              reviews
+                .filter(r => r.employeeId === user?.id && r.status !== "completed")
+                .map((review) => {
+                  const template = templates.find(t => t.id === review.templateId);
+
+                  return (
+                    <Card key={review.id}>
+                      <CardHeader>
+                        <CardTitle>
+                          {review.reviewPeriod} {template ? `- ${template.name}` : ""}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div>
+                            <span className="font-semibold">Status:</span> {review.status}
+                          </div>
+
+                          {review.status === "new" && (
+                            <div className="space-y-3">
+                              <p className="text-muted-foreground">
+                                This is a new appraisal. Please start filling it out.
+                              </p>
+                              <Button
+                                className="bg-blue-600 text-white hover:bg-blue-700"
+                                onClick={() => openTargetDialog(review)}
+                              >
+                                Set Targets
+                              </Button>
+                            </div>
+                          )}
+
+                          {/* Removed duplicate Edit Targets button to avoid duplicates */}
+
+                          {review.status === "draft" && (
+                            <div className="space-y-3">
+                              <div>
+                                <span className="font-semibold">Employee Targets:</span>
+                                <div className="mt-2 space-y-2">
+                                  {(review.employeeTargets || []).map((t, idx) => {
+                                    const c = template?.criteria.find(c => c.id === t.criteriaId);
+                                    return (
+                                      <div key={idx} className="bg-muted/30 p-2 rounded">
+                                        <div className="text-sm font-medium">{c?.name || t.criteriaId}</div>
+                                        <div className="text-sm">{t.target}</div>
+                                        {t.description && <div className="text-xs text-muted-foreground">{t.description}</div>}
+                                      </div>
+                                    );
+                                  })}
+                                  {(!review.employeeTargets || review.employeeTargets.length === 0) && (
+                                    <div className="text-sm text-muted-foreground">No goals set yet.</div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  className="bg-blue-600 text-white hover:bg-blue-700"
+                                  onClick={() => openTargetDialog(review)}
+                                >
+                                  Edit Targets
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => { setSelectedReview(review); setViewDialogOpen(true); }}
+                                >
+                                  View Details
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {review.status !== "new" && review.status !== "draft" && (
+                            <>
+                              <div>
+                                <span className="font-semibold">Employee Targets:</span>
+                                <div className="mt-2 space-y-2">
+                                  {(review.employeeTargets || []).map((t, idx) => {
+                                    const c = template?.criteria.find(c => c.id === t.criteriaId);
+                                    return (
+                                      <div key={idx} className="bg-muted/30 p-2 rounded">
+                                        <div className="text-sm font-medium">{c?.name || t.criteriaId}</div>
+                                        <div className="text-sm">{t.target}</div>
+                                        {t.description && <div className="text-xs text-muted-foreground">{t.description}</div>}
+                                      </div>
+                                    );
+                                  })}
+                                  {(!review.employeeTargets || review.employeeTargets.length === 0) && (
+                                    <div className="text-sm text-muted-foreground">No goals.</div>
+                                  )}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="font-semibold">Manager Feedback:</span>{" "}
+                                {review.managerComments || "No feedback."}
+                              </div>
+                              <div>
+                                <span className="font-semibold">HR Feedback:</span>{" "}
+                                {review.hrComments || "No feedback."}
+                              </div>
+                              <div>
+                                <span className="font-semibold">Next Review Date:</span>{" "}
+                                {review.nextReviewDate}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+            )}
+          </div>
 
       {/* ✅ Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -1039,7 +1376,24 @@ const handleSubmitToManager = () => {
                     <div className="space-y-2">
                       <div><span className="font-semibold">Score:</span> {review.overallScore || '-'} / 5</div>
                       <div><span className="font-semibold">Feedback:</span> {review.managerComments || 'No feedback.'}</div>
-                      <div><span className="font-semibold">Goals:</span> {review.employeeTargets && review.employeeTargets.length > 0 ? review.employeeTargets.map(t => t.target).join(', ') : 'No goals.'}</div>
+                      <div>
+                        <span className="font-semibold">Employee Targets:</span>
+                        <div className="mt-1 space-y-1">
+                          {(review.employeeTargets || []).map((t, idx) => {
+                            const template = templates.find(tp => tp.id === review.templateId);
+                            const c = template?.criteria.find(c => c.id === t.criteriaId);
+                            return (
+                              <div key={idx} className="text-sm">
+                                <span className="font-medium">{c?.name || t.criteriaId}:</span> {t.target}
+                                {t.description && <span className="text-xs text-muted-foreground"> — {t.description}</span>}
+                              </div>
+                            );
+                          })}
+                          {(!review.employeeTargets || review.employeeTargets.length === 0) && (
+                            <div className="text-sm text-muted-foreground">No goals.</div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -1232,7 +1586,9 @@ const handleSubmitToManager = () => {
             })}
           </div>
           <DialogFooter>
-            <Button onClick={handleSetTargets}>Set Targets</Button>
+            <Button variant="outline" onClick={() => setTargetDialogOpen(false)}>Cancel</Button>
+            <Button variant="secondary" onClick={handleSaveTargetsDraft}>Save Draft</Button>
+            <Button onClick={handleSubmitTargetsToManager} className="bg-blue-600 text-white hover:bg-blue-700">Submit to Manager</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

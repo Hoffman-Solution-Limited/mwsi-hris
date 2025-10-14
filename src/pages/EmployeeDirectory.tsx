@@ -83,10 +83,11 @@ export const EmployeeDirectory: React.FC = () => {
           {/* Add Employee Modal */}
           <Dialog>
             <DialogTrigger asChild>
+             {["admin", "hr_manager"].includes(user?.role) && ( 
               <Button size="sm">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Employee
-              </Button>
+              </Button>)}
             </DialogTrigger>
             <DialogContent className="sm:max-w-4xl">
               <DialogHeader>
@@ -142,7 +143,9 @@ export const EmployeeDirectory: React.FC = () => {
                 className="pl-10"
               />
             </div>
+            
             <div className="flex gap-2">
+              {["admin", "hr_manager"].includes(user?.role) && (
               <Select
                 value={departmentFilter}
                 onValueChange={setDepartmentFilter}
@@ -150,6 +153,7 @@ export const EmployeeDirectory: React.FC = () => {
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
+                
                 <SelectContent>
                   <SelectItem value="all">All Departments</SelectItem>
                   {departments.map((dept) => (
@@ -158,7 +162,7 @@ export const EmployeeDirectory: React.FC = () => {
                     </SelectItem>
                   ))}
                 </SelectContent>
-              </Select>
+              </Select> )}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-32">
                   <SelectValue placeholder="All Status" />
@@ -189,7 +193,9 @@ export const EmployeeDirectory: React.FC = () => {
                 </Button>
               </div>
             </div>
+            
           </div>
+         
         </CardContent>
       </Card>
 
