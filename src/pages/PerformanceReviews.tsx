@@ -27,7 +27,7 @@ export const PerformanceReviews: React.FC = () => {
   const isHrManager = user?.role === 'hr_manager';
   const isHrStaff = user?.role === 'hr_staff';
   // HR Manager can act either as HR Oversight (default) or Team Manager (direct reports)
-  const [hrMode, setHrMode] = useState<'hr' | 'team'>(isHrManager ? 'hr' : 'hr');
+  const [hrMode, setHrMode] = useState<'hr' | 'team'>('hr');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
