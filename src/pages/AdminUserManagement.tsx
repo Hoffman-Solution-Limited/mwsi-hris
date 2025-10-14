@@ -15,6 +15,7 @@ import {UserForm} from '@/components/UserForm'
 import { useUsers, AppUser } from '@/contexts/UsersContext'
 import { useRoles } from '@/contexts/RolesContext'
 import { useEmployees, EmployeeRecord } from '@/contexts/EmployeesContext'
+import { mapRole } from '@/lib/roles'
 import api from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { Input } from '@/components/ui/input'
@@ -89,6 +90,8 @@ export default function AdminUserManagement() {
         lastName: employee.lastName || '',
         email: employee.email || '',
         name: employee.name || '',
+        // Auto-populate role from employee if present; default to 'employee'
+        role: (employee as any).role || 'employee',
       }))
     } else {
       toast({
@@ -567,7 +570,7 @@ export default function AdminUserManagement() {
               Update user information or change account password for Admins.
             </DialogDescription>
           </DialogHeader>
-          {editingUser && editingUser.role === 'admin' ? (
+          {editingUser && mapRole(editingUser.role) === 'admin' ? (
             <div className="space-y-4">
               <p className="mb-2">This is a pure Admin account. You can only change the password here.</p>
               <form onSubmit={(e) => {

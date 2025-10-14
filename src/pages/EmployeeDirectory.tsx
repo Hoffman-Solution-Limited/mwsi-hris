@@ -374,6 +374,16 @@ export const EmployeeDirectory: React.FC = () => {
                       📅 Joined{" "}
                       {new Date(employee.hireDate).toLocaleDateString()}
                     </p>
+                    {(["admin","hr"].includes(mapRole(user?.role))) && (
+                      <>
+                        {((employee as any).nextOfKinName || (employee as any).nextOfKinRelationship) && (
+                          <p>👤 Next of Kin: {(employee as any).nextOfKinName || '—'}{(employee as any).nextOfKinRelationship ? ` (${String((employee as any).nextOfKinRelationship)})` : ''}</p>
+                        )}
+                        {((employee as any).hasSpecialNeeds) && (
+                          <p>♿ Special Needs{(employee as any).specialNeedsDescription ? `: ${String((employee as any).specialNeedsDescription)}` : ''}</p>
+                        )}
+                      </>
+                    )}
                   </div>)}
                 </div>
               </CardContent>
@@ -485,17 +495,29 @@ export const EmployeeDirectory: React.FC = () => {
                           </Badge>
                         )}
                       </td>
-                      {!isManager && (<><td>{new Date(employee.hireDate).toLocaleDateString()}</td>
-                      <td>
-                        <div className="text-sm">
-                          <p>{employee.email}</p>
-                          {employee.phone && (
-                            <p className="text-muted-foreground">
-                              {employee.phone}
-                            </p>
-                          )}
-                        </div>
-                      </td></>)}
+                      {!isManager && (
+                        <>
+                          <td>{new Date(employee.hireDate).toLocaleDateString()}</td>
+                          <td>
+                            <div className="text-sm">
+                              <p>{employee.email}</p>
+                              {employee.phone && (
+                                <p className="text-muted-foreground">{employee.phone}</p>
+                              )}
+                              {["admin","hr"].includes(mapRole(user?.role)) && (
+                                <>
+                                  {((employee as any).nextOfKinName || (employee as any).nextOfKinRelationship) && (
+                                    <p className="text-muted-foreground">Next of Kin: {(employee as any).nextOfKinName || '—'}{(employee as any).nextOfKinRelationship ? ` (${String((employee as any).nextOfKinRelationship)})` : ''}</p>
+                                  )}
+                                  {((employee as any).hasSpecialNeeds) && (
+                                    <p className="text-muted-foreground">Special Needs{(employee as any).specialNeedsDescription ? `: ${String((employee as any).specialNeedsDescription)}` : ''}</p>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))}
                 </tbody>

@@ -714,10 +714,11 @@ const Recruitment: React.FC = () => {
             <EmployeeForm
               defaultValues={{
                 name: prefillCandidate.name || "",
+                firstName: prefillCandidate.firstName || (typeof prefillCandidate.name === 'string' ? prefillCandidate.name.split(' ')[0] : "") ,
+                surname: prefillCandidate.surname || (typeof prefillCandidate.name === 'string' ? prefillCandidate.name.split(' ').slice(1).join(' ') : ""),
                 email: "",
                 phone: "",
                 position: prefillCandidate.position || prefillCandidate.designation || "",
-                department: "",
                 cadre: undefined as any,
                 gender: undefined,
                 employmentType: (prefillCandidate.employmentType as any) || "Permanent",
@@ -738,7 +739,8 @@ const Recruitment: React.FC = () => {
                 hireDate: new Date().toISOString().slice(0,10),
                 emergencyContact: "",
                 salary: typeof prefillCandidate.grossSalary !== 'undefined' ? prefillCandidate.grossSalary : undefined,
-                status: 'active'
+                status: 'active',
+                role: 'employee'
               }}
               onSave={handleCreateEmployeeSave}
             />

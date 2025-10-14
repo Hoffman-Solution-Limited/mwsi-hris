@@ -12,7 +12,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 const EditEmployeePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { employees, updateEmployee, loading } = useEmployees();
-  const { users } = useUsers();
+  const { users, updateUser } = useUsers();
   const { user } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
@@ -105,10 +105,18 @@ const EditEmployeePage: React.FC = () => {
                 hireDate: employee.hireDate,
                 emergencyContact: employee.emergencyContact,
                 salary: employee.salary,
-                status: employee.status,
+                status: employee.status as any,
                 employeeNumber: (employee as any).employeeNumber,
-                isManager: (employee as any).isManager,
+                role: (employee as any).role || 'employee',
                 managerId: (employee as any).managerId || '',
+                // Next of kin
+                nextOfKinName: (employee as any).nextOfKinName || '',
+                nextOfKinRelationship: (employee as any).nextOfKinRelationship || '',
+                nextOfKinPhone: (employee as any).nextOfKinPhone || '',
+                nextOfKinEmail: (employee as any).nextOfKinEmail || '',
+                // Special needs
+                hasSpecialNeeds: !!(employee as any).hasSpecialNeeds,
+                specialNeedsDescription: (employee as any).specialNeedsDescription || '',
               }}
               mode="edit"
               onSave={(data) => {
@@ -168,7 +176,23 @@ const EditEmployeePage: React.FC = () => {
                   // Persist managerId and keep manager name for backward compatibility
                   managerId: resolvedManagerId || (data as any).managerId || undefined,
                   manager: managerName || (data as any).manager || undefined,
+                  role: (data as any).role,
+                  // Next of kin
+                  nextOfKinName: (data as any).nextOfKinName,
+                  nextOfKinRelationship: (data as any).nextOfKinRelationship,
+                  nextOfKinPhone: (data as any).nextOfKinPhone,
+                  nextOfKinEmail: (data as any).nextOfKinEmail,
+                  // Special needs
+                  hasSpecialNeeds: (data as any).hasSpecialNeeds,
+                  specialNeedsDescription: (data as any).specialNeedsDescription,
                 });
+                // Align linked user role if present
+                try {
+                  const u = users.find(u => (u.email || '').toLowerCase() === (data.email || '').toLowerCase());
+                  if (u && (data as any).role && u.role !== (data as any).role) {
+                    updateUser(u.id, { role: (data as any).role });
+                  }
+                } catch {}
                 navigate(`/employees/${employee.id}`);
               }}
             />

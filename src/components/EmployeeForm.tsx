@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useSystemCatalog } from "@/contexts/SystemCatalogContext"
 import { useUsers } from "@/contexts/UsersContext"
 import { useToast } from '@/hooks/use-toast'
+import { Textarea } from "@/components/ui/textarea"
 
 export type EmployeeFormData = {
   firstName: string
@@ -38,10 +39,18 @@ export type EmployeeFormData = {
   hireDate?: string
   emergencyContact?: string
   salary?: number
-  status?: 'active' | 'inactive' | 'terminated'
+  status?: 'active' | 'inactive' | 'terminated' | 'retired'
   cadre?: 'Support' | 'Technical' | 'Management'
-  isManager?: boolean
+  role?: 'hr_manager' | 'hr_staff' | 'manager' | 'employee'
   managerId?: string
+  // Next of kin details
+  nextOfKinName?: string
+  nextOfKinRelationship?: string
+  nextOfKinPhone?: string
+  nextOfKinEmail?: string
+  // Special needs
+  hasSpecialNeeds?: boolean
+  specialNeedsDescription?: string
 }
 
 export function EmployeeForm({
@@ -87,6 +96,8 @@ export function EmployeeForm({
   const watchedStatus = watch("status")
   const watchedCadre = watch("cadre")
   const watchedStationName = watch("stationName")
+  const watchedRole = watch("role")
+  const watchedHasSpecialNeeds = watch("hasSpecialNeeds")
   const { toast } = useToast();
 
   // Kenyan counties list (47)
@@ -116,6 +127,10 @@ export function EmployeeForm({
     }
     if (!data.stationName) {
       setError("stationName", { type: "required", message: "Station is required" });
+      return;
+    }
+    if (!data.role) {
+      setError("role", { type: "required", message: "Role is required" });
       return;
     }
     // Enforce mapping: email should ideally exist in system users (created by Admin)
@@ -367,11 +382,20 @@ export function EmployeeForm({
             </div>
 
             <div>
-              <Label htmlFor="isManager">Is Manager</Label>
-              <div className="mt-1">
-                <input type="checkbox" id="isManager" {...register('isManager')} />
-                <span className="ml-2 text-sm text-muted-foreground">Toggle if this employee is a manager (allows assigning reports to them).</span>
-              </div>
+              <Label htmlFor="role">Role *</Label>
+              <Select value={watchedRole} onValueChange={(value: 'hr_manager' | 'hr_staff' | 'manager' | 'employee') => setValue('role', value, { shouldValidate: true })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hr_manager">HR Manager</SelectItem>
+                  <SelectItem value="hr_staff">HR Staff</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="employee">Employee</SelectItem>
+                </SelectContent>
+              </Select>
+              {(errors as any).role && <p className="text-destructive text-sm">{(errors as any).role?.message}</p>}
+              <p className="text-xs text-muted-foreground mt-1">Determines access in the system. Managers and HR Managers can have direct reports.</p>
             </div>
 
             <div>
@@ -408,7 +432,7 @@ export function EmployeeForm({
                       <div className="text-xs text-muted-foreground">Choose from registered managers</div>
                     </div>
                     <SelectItem value="__none">— None —</SelectItem>
-                    {users.filter(u => u.role === 'manager').map(u => (
+                    {users.filter(u => u.role === 'manager' || u.role === 'hr_manager').map(u => (
                       <SelectItem key={u.id} value={u.id}>{u.name || u.email}</SelectItem>
                     ))}
                   </SelectContent>
@@ -479,7 +503,7 @@ export function EmployeeForm({
 
             <div>
               <Label htmlFor="status">Status *</Label>
-              <Select value={watchedStatus} onValueChange={(value: 'active' | 'inactive' | 'terminated') => setValue("status", value)}>
+              <Select value={watchedStatus} onValueChange={(value: 'active' | 'inactive' | 'terminated' | 'retired') => setValue("status", value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -487,6 +511,7 @@ export function EmployeeForm({
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                   <SelectItem value="terminated">Terminated</SelectItem>
+                  <SelectItem value="retired">Retired</SelectItem>
                 </SelectContent>
               </Select>
               {errors.status && <p className="text-destructive text-sm">{errors.status.message}</p>}
@@ -556,6 +581,67 @@ export function EmployeeForm({
           <div>
             <Label htmlFor="postalCode">Postal Code</Label>
             <Input id="postalCode" {...register("postalCode")} />
+          </div>
+        </div>
+
+        {/* Next of Kin */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6 border-t">
+          <div className="md:col-span-2">
+            <h3 className="text-lg font-semibold mb-2">Next of Kin</h3>
+            <p className="text-sm text-muted-foreground mb-3">Provide details for the person to contact in case of emergency.</p>
+          </div>
+          <div>
+            <Label htmlFor="nextOfKinName">Full Name</Label>
+            <Input id="nextOfKinName" {...register('nextOfKinName')} />
+          </div>
+          <div>
+            <Label htmlFor="nextOfKinRelationship">Relationship</Label>
+            <Input id="nextOfKinRelationship" placeholder="e.g., Spouse, Parent, Sibling" {...register('nextOfKinRelationship')} />
+          </div>
+          <div>
+            <Label htmlFor="nextOfKinPhone">Phone</Label>
+            <Input id="nextOfKinPhone" placeholder="e.g., +2547XXXXXXXX" {...register('nextOfKinPhone', {
+              validate: (v) => {
+                if (!v) return true
+                const e164 = /^\+[1-9]\d{6,14}$/
+                return e164.test(v) || 'Enter a valid phone in international format'
+              }
+            })} />
+            {(errors as any).nextOfKinPhone && <p className="text-destructive text-sm">{(errors as any).nextOfKinPhone?.message}</p>}
+          </div>
+          <div>
+            <Label htmlFor="nextOfKinEmail">Email</Label>
+            <Input id="nextOfKinEmail" type="email" placeholder="name@example.com" {...register('nextOfKinEmail', {
+              validate: (v) => {
+                if (!v) return true
+                const email = /[^\s@]+@[^\s@]+\.[^\s@]+/
+                return email.test(v) || 'Enter a valid email address'
+              }
+            })} />
+            {(errors as any).nextOfKinEmail && <p className="text-destructive text-sm">{(errors as any).nextOfKinEmail?.message}</p>}
+          </div>
+        </div>
+
+        {/* Special Needs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6 border-t">
+          <div className="md:col-span-2">
+            <h3 className="text-lg font-semibold mb-2">Special Needs</h3>
+            <p className="text-sm text-muted-foreground mb-3">Indicate if the employee has any special needs for accommodation.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="hasSpecialNeeds" {...register('hasSpecialNeeds')} />
+            <Label htmlFor="hasSpecialNeeds">Employee has special needs</Label>
+          </div>
+          <div className="md:col-span-2">
+            <Label htmlFor="specialNeedsDescription">Details</Label>
+            <Textarea id="specialNeedsDescription" rows={3} placeholder="Specify the nature of special needs or required accommodations" {...register('specialNeedsDescription', {
+              validate: (v) => {
+                const has = watchedHasSpecialNeeds;
+                if (has && !v) return 'Please describe the special needs.'
+                return true
+              }
+            })} />
+            {(errors as any).specialNeedsDescription && (<p className="text-destructive text-sm">{(errors as any).specialNeedsDescription?.message}</p>)}
           </div>
         </div>
 

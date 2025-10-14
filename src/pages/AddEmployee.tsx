@@ -11,7 +11,7 @@ import { ArrowLeft } from "lucide-react";
 const AddEmployeePage: React.FC = () => {
   const { addEmployee } = useEmployees();
   const { user } = useAuth();
-  const { users } = useUsers();
+  const { users, updateUser } = useUsers();
   const navigate = useNavigate();
 
   // Allow admin and HR roles (hr_manager, hr_staff, and legacy 'hr') to add employees
@@ -66,6 +66,15 @@ const AddEmployeePage: React.FC = () => {
                 emergencyContact: "",
                 salary: undefined,
                 status: "active",
+                role: 'employee',
+                // Next of kin defaults
+                nextOfKinName: "",
+                nextOfKinRelationship: "",
+                nextOfKinPhone: "",
+                nextOfKinEmail: "",
+                // Special needs defaults
+                hasSpecialNeeds: false,
+                specialNeedsDescription: "",
               }}
               onSave={async (data) => {
                 // Resolve manager name from managerId if provided
@@ -74,7 +83,7 @@ const AddEmployeePage: React.FC = () => {
                   const m = users.find(u => u.id === (data as any).managerId || u.email === (data as any).managerId);
                   if (m && m.name) managerName = m.name;
                 }
-                await addEmployee({
+                const created = await addEmployee({
                   id: undefined as any,
                   firstName: data.firstName,
                   middleName: data.middleName,
@@ -111,7 +120,23 @@ const AddEmployeePage: React.FC = () => {
                   skillLevel: data.skillLevel,
                   company: data.company,
                   dateOfBirth: data.dateOfBirth,
+                  role: (data as any).role,
+                  // Next of kin
+                  nextOfKinName: (data as any).nextOfKinName,
+                  nextOfKinRelationship: (data as any).nextOfKinRelationship,
+                  nextOfKinPhone: (data as any).nextOfKinPhone,
+                  nextOfKinEmail: (data as any).nextOfKinEmail,
+                  // Special needs
+                  hasSpecialNeeds: (data as any).hasSpecialNeeds,
+                  specialNeedsDescription: (data as any).specialNeedsDescription,
                 } as any);
+                // If this employee already has a user account, align the user's role
+                try {
+                  const u = users.find(u => (u.email || '').toLowerCase() === (data.email || '').toLowerCase());
+                  if (u && (data as any).role && u.role !== (data as any).role) {
+                    updateUser(u.id, { role: (data as any).role });
+                  }
+                } catch {}
                 navigate("/employees");
               }}
             />

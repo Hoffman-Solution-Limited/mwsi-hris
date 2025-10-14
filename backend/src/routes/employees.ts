@@ -12,6 +12,17 @@ const allowedColumns = new Set([
   'id','employee_number','name','email','position','department','manager','manager_id','hire_date','status','avatar','phone','date_of_birth',
   'emergency_contact','salary','gender','cadre','employment_type','engagement_type','job_group','ethnicity','national_id','kra_pin','children','work_county','home_county','postal_address','postal_code','station_name','skill_level','company'
 ]);
+// include next of kin and special needs fields
+(function extendAllowed() {
+  [
+    'next_of_kin_name',
+    'next_of_kin_relationship',
+    'next_of_kin_phone',
+    'next_of_kin_email',
+    'has_special_needs',
+    'special_needs_description',
+  ].forEach(c => allowedColumns.add(c))
+})();
 
 function rowToCamel(row: any) {
   const out: any = {};

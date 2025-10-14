@@ -60,6 +60,15 @@ export interface Employee {
   jobGroup?: string;
   engagementType?: string;
   ethnicity?: string;
+  role?: string; // role is primarily a users table property; keep permissive for UI auto-fill
+  // Next of Kin
+  nextOfKinName?: string;
+  nextOfKinRelationship?: string;
+  nextOfKinPhone?: string;
+  nextOfKinEmail?: string;
+  // Special Needs
+  hasSpecialNeeds?: boolean;
+  specialNeedsDescription?: string;
   [key: string]: any;
 }
 

@@ -474,6 +474,37 @@ export const EmployeeProfile: React.FC = () => {
                           {employee.emergencyContact || 'Not specified'}
                         </div>
                       </div>
+                      <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-foreground mb-1 block">Next of Kin Name</label>
+                          <div className="bg-muted px-3 py-2 rounded-md text-sm">
+                            {(employee as any).nextOfKinName || '—'}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-foreground mb-1 block">Relationship</label>
+                          <div className="bg-muted px-3 py-2 rounded-md text-sm">
+                            {(employee as any).nextOfKinRelationship || '—'}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-foreground mb-1 block">Next of Kin Contact</label>
+                          <div className="bg-muted px-3 py-2 rounded-md text-sm">
+                            {((employee as any).nextOfKinPhone || (employee as any).nextOfKinEmail) ? (
+                              <span>
+                                {((employee as any).nextOfKinPhone || '—')}
+                                {((employee as any).nextOfKinEmail) ? ` • ${String((employee as any).nextOfKinEmail)}` : ''}
+                              </span>
+                            ) : '—'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="text-sm font-medium text-foreground mb-1 block">Special Needs</label>
+                        <div className="bg-muted px-3 py-2 rounded-md text-sm">
+                          {((employee as any).hasSpecialNeeds ? 'Yes' : 'No') + (((employee as any).hasSpecialNeeds && (employee as any).specialNeedsDescription) ? ` — ${(employee as any).specialNeedsDescription}` : '')}
+                        </div>
+                      </div>
                       <div>
                         <label className="text-sm font-medium text-foreground mb-1 block">ID Number</label>
                         <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono">
