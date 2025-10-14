@@ -362,17 +362,16 @@ export const EmployeeProfile: React.FC = () => {
                       {employee.kraPin || 'A001234567X'}
                     </div>
                   </div>
-                  
-                  <div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">Children</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm">
                       {employee.children || '0'}
                     </div>
                   </div>
-                </div>
-
-                {/* Right Column */}
-                <div className="space-y-6">
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">Work County</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm">
