@@ -21,12 +21,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { 
-  mockTrainingRecords,
-  mockPerformanceReviews,
-  mockLeaveRequests,
-  mockEmployees
-} from '@/data/mockData';
+import { useTraining } from '@/contexts/TrainingContext';
+import { useLeave } from '@/contexts/LeaveContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePerformance } from '@/contexts/PerformanceContext';
  
@@ -67,12 +63,15 @@ export const EmployeeProfile: React.FC = () => {
       }
     }
     // Last-resort fallback to seeded mockEmployees (handles localStorage drift)
-    if (!employee && targetEmployeeId) {
-      const seedFallback = mockEmployees.find(m => String(m.id) === String(targetEmployeeId) || String(m.email) === String(targetEmployeeId));
-      if (seedFallback) {
-        employee = seedFallback as any;
-      }
-    }
+    // If you maintain a seeded mock dataset, replace the empty array below with that dataset.
+    // Declaring an empty array prevents the "Cannot find name 'mockEmployees'" compile error.
+        const mockEmployees: any[] = [];
+        if (!employee && targetEmployeeId) {
+          const seedFallback = mockEmployees.find(m => String(m.id) === String(targetEmployeeId) || String(m.email) === String(targetEmployeeId));
+          if (seedFallback) {
+            employee = seedFallback as any;
+          }
+        }
 
     // If we found an EmployeesContext record but it lacks manager info, try to enrich it
     if (employee && !(employee.managerId || employee.manager) && targetEmployeeId) {
@@ -233,15 +232,12 @@ export const EmployeeProfile: React.FC = () => {
   // Only admin/hr or the profile owner may view a full profile. Managers are limited to the directory only.
   const canAccessProfile = isMyProfile ||
     canonical === 'admin' || canonical === 'hr';
-    const employeeTrainings = mockTrainingRecords.filter(training => 
-      training.employeeId === targetEmployeeId
-    );
-    const employeeReviews = mockPerformanceReviews.filter(review => 
-      review.employeeId === targetEmployeeId
-    );
-    const employeeLeaves = mockLeaveRequests.filter(leave => 
-      leave.employeeId === targetEmployeeId
-    );
+    const { trainings } = useTraining();
+    const employeeTrainings = trainings.filter(training => training.employeeId === targetEmployeeId);
+    const { reviews } = usePerformance();
+    const employeeReviews = reviews.filter(review => review.employeeId === targetEmployeeId);
+    const { leaveRequests } = useLeave();
+    const employeeLeaves = leaveRequests.filter(leave => leave.employeeId === targetEmployeeId);
 
   if (!canAccessProfile) {
     return (
@@ -760,7 +756,9 @@ export const EmployeeProfile: React.FC = () => {
                           </div>
                         );
                       })()}
-                      <p className="text-sm text-muted-foreground mb-2">{review.feedback}</p>
+                      {(review as any).feedback && (
+                        <p className="text-sm text-muted-foreground mb-2">{(review as any).feedback}</p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         Next review: {new Date(review.nextReviewDate).toLocaleDateString()}
                       </p>
@@ -781,9 +779,9 @@ export const EmployeeProfile: React.FC = () => {
                 <CardTitle>Goals & Objectives</CardTitle>
               </CardHeader>
               <CardContent>
-                {employeeReviews.length > 0 && employeeReviews[0].goals ? (
+                {employeeReviews.length > 0 && (employeeReviews[0] as any).goals ? (
                   <div className="space-y-3">
-                    {employeeReviews[0].goals.map((goal, index) => (
+                    {(employeeReviews[0] as any).goals.map((goal: any, index: number) => (
                       <div key={index} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
                         <div className="w-2 h-2 bg-primary rounded-full"></div>
                         <p className="text-sm">{goal}</p>

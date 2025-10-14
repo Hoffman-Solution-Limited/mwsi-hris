@@ -25,13 +25,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useLeave } from '@/contexts/LeaveContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePerformance } from '@/contexts/PerformanceContext';
-import {
-  mockEmployees,
-  mockLeaveRequests,
-  mockPositions,
-  mockTrainingRecords,
-  mockPerformanceReviews
-} from '@/data/mockData';
+import { useEmployees } from '@/contexts/EmployeesContext';
+import { useTraining } from '@/contexts/TrainingContext';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -50,10 +45,11 @@ export const Dashboard: React.FC = () => {
 
   if (isAdmin) {
     // Admin-specific metrics
-    const totalUsers = mockEmployees.length;
-    const activeUsers = mockEmployees.filter(emp => emp.status === 'active').length;
-    const inactiveUsers = mockEmployees.filter(emp => emp.status !== 'active').length;
-    const departments = [...new Set(mockEmployees.map(emp => emp.department))];
+    const { employees } = useEmployees();
+    const totalUsers = employees.length;
+    const activeUsers = employees.filter(emp => emp.status === 'active').length;
+    const inactiveUsers = employees.filter(emp => emp.status !== 'active').length;
+    const departments = [...new Set(employees.map(emp => emp.department))];
 
     return (
       <div className="space-y-6">
@@ -90,7 +86,7 @@ export const Dashboard: React.FC = () => {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {departments.map((dept) => {
-                const count = mockEmployees.filter(emp => emp.department === dept).length;
+                const count = employees.filter(emp => emp.department === dept).length;
                 return (
                   <div key={dept} className="p-3 border rounded-lg flex justify-between">
                     <span>{dept}</span>
@@ -138,8 +134,9 @@ export const Dashboard: React.FC = () => {
   if (isEmployee) {
     // Employee-specific metrics
     const myLeaves = leaveRequests.filter(req => req.employeeId === user.id);
-    const myTrainings = mockTrainingRecords.filter(tr => tr.employeeId === user.id);
-  const myReviews = mockPerformanceReviews.filter(rev => rev.employeeId === user.id);    
+  const { trainings } = useTraining();
+  const myTrainings = trainings.filter(tr => tr.employeeId === user.id);
+  const myReviews = reviews.filter(rev => rev.employeeId === user.id);
     const pendingLeaves = myLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr').length;
     const approvedLeaves = myLeaves.filter(req => req.status === 'approved').length;
     const completedTrainings = myTrainings.filter(tr => tr.status === 'completed').length;
@@ -264,7 +261,7 @@ export const Dashboard: React.FC = () => {
                       <Progress value={(latestReview.score / 5) * 100} />
                     </div>
                   )}
-                  <p className="text-sm text-muted-foreground">{latestReview.feedback}</p>
+                  <p className="text-sm text-muted-foreground">{(latestReview as any).feedback ?? 'No feedback provided'}</p>
                 </div>
               ) : (
                 <p className="text-muted-foreground">No performance reviews yet</p>
@@ -278,14 +275,16 @@ export const Dashboard: React.FC = () => {
 
   if (isManager) {
     // Manager-specific metrics
-  const myTeam = mockEmployees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase()));
+  const { employees } = useEmployees();
+  const myTeam = employees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase()));
     const teamLeaves = leaveRequests.filter(req => {
-      const employee = mockEmployees.find(emp => emp.id === req.employeeId);
-  return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
+      const employee = employees.find(emp => emp.id === req.employeeId);
+      return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
     });
+    const { reviews } = usePerformance();
     const teamReviews = reviews.filter(review => {
-      const employee = mockEmployees.find(emp => emp.id === review.employeeId);
-  return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
+      const employee = employees.find(emp => emp.id === review.employeeId);
+      return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
     });
     const pendingTeamLeaves = teamLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr');
     const pendingTeamReviews = teamReviews.filter(review => review.status === 'targets_set');
@@ -451,11 +450,11 @@ export const Dashboard: React.FC = () => {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span>Leave Requests:</span>
-                        <span>{empLeaves.length}</span>
+                              <span>{empLeaves.length}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Performance Score:</span>
-                        <span>{latestReview?.overallScore ? latestReview.overallScore.toFixed(1) : 'N/A'}</span>
+                              <span>{latestReview?.overallScore ? latestReview.overallScore.toFixed(1) : 'N/A'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Status:</span>
@@ -475,11 +474,14 @@ export const Dashboard: React.FC = () => {
   }
   
   // HR/Admin view - existing dashboard
-  const totalEmployees = mockEmployees.length;
-  const activeEmployees = mockEmployees.filter(emp => emp.status === 'active').length;
+  const { employees } = useEmployees();
+  const totalEmployees = employees.length;
+  const activeEmployees = employees.filter(emp => emp.status === 'active').length;
   const pendingLeaves = leaveRequests.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr').length;
-  const openPositions = mockPositions.filter(pos => pos.status === 'open').length;
-  const completedTrainings = mockTrainingRecords.filter(tr => tr.status === 'completed').length;
+  // openPositions: positions API not available yet; default to 0
+  const openPositions = 0;
+  const { trainings } = useTraining();
+  const completedTrainings = trainings.filter(tr => tr.status === 'completed').length;
   const pendingReviews = reviews.filter(pr => pr.status === 'hr_review').length;
 
   const quickStats = [
@@ -510,7 +512,7 @@ export const Dashboard: React.FC = () => {
   const exportEmployees = () => {
     try {
       const headers = ['ID', 'Name', 'Email', 'Department', 'Position', 'Status', 'Manager'];
-      const rows = mockEmployees.map(emp => [
+      const rows = employees.map(emp => [
         emp.id,
         '"' + (emp.name || '') + '"',
         emp.email || '',
@@ -542,7 +544,7 @@ export const Dashboard: React.FC = () => {
   const parseDate = (d?: string) => d ? new Date(d) : null;
   const daysBetween = (a: Date, b: Date) => Math.ceil((+b - +a) / (1000 * 60 * 60 * 24));
 
-  const recentHires = mockEmployees
+  const recentHires = employees
     .filter(e => {
       const hd = parseDate(e.hireDate);
       if (!hd) return false;
@@ -551,7 +553,7 @@ export const Dashboard: React.FC = () => {
     .sort((a, b) => (parseDate(b.hireDate)?.getTime() ?? 0) - (parseDate(a.hireDate)?.getTime() ?? 0))
     .slice(0, 5);
 
-  const upcomingBirthdays = mockEmployees
+  const upcomingBirthdays = employees
     .map(e => ({ ...e, dob: parseDate(e.dateOfBirth) }))
     .filter(e => e.dob)
     .map(e => {
@@ -622,9 +624,9 @@ export const Dashboard: React.FC = () => {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span>Completed Trainings</span>
-                  <span>{completedTrainings}/{mockTrainingRecords.length}</span>
-                </div>
-                <Progress value={(completedTrainings / mockTrainingRecords.length) * 100} />
+                  <span>{completedTrainings}/{trainings.length}</span>
+                  </div>
+                  <Progress value={(completedTrainings / (trainings.length || 1)) * 100} />
               </div>
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div>
@@ -633,7 +635,7 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-warning">
-                    {mockTrainingRecords.filter(tr => tr.status === 'in_progress').length}
+                    {trainings.filter(tr => tr.status === 'in_progress').length}
                   </p>
                   <p className="text-xs text-muted-foreground">In Progress</p>
                 </div>
@@ -652,7 +654,7 @@ export const Dashboard: React.FC = () => {
           <CardContent>
             <div className="space-y-3">
               {['Engineering', 'Human Resources', 'Marketing', 'Finance'].map(dept => {
-                const count = mockEmployees.filter(emp => emp.department === dept).length;
+                const count = employees.filter(emp => emp.department === dept).length;
                 return (
                   <div key={dept} className="flex justify-between items-center">
                     <span className="text-sm font-medium">{dept}</span>
