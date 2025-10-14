@@ -197,6 +197,8 @@ export const EmployeeProfile: React.FC = () => {
                         gender: employee.gender,
                         cadre: employee.cadre as any,
                         employmentType: employee.employmentType,
+                        jobGroup: (employee as any).jobGroup,
+                        ethnicity: (employee as any).ethnicity,
                         staffNumber: employee.staffNumber,
                         nationalId: employee.nationalId,
                         kraPin: employee.kraPin,
@@ -225,6 +227,9 @@ export const EmployeeProfile: React.FC = () => {
           gender: data.gender,
           cadre: data.cadre as any,
           employmentType: data.employmentType,
+          engagementType: data.employmentType,
+          jobGroup: (data as any).jobGroup,
+          ethnicity: (data as any).ethnicity,
           staffNumber: data.staffNumber,
           nationalId: data.nationalId,
           kraPin: data.kraPin,
@@ -351,9 +356,23 @@ export const EmployeeProfile: React.FC = () => {
                   </div>
 
                   <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Engagement Type</label>
+                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
+                      {(employee as any).engagementType || employee.employmentType || 'Permanent'}
+                    </div>
+                  </div>
+
+                  <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">Cadre</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm capitalize">
                       {employee.cadre || 'Not specified'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Job Group</label>
+                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
+                      {(employee as any).jobGroup || '—'}
                     </div>
                   </div>
                   
@@ -449,6 +468,13 @@ export const EmployeeProfile: React.FC = () => {
                     <label className="text-sm font-medium text-foreground mb-1 block">Gender *</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm capitalize">
                       {employee.gender || 'Not specified'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Ethnicity</label>
+                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
+                      {(employee as any).ethnicity || '—'}
                     </div>
                   </div>
                   

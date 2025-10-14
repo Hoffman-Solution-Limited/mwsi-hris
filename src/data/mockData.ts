@@ -138,6 +138,10 @@ export interface Employee {
   gender?: 'male' | 'female' | 'other';
   cadre?: 'Support' | 'Technical' | 'Management';
   employmentType?: string;
+  // New HR attributes
+  jobGroup?: string; // e.g., A-L
+  engagementType?: string; // e.g., Permanent, Extended Service, Local Contract
+  ethnicity?: string;
   staffNumber?: string;
   nationalId?: string;
   kraPin?: string;
@@ -243,6 +247,9 @@ export const mockEmployees: Employee[] = [
     gender: 'male',
     cadre: 'Technical',
     employmentType: 'Permanent',
+    engagementType: 'Permanent',
+    jobGroup: 'G',
+    ethnicity: 'Kikuyu',
     staffNumber: '20221234567',
     nationalId: '32456789',
     kraPin: 'A012345678Z',
@@ -276,6 +283,9 @@ export const mockEmployees: Employee[] = [
     gender: 'female',
     cadre: 'Management',
     employmentType: 'Permanent',
+    engagementType: 'Permanent',
+    jobGroup: 'J',
+    ethnicity: 'Luo',
     staffNumber: '20211234568',
     nationalId: '28123456',
     kraPin: 'A012345679Z',
@@ -309,6 +319,9 @@ export const mockEmployees: Employee[] = [
       ],
       gender: 'male',
       employmentType: 'Permanent',
+      engagementType: 'Permanent',
+      jobGroup: 'K',
+      ethnicity: 'Kalenjin',
       staffNumber: '2019031010',
       nationalId: '12345678',
       kraPin: 'A012345689Z',
@@ -343,6 +356,9 @@ export const mockEmployees: Employee[] = [
     gender: 'male',
     cadre: 'Technical',
     employmentType: 'Permanent',
+    engagementType: 'Permanent',
+    jobGroup: 'H',
+    ethnicity: 'Kamba',
     staffNumber: '20221234569',
     nationalId: '29876543',
     kraPin: 'A012345680Z',
@@ -377,6 +393,9 @@ export const mockEmployees: Employee[] = [
     gender: 'female',
     cadre: 'Support',
     employmentType: 'Contract',
+    engagementType: 'Contract',
+    jobGroup: 'F',
+    ethnicity: 'Kisii',
     staffNumber: '20231234570',
     nationalId: '31234567',
     kraPin: 'A012345681Z',
@@ -410,6 +429,9 @@ export const mockEmployees: Employee[] = [
     gender: 'male',
     cadre: 'Management',
     employmentType: 'Permanent',
+    engagementType: 'Permanent',
+    jobGroup: 'L',
+    ethnicity: 'Meru',
     staffNumber: '20201234571',
     nationalId: '25987654',
     kraPin: 'A012345682Z',
@@ -423,8 +445,41 @@ export const mockEmployees: Employee[] = [
     company: 'Ministry of Water, Sanitation and Irrigation',
     dateOfBirth: '1978-12-18'
   },
+  {
+    id: '6',
+    name: 'David Manager',
+    email: 'manager@mwsi.com',
+    position: 'Engineering Manager',
+    department: 'Engineering',
+    hireDate: '2020-05-10',
+    status: 'active',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=DM',
+    phone: '+254-700-777777',
+    emergencyContact: 'Jane Manager (+254-700-777778)',
+    salary: 110000,
+    skills: [
+      { name: 'Leadership', level: 'Advanced' },
+      { name: 'Architecture', level: 'Advanced' }
+    ],
+    gender: 'male',
+    employmentType: 'Permanent',
+    engagementType: 'Permanent',
+    jobGroup: 'I',
+    ethnicity: 'Luhya',
+    staffNumber: '202005106',
+    nationalId: '19876543',
+    kraPin: 'A012345683Z',
+    children: '1',
+    workCounty: 'Nairobi',
+    homeCounty: 'Nairobi',
+    postalAddress: 'P.O. Box 22446',
+    postalCode: '00100',
+    stationName: 'Engineering Department - Head Office',
+    skillLevel: 'Masters (Engineering Management)',
+    company: 'Ministry of Water, Sanitation and Irrigation',
+    dateOfBirth: '1983-04-19'
+  },
 ];
-
 
 export const mockDocuments: Document[] = [
   {
