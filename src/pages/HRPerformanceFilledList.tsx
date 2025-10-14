@@ -78,29 +78,34 @@ const HRPerformanceFilledList: React.FC = () => {
               <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full p-6">
                 <h2 className="text-xl font-bold mb-2">Performance Review Details</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <div className="mb-2"><strong>Employee:</strong> {selectedReview.employeeName}</div>
-                    <div className="mb-2"><strong>Review Period:</strong> {selectedReview.reviewPeriod}</div>
-                    <div className="mb-2"><strong>Status:</strong> <Badge>{selectedReview.status}</Badge></div>
-                    <div className="mb-2"><strong>Assigned To:</strong> {
-                      selectedReview.status === 'manager_review'
-                        ? (() => {
-                            const emp = mockEmployees.find(e => e.name === selectedReview.employeeName);
-                            return emp && emp.manager ? emp.manager : 'Manager';
-                          })()
-                        : selectedReview.status === 'hr_review'
-                        ? 'HR'
-                        : selectedReview.status === 'completed'
-                        ? 'Completed'
-                        : 'Unassigned'
-                    }</div>
-                    <div className="mb-2"><strong>Next Review Date:</strong> {selectedReview.nextReviewDate}</div>
-                    <div className="mb-2"><strong>Feedback:</strong> {selectedReview.feedback || '-'}</div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="mb-2"><strong>Employee:</strong> {selectedReview.employeeName}</div>
+                      <div className="mb-2"><strong>Employee Number:</strong> {selectedReview.employeeNumber || 'N/A'}</div>
+                      <div className="mb-2"><strong>Review Period:</strong> {selectedReview.reviewPeriod}</div>
+                      <div className="mb-2"><strong>Status:</strong> <Badge>{selectedReview.status}</Badge></div>
+                      <div className="mb-2"><strong>Assigned To:</strong> {
+                        selectedReview.status === 'manager_review'
+                          ? (() => {
+                              const emp = mockEmployees.find(e => e.name === selectedReview.employeeName);
+                              return emp && emp.manager ? emp.manager : 'Manager';
+                            })()
+                          : selectedReview.status === 'hr_review'
+                          ? 'HR'
+                          : selectedReview.status === 'completed'
+                          ? 'Completed'
+                          : 'Unassigned'
+                      }</div>
+                      <div className="mb-2"><strong>Next Review Date:</strong> {selectedReview.nextReviewDate}</div>
+                      {selectedReview.overallScore && (
+                        <div className="mb-2"><strong>Overall Score:</strong> {selectedReview.overallScore}/5</div>
+                      )}
+                    </div>
 
                     {(() => {
                       const template = templates.find(t => t.id === selectedReview.templateId);
                       return (
-                        <div className="space-y-3 mt-2">
+                        <div className="space-y-3">
                           {template && (
                             <details className="rounded border bg-muted/20">
                               <summary className="cursor-pointer px-3 py-2 font-medium">Template Criteria</summary>
@@ -111,17 +116,17 @@ const HRPerformanceFilledList: React.FC = () => {
                           )}
 
                           {selectedReview.employeeTargets && selectedReview.employeeTargets.length > 0 && (
-                            <details className="rounded border bg-muted/20">
-                              <summary className="cursor-pointer px-3 py-2 font-medium">Employee Targets</summary>
+                            <details className="rounded border bg-blue-50">
+                              <summary className="cursor-pointer px-3 py-2 font-medium">1. Employee Targets</summary>
                               <div className="space-y-2 p-3">
                                 {selectedReview.employeeTargets.map((t, idx) => {
                                   const c = template?.criteria.find(c => c.id === t.criteriaId);
                                   return (
-                                    <div key={idx} className="bg-muted/30 p-3 rounded">
+                                    <div key={idx} className="bg-white p-3 rounded border">
                                       <div className="flex justify-between text-sm">
                                         <span className="font-medium">{c?.name || t.criteriaId}</span>
                                       </div>
-                                      <p className="text-sm">{t.target}</p>
+                                      <p className="text-sm mt-1"><strong>Target:</strong> {t.target}</p>
                                       {t.description && <p className="text-xs text-muted-foreground mt-1">{t.description}</p>}
                                     </div>
                                   );
@@ -129,59 +134,118 @@ const HRPerformanceFilledList: React.FC = () => {
                               </div>
                             </details>
                           )}
-                        </div>
-                      );
-                    })()}
-                  </div>
 
-                  <div className="space-y-3">
-                    <div className="mb-2"><strong>Manager Comments:</strong> {selectedReview.managerComments || '-'}</div>
-                    <div className="mb-2"><strong>HR Comments:</strong> {selectedReview.hrComments || '-'}</div>
-
-                    {(() => {
-                      const template = templates.find(t => t.id === selectedReview.templateId);
-                      return (
-                        <>
-                          {selectedReview.managerScores && selectedReview.managerScores.length > 0 && (
-                            <details open className="rounded border">
-                              <summary className="cursor-pointer px-3 py-2 font-medium">Manager Scores</summary>
+                          {selectedReview.employeeScores && selectedReview.employeeScores.length > 0 && (
+                            <details className="rounded border bg-green-50">
+                              <summary className="cursor-pointer px-3 py-2 font-medium">2. Employee Self-Appraisal</summary>
                               <div className="space-y-2 p-3">
-                                {selectedReview.managerScores.map((s, idx) => {
+                                {selectedReview.employeeScores.map((s, idx) => {
                                   const c = template?.criteria.find(c => c.id === s.criteriaId);
                                   return (
-                                    <div key={idx} className="p-3 border rounded">
+                                    <div key={idx} className="p-3 border rounded bg-white">
                                       <div className="flex justify-between text-sm">
-                                        <span>{c?.name || s.criteriaId}</span>
-                                        <span>{s.score}/5</span>
+                                        <span className="font-medium">{c?.name || s.criteriaId}</span>
+                                        <span className="font-bold text-green-600">{s.score}/5</span>
                                       </div>
                                       {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
                                     </div>
                                   );
                                 })}
+                                {selectedReview.employeeSelfComments && (
+                                  <div className="p-3 border rounded bg-white mt-2">
+                                    <p className="text-sm font-medium">Overall Comments:</p>
+                                    <p className="text-sm text-muted-foreground mt-1">{selectedReview.employeeSelfComments}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </details>
+                          )}
+
+                          {selectedReview.managerScores && selectedReview.managerScores.length > 0 && (
+                            <details open className="rounded border bg-purple-50">
+                              <summary className="cursor-pointer px-3 py-2 font-medium">3. Manager Review</summary>
+                              <div className="space-y-2 p-3">
+                                {selectedReview.managerScores.map((s, idx) => {
+                                  const c = template?.criteria.find(c => c.id === s.criteriaId);
+                                  return (
+                                    <div key={idx} className="p-3 border rounded bg-white">
+                                      <div className="flex justify-between text-sm">
+                                        <span className="font-medium">{c?.name || s.criteriaId}</span>
+                                        <span className="font-bold text-purple-600">{s.score}/5</span>
+                                      </div>
+                                      {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
+                                    </div>
+                                  );
+                                })}
+                                {selectedReview.managerComments && (
+                                  <div className="p-3 border rounded bg-white mt-2">
+                                    <p className="text-sm font-medium">Manager Comments:</p>
+                                    <p className="text-sm text-muted-foreground mt-1">{selectedReview.managerComments}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </details>
+                          )}
+
+                          {(selectedReview.employeeAckStatus || selectedReview.employeeAckComments) && (
+                            <details className="rounded border bg-yellow-50">
+                              <summary className="cursor-pointer px-3 py-2 font-medium">4. Employee Acknowledgment</summary>
+                              <div className="p-3 space-y-2">
+                                {selectedReview.employeeAckStatus && (
+                                  <div className="p-3 border rounded bg-white">
+                                    <p className="text-sm font-medium">Status: 
+                                      <Badge className="ml-2" variant={selectedReview.employeeAckStatus === 'accepted' ? 'default' : 'destructive'}>
+                                        {selectedReview.employeeAckStatus}
+                                      </Badge>
+                                    </p>
+                                    {selectedReview.employeeAckDate && (
+                                      <p className="text-xs text-muted-foreground mt-1">Date: {selectedReview.employeeAckDate}</p>
+                                    )}
+                                  </div>
+                                )}
+                                {selectedReview.employeeAckComments && (
+                                  <div className="p-3 border rounded bg-white">
+                                    <p className="text-sm font-medium">Employee Comments:</p>
+                                    <p className="text-sm text-muted-foreground mt-1">{selectedReview.employeeAckComments}</p>
+                                  </div>
+                                )}
                               </div>
                             </details>
                           )}
 
                           {selectedReview.hrScores && selectedReview.hrScores.length > 0 && (
-                            <details open className="rounded border">
-                              <summary className="cursor-pointer px-3 py-2 font-medium">HR Scores</summary>
+                            <details open className="rounded border bg-orange-50">
+                              <summary className="cursor-pointer px-3 py-2 font-medium">5. HR Final Review</summary>
                               <div className="space-y-2 p-3">
                                 {selectedReview.hrScores.map((s, idx) => {
                                   const c = template?.criteria.find(c => c.id === s.criteriaId);
                                   return (
-                                    <div key={idx} className="p-3 border rounded">
+                                    <div key={idx} className="p-3 border rounded bg-white">
                                       <div className="flex justify-between text-sm">
-                                        <span>{c?.name || s.criteriaId}</span>
-                                        <span>{s.score}/5</span>
+                                        <span className="font-medium">{c?.name || s.criteriaId}</span>
+                                        <span className="font-bold text-orange-600">{s.score}/5</span>
                                       </div>
                                       {s.comments && <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>}
                                     </div>
                                   );
                                 })}
+                                {selectedReview.hrComments && (
+                                  <div className="p-3 border rounded bg-white mt-2">
+                                    <p className="text-sm font-medium">HR Comments:</p>
+                                    <p className="text-sm text-muted-foreground mt-1">{selectedReview.hrComments}</p>
+                                  </div>
+                                )}
                               </div>
                             </details>
                           )}
-                        </>
+
+                          {selectedReview.feedback && (
+                            <div className="p-3 border rounded bg-muted/20">
+                              <p className="text-sm font-medium">Legacy Feedback:</p>
+                              <p className="text-sm text-muted-foreground mt-1">{selectedReview.feedback}</p>
+                            </div>
+                          )}
+                        </div>
                       );
                     })()}
                   </div>

@@ -37,6 +37,7 @@ import PerformanceReviewDetails from "@/pages/PerformanceReviewDetails";
 import HrReviewPage from "@/pages/HrReviewPage";
 import ManagerReviewPage from "@/pages/ManagerReviewPage";
 import EmployeeSelfAppraisalPage from "@/pages/EmployeeSelfAppraisalPage";
+import EmployeeAcknowledgmentPage from "@/pages/EmployeeAcknowledgmentPage";
 import { Admin } from "@/pages/Admin";
 import { DesignationPage } from "@/pages/Designation";
 import {SkillsPage} from "@/pages/Skills";
@@ -112,6 +113,7 @@ const App = () => (
                           <Route path="/performance/reviews/:id/hr" element={<ProtectedRoute><Layout><HrReviewPage /></Layout></ProtectedRoute>} />
                           <Route path="/performance/reviews/:id/manager" element={<ProtectedRoute><Layout><ManagerReviewPage /></Layout></ProtectedRoute>} />
                           <Route path="/performance/reviews/:id/self" element={<ProtectedRoute><Layout><EmployeeSelfAppraisalPage /></Layout></ProtectedRoute>} />
+                          <Route path="/performance/reviews/:id/acknowledge" element={<ProtectedRoute><Layout><EmployeeAcknowledgmentPage /></Layout></ProtectedRoute>} />
                           <Route path="/hr-performance-filled" element={<ProtectedRoute><Layout><HRPerformanceFilledList /></Layout></ProtectedRoute>} />
                           <Route path="/documents" element={<ProtectedRoute><Layout><Documents /></Layout></ProtectedRoute>} />
                           <Route path="/employee-files" element={<ProtectedRoute><RequirePermission permission="page.employee-files"><Layout><DocumentTrackingPage /></Layout></RequirePermission></ProtectedRoute>} />
