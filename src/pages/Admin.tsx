@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Users, Shield, Database } from 'lucide-react';
+import { Settings, Users, Shield, Database, Award, BookOpen, Activity } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const Admin: React.FC = () => {
@@ -18,6 +18,24 @@ export const Admin: React.FC = () => {
         icon: Shield,
         description: 'Configure roles and access controls',
         onClick: () => navigate('/admin/roles'),
+      },
+      {
+        title: 'Performance Templates',
+        icon: Award,
+        description: 'Create and manage performance review templates',
+        onClick: () => navigate('/admin/performance-templates'),
+      },
+      {
+        title: 'Training Management',
+        icon: BookOpen,
+        description: 'Create training programs and assign employees',
+        onClick: () => navigate('/admin/training-management'),
+      },
+      {
+        title: 'System Logs',
+        icon: Activity,
+        description: 'View system activity logs and audit trails',
+        onClick: () => navigate('/admin/system-logs'),
       },
       {
         title: 'System Settings',
@@ -42,7 +60,7 @@ export const Admin: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {cards.map((item, index) => (
           <Card
             key={index}
