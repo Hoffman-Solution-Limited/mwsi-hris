@@ -6,6 +6,7 @@ import usersRouter from './routes/users';
 import rolesRouter from './routes/roles';
 import performanceRouter from './routes/performance';
 import departmentGoalsRouter from './routes/departmentGoals';
+import leavesRouter from './routes/leaves';
 
 const app = express();
 app.use(express.json());
@@ -60,6 +61,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/roles', rolesRouter);
 app.use('/api/performance', performanceRouter);
 app.use('/api/department-goals', departmentGoalsRouter);
+app.use('/api/leaves', leavesRouter);
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Backend listening on ${port}`));
