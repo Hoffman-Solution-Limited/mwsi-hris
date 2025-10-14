@@ -1,10 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Edit, 
   Download, 
-  Upload, 
   Mail, 
   Phone, 
   MapPin, 
@@ -13,7 +12,8 @@ import {
   FileText,
   TrendingUp,
   GraduationCap,
-  Shield
+  Shield,
+  Bell
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,47 +22,49 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { 
-  mockEmployees, 
   mockTrainingRecords,
   mockPerformanceReviews,
   mockLeaveRequests 
 } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { EditProfileForm } from "@/components/EditProfileForm"
-import { useDocuments } from '@/contexts/DocumentContext';
+import { usePerformance } from '@/contexts/PerformanceContext';
+ 
+import { useEmployees } from '@/contexts/EmployeesContext';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+// Removed Select import used only by document upload UI
+import { useNotifications } from '@/contexts/NotificationsContext';
 
 export const EmployeeProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { templates } = usePerformance();
+  const { updateEmployee } = useEmployees();
   const [activeTab, setActiveTab] = useState('personal');
-  const { documents, addDocument, getDocumentUrl } = useDocuments();
-  const [docOpen, setDocOpen] = useState(false);
-  const [docName, setDocName] = useState('');
-  const [docType, setDocType] = useState<'contract' | 'certificate' | 'policy' | 'form' | 'report'>('form');
-  const [docCategory, setDocCategory] = useState('General');
-  const [docFile, setDocFile] = useState<File | null>(null);
 
   // For testing, always use Michael Davis (id: '3') as the target employee
     // If on /profile route, show current user's profile
     const isMyProfile = location.pathname === '/profile';
     // For manager, allow viewing/editing their own profile
     const targetEmployeeId = isMyProfile ? user?.id : id;
-    const employee = mockEmployees.find(emp => emp.id === targetEmployeeId);
+    const { employees } = useEmployees();
+    const employee = employees.find(emp => emp.id === targetEmployeeId);
+    const { getUserNotifications, markAllRead, markRead } = useNotifications();
+    const notifications = targetEmployeeId ? getUserNotifications(targetEmployeeId) : [];
+
+  // Allow deep linking to specific tab via ?tab= query param
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab) setActiveTab(tab);
+  }, [location.search]);
 
   // Check if current user can access this profile
   // Managers can view/edit their own profile and direct reports
   const canAccessProfile = isMyProfile || 
     ['admin', 'hr_manager', 'hr_staff'].includes(user?.role || '') ||
     (user?.role === 'manager' && (user?.id === targetEmployeeId || (employee && employee.manager === user?.name)));
-  const employeeDocuments = useMemo(() => {
-    if (!employee) return [];
-    return documents.filter(doc => doc.uploadedBy === employee.name);
-  }, [documents, employee]);
     const employeeTrainings = mockTrainingRecords.filter(training => 
       training.employeeId === targetEmployeeId
     );
@@ -130,9 +132,12 @@ export const EmployeeProfile: React.FC = () => {
                   <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
                     {employee.status}
                   </Badge>
-                  <Badge variant="outline">ID: {employee.id}</Badge>
+                  <Badge variant="outline">Employee No: {(employee as any).employeeNumber || '—'}</Badge>
+                  {employee.cadre && (
+                    <Badge variant="outline" className="capitalize">{employee.cadre}</Badge>
+                  )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-muted-foreground" />
                     <span>{employee.email}</span>
@@ -156,52 +161,12 @@ export const EmployeeProfile: React.FC = () => {
                 </div>
               </div>
             </div>
-            {(isMyProfile || (user?.role === 'manager' && user?.id === employee?.id) || ['admin', 'hr_manager', 'hr_staff'].includes(user?.role || '')) && (
+            {(['hr_manager', 'hr_staff'].includes(user?.role || '')) && (
               <div className="flex gap-2">
-               <Dialog>
-  <DialogTrigger asChild>
-    <Button variant="outline" size="sm">
-      <Edit className="w-4 h-4 mr-2" />
-      Edit Profile
-    </Button>
-  </DialogTrigger>
-  <DialogContent className="sm:max-w-4xl">
-    <DialogHeader>
-      <DialogTitle>Edit Employee Profile</DialogTitle>
-    </DialogHeader>
-                    <EditProfileForm 
-                      defaultValues={{
-                        name: employee.name,
-                        email: employee.email,
-                        phone: employee.phone,
-                        position: employee.position,
-                        department: employee.department,
-                        gender: employee.gender,
-                        employmentType: employee.employmentType,
-                        staffNumber: employee.staffNumber,
-                        nationalId: employee.nationalId,
-                        kraPin: employee.kraPin,
-                        children: employee.children,
-                        workCounty: employee.workCounty,
-                        homeCounty: employee.homeCounty,
-                        postalAddress: employee.postalAddress,
-                        postalCode: employee.postalCode,
-                        stationName: employee.stationName,
-                        skillLevel: employee.skillLevel,
-                        company: employee.company,
-                        dateOfBirth: employee.dateOfBirth,
-                        hireDate: employee.hireDate,
-                        emergencyContact: employee.emergencyContact,
-                        salary: employee.salary,
-                        status: employee.status
-                      }}
-      onSave={(data) => {
-        console.log("Updated profile:", data)
-        // TODO: connect to API with fetch/axios
-      }}
-    />
-  </DialogContent>
-</Dialog>
+                <Button variant="outline" size="sm" onClick={() => navigate(`/employees/${employee.id}/edit`)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
 
                 <Button variant="outline" size="sm">
                   <Download className="w-4 h-4 mr-2" />
@@ -215,14 +180,10 @@ export const EmployeeProfile: React.FC = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4 gap-4">
           <TabsTrigger value="personal" className="flex items-center gap-2">
             <User className="w-4 h-4" />
             Personal
-          </TabsTrigger>
-          <TabsTrigger value="documents" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Documents
           </TabsTrigger>
           <TabsTrigger value="performance" className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
@@ -286,18 +247,44 @@ export const EmployeeProfile: React.FC = () => {
                       {employee.name}
                     </div>
                   </div>
-                  
+                                 <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Emergency Contact</label>
+                    <div className="bg-muted px-3 py-2 rounded-md text-sm font-medium">
+                      {employee.emergencyContact || 'Not specified'}
+                    </div>
+                  </div>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">Employment Type</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm">
                       {employee.employmentType || 'Permanent'}
                     </div>
                   </div>
-                  
+
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Staff No *</label>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Engagement Type</label>
+                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
+                      {(employee as any).engagementType || employee.employmentType || 'Permanent'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Cadre</label>
+                    <div className="bg-muted px-3 py-2 rounded-md text-sm capitalize">
+                      {employee.cadre || 'Not specified'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Job Group</label>
+                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
+                      {(employee as any).jobGroup || '—'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Employee Number</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono">
-                      {employee.staffNumber || `${new Date().getFullYear()}${employee.id.padStart(6, '0')}`}
+                      {(employee as any).employeeNumber || '—'}
                     </div>
                   </div>
                   
@@ -314,17 +301,16 @@ export const EmployeeProfile: React.FC = () => {
                       {employee.kraPin || 'A001234567X'}
                     </div>
                   </div>
-                  
-                  <div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">Children</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm">
                       {employee.children || '0'}
                     </div>
                   </div>
-                </div>
-
-                {/* Right Column */}
-                <div className="space-y-6">
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">Work County</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm">
@@ -389,6 +375,13 @@ export const EmployeeProfile: React.FC = () => {
                       {employee.gender || 'Not specified'}
                     </div>
                   </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Ethnicity</label>
+                    <div className="bg-muted px-3 py-2 rounded-md text-sm">
+                      {(employee as any).ethnicity || '—'}
+                    </div>
+                  </div>
                   
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">Date of Birth *</label>
@@ -418,117 +411,19 @@ export const EmployeeProfile: React.FC = () => {
         </TabsContent>
 
         {/* Documents */}
+        {(isMyProfile || ["admin", "hr_manager", "hr_staff"].includes(user?.role || "")) && (
         <TabsContent value="documents">
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Employee Documents</CardTitle>
-                {(isMyProfile || user?.role === 'employee') && (
-                  <Dialog open={docOpen} onOpenChange={setDocOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm">
-                        <Upload className="w-4 h-4 mr-2" />
-                        Upload Document
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Upload Document</DialogTitle>
-                        <DialogDescription>Add a document to your profile.</DialogDescription>
-                      </DialogHeader>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
-                          <label className="text-sm font-medium">Document Name</label>
-                          <Input className="mt-1" placeholder="e.g. National ID Scan.pdf" value={docName} onChange={(e) => setDocName(e.target.value)} />
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium">Document Type</label>
-                          <Select value={docType} onValueChange={(v) => setDocType(v as any)}>
-                            <SelectTrigger className="w-full mt-1">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="contract">Contract</SelectItem>
-                              <SelectItem value="certificate">Certificate</SelectItem>
-                              <SelectItem value="policy">Policy</SelectItem>
-                              <SelectItem value="form">Form</SelectItem>
-                              <SelectItem value="report">Report</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium">Category</label>
-                          <Input className="mt-1" placeholder="e.g. HR Records" value={docCategory} onChange={(e) => setDocCategory(e.target.value)} />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="text-sm font-medium">Select File</label>
-                          <Input className="mt-1" type="file" onChange={(e) => setDocFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button onClick={() => {
-                          if (!docName) return;
-                          addDocument({ name: docName, type: docType, category: docCategory, file: docFile });
-                          setDocName('');
-                          setDocType('form');
-                          setDocCategory('General');
-                          setDocFile(null);
-                          setDocOpen(false);
-                        }}>Submit</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                )}
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {employeeDocuments.map((document) => (
-                  <div key={document.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-primary/10 p-2 rounded">
-                        <FileText className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{document.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {document.category} • {document.uploadDate} • {document.size}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={`status-${document.status}`}>
-                        {document.status}
-                      </Badge>
-                      <Button variant="outline" size="sm" onClick={() => {
-                        const url = getDocumentUrl(document.id);
-                        if (url) window.open(url, '_blank');
-                      }} disabled={!getDocumentUrl(document.id)}>
-                        View
-                      </Button>
-                      <a
-                        href={getDocumentUrl(document.id) || '#'}
-                        download={document.name}
-                        onClick={(e) => { if (!getDocumentUrl(document.id)) e.preventDefault(); }}
-                      >
-                        <Button variant="outline" size="sm" disabled={!getDocumentUrl(document.id)}>
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      </a>
-                    </div>
-                  </div>
-                ))}
-                {employeeDocuments.length === 0 && (
-                  <div className="text-center py-8">
-                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No documents uploaded yet</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
+            </CardContent> 
           </Card>
         </TabsContent>
-
+        )}
         {/* Performance */}
         <TabsContent value="performance">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -555,6 +450,69 @@ export const EmployeeProfile: React.FC = () => {
                           <Progress value={(review.score / 5) * 100} />
                         </div>
                       )}
+                      {/* Per-criteria details */}
+                      {(() => {
+                        const template = templates.find(t => t.id === review.templateId);
+                        return (
+                          <div className="space-y-3 mt-3">
+                            {/* Employee Targets mapped to criteria */}
+                            {review.employeeTargets && review.employeeTargets.length > 0 && (
+                              <div>
+                                <p className="font-medium mb-1">Employee Targets</p>
+                                <div className="space-y-2">
+                                  {review.employeeTargets.map((t, idx) => {
+                                    const c = template?.criteria.find(c => c.id === t.criteriaId);
+                                    return (
+                                      <div key={idx} className="bg-muted/30 p-3 rounded">
+                                        <div className="flex justify-between text-sm">
+                                          <span className="font-medium">{c?.name || t.criteriaId}</span>
+                                        </div>
+                                        <p className="text-sm">{t.target}</p>
+                                        {t.description && (
+                                          <p className="text-xs text-muted-foreground mt-1">{t.description}</p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Manager Scores mapped to criteria */}
+                            {review.managerScores && review.managerScores.length > 0 && (
+                              <div>
+                                <p className="font-medium mb-1">Manager Scores</p>
+                                <div className="space-y-2">
+                                  {review.managerScores.map((s, idx) => {
+                                    const c = template?.criteria.find(c => c.id === s.criteriaId);
+                                    return (
+                                      <div key={idx} className="p-3 border rounded">
+                                        <div className="flex justify-between text-sm">
+                                          <span>{c?.name || s.criteriaId}</span>
+                                          <span>{s.score}/5</span>
+                                        </div>
+                                        {s.comments && (
+                                          <p className="text-xs text-muted-foreground mt-1">{s.comments}</p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* HR Comments */}
+                            {review.hrComments && (
+                              <div>
+                                <p className="font-medium mb-1">HR Comments</p>
+                                <div className="p-3 border rounded">
+                                  <p className="text-sm">{review.hrComments}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                       <p className="text-sm text-muted-foreground mb-2">{review.feedback}</p>
                       <p className="text-xs text-muted-foreground">
                         Next review: {new Date(review.nextReviewDate).toLocaleDateString()}

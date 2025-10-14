@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,43 +11,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { useEmployees } from "@/contexts/EmployeesContext";
+import { DisciplinaryCaseMock, mockDisciplinaryCases } from "@/data/mockData";
 
 // Mock disciplinary cases data
-interface DisciplinaryCase {
-  id: number;
-  employeeName: string;
-  caseType: string;
-  status: "open" | "closed" | "pending";
-  date: string;
-  description: string;
-}
-
-const mockCases: DisciplinaryCase[] = [
-  {
-    id: 1,
-    employeeName: "Alice Mwangi",
-    caseType: "Absenteeism",
-    status: "open",
-    date: "2025-07-12",
-    description: "Missed work for 3 consecutive days without notice.",
-  },
-  {
-    id: 2,
-    employeeName: "John Otieno",
-    caseType: "Misconduct",
-    status: "pending",
-    date: "2025-08-01",
-    description: "Unprofessional behavior towards a colleague.",
-  },
-  {
-    id: 3,
-    employeeName: "Grace Kamau",
-    caseType: "Performance",
-    status: "closed",
-    date: "2025-06-20",
-    description: "Repeatedly failed to meet deadlines.",
-  },
-];
+// Use centralized mock data for disciplinary cases
+type DisciplinaryCase = DisciplinaryCaseMock;
+const mockCases: DisciplinaryCase[] = mockDisciplinaryCases;
 
 export const DisciplinaryCases: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,11 +28,45 @@ export const DisciplinaryCases: React.FC = () => {
   const [selectedCase, setSelectedCase] = useState<DisciplinaryCase | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [verdictNotes, setVerdictNotes] = useState("");
+  const [statusUpdateNotes, setStatusUpdateNotes] = useState("");
+  const { employees } = useEmployees();
 
-  // Add new case
-  const handleAddCase = (newCase: Omit<DisciplinaryCase, "id">) => {
-    const caseWithId = { id: cases.length + 1, ...newCase };
-    setCases([...cases, caseWithId]);
+  // Add Case form state (controlled)
+  const [newCase, setNewCase] = useState<{
+    employeeNumber: string; // user-visible employee number used for lookup
+    employeeName: string;
+    caseType: string;
+    status: "open" | "closed" | "pending";
+    date: string;
+    description: string;
+  }>({ employeeNumber: "", employeeName: "", caseType: "", status: "open", date: "", description: "" });
+
+  // Resolve employee name when employeeId is entered
+  const resolvedEmployeeName = useMemo(() => {
+    // resolve by employeeNumber (human-facing) instead of internal id
+    const e = employees.find(emp => ((emp as any)?.employeeNumber || "").toString() === newCase.employeeNumber.trim());
+    return e?.name || "";
+  }, [employees, newCase.employeeNumber]);
+
+  // Add new case (mapped to employee by ID)
+  const handleAddCase = () => {
+    // Lookup by employeeNumber and use the internal employee.id when creating the case
+    const employee = employees.find(e => ((e as any)?.employeeNumber || "").toString() === newCase.employeeNumber.trim());
+    if (!employee) {
+      alert("Employee number not found. Please enter a valid Employee Number.");
+      return;
+    }
+    const caseWithId: DisciplinaryCase = {
+      id: cases.length + 1,
+      employeeId: employee.id,
+      employeeName: employee.name,
+      caseType: newCase.caseType,
+      status: newCase.status,
+      date: newCase.date,
+      description: newCase.description,
+    };
+    setCases(prev => [...prev, caseWithId]);
+    setNewCase({ employeeNumber: "", employeeName: "", caseType: "", status: "open", date: "", description: "" });
   };
 
   // Complete case handler
@@ -68,36 +74,46 @@ export const DisciplinaryCases: React.FC = () => {
     setSelectedCase(caseItem);
     setSelectedStatus(caseItem.status);
     setVerdictNotes("");
+    setStatusUpdateNotes("");
     setModalOpen(true);
   };
 
   const handleModalSubmit = () => {
     if (!selectedCase) return;
+    const now = new Date().toISOString();
     setCases((prev) =>
-      prev.map((c) =>
-        c.id === selectedCase.id
-          ? {
-              ...c,
-              status: selectedStatus as "open" | "closed" | "pending",
-              description:
-                selectedStatus === "closed" && verdictNotes
-                  ? c.description + " Verdict: " + verdictNotes
-                  : c.description,
-            }
-          : c
-      )
+      prev.map((c) => {
+        if (c.id !== selectedCase.id) return c;
+        const next: DisciplinaryCase = {
+          ...c,
+          status: selectedStatus as "open" | "closed" | "pending",
+          verdict: selectedStatus === "closed" ? (verdictNotes || c.verdict) : c.verdict,
+          updates: [...(c.updates || [])]
+        };
+        const trimmed = statusUpdateNotes.trim();
+        if (trimmed) {
+          next.updates!.push({ timestamp: now, text: trimmed });
+        }
+        return next;
+      })
     );
     setModalOpen(false);
     setSelectedCase(null);
     setSelectedStatus("");
     setVerdictNotes("");
+    setStatusUpdateNotes("");
   };
 
   const filteredCases = cases.filter(
-    (c) =>
-      c.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.caseType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.status.toLowerCase().includes(searchQuery.toLowerCase())
+    (c) => {
+      const q = searchQuery.toLowerCase();
+      return (
+        c.employeeName.toLowerCase().includes(q) ||
+        c.employeeId.toLowerCase().includes(q) ||
+        c.caseType.toLowerCase().includes(q) ||
+        c.status.toLowerCase().includes(q)
+      );
+    }
   );
 
   return (
@@ -116,7 +132,7 @@ export const DisciplinaryCases: React.FC = () => {
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
-              Add Case
+              Add A New Case
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-lg">
@@ -124,41 +140,69 @@ export const DisciplinaryCases: React.FC = () => {
               <DialogTitle>New Disciplinary Case</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
-              {/* Simple mock form */}
-              <Input placeholder="Employee Name" id="employeeName" />
-              <Input placeholder="Case Type" id="caseType" />
-              <Input placeholder="Status (open/pending/closed)" id="status" />
-              <Input placeholder="Date (YYYY-MM-DD)" id="date" />
-              <Input placeholder="Description" id="description" />
-              <Button
-                onClick={() => {
-                  const employeeName = (
-                    document.getElementById("employeeName") as HTMLInputElement
-                  ).value;
-                  const caseType = (
-                    document.getElementById("caseType") as HTMLInputElement
-                  ).value;
-                  const status = (
-                    document.getElementById("status") as HTMLInputElement
-                  ).value as "open" | "closed" | "pending";
-                  const date = (
-                    document.getElementById("date") as HTMLInputElement
-                  ).value;
-                  const description = (
-                    document.getElementById("description") as HTMLInputElement
-                  ).value;
+              <label className="block font-medium">Employee Number</label>
+              <Input
+                placeholder="Employee Number"
+                value={newCase.employeeNumber}
+                onChange={(e) => setNewCase((s) => ({ ...s, employeeNumber: e.target.value }))}
+              />
+                            <label className="block font-medium">Employee Name</label>
 
-                  handleAddCase({
-                    employeeName,
-                    caseType,
-                    status,
-                    date,
-                    description,
-                  });
-                }}
+              <Input
+                placeholder="Employee Name"
+                value={resolvedEmployeeName}
+                readOnly
+              />
+                            <label className="block font-medium">Case Type</label>
+
+              <Input
+                placeholder="Case Type"
+                value={newCase.caseType}
+                onChange={(e) => setNewCase((s) => ({ ...s, caseType: e.target.value }))}
+              />
+                            <label className="block font-medium">Status</label>
+
+              <select
+                className="w-full border rounded p-2"
+                value={newCase.status}
+                onChange={(e) => setNewCase((s) => ({ ...s, status: e.target.value as any }))}
               >
-                Save Case
-              </Button>
+                <option value="open">Open</option>
+                <option value="pending">Pending</option>
+                <option value="closed">Closed</option>
+              </select>
+                            <label className="block font-medium">Date</label>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Input
+                    placeholder="Date (YYYY-MM-DD)"
+                    value={newCase.date}
+                    readOnly
+                    className="cursor-pointer"
+                  />
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={newCase.date ? new Date(newCase.date) : undefined}
+                    onSelect={(d) => {
+                      if (d instanceof Date && !isNaN(d.getTime())) {
+                        const iso = d.toISOString().slice(0, 10);
+                        setNewCase((s) => ({ ...s, date: iso }));
+                      }
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+                            <label className="block font-medium">Description</label>
+
+              <Input
+                placeholder="Description"
+                value={newCase.description}
+                onChange={(e) => setNewCase((s) => ({ ...s, description: e.target.value }))}
+              />
+              <Button onClick={handleAddCase}>Save Case</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -170,7 +214,7 @@ export const DisciplinaryCases: React.FC = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search by employee, case type, or status..."
+              placeholder="Search by employee, ID, case type, or status..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -193,12 +237,22 @@ export const DisciplinaryCases: React.FC = () => {
                 <th className="text-left p-3">Status</th>
                 <th className="text-left p-3">Date</th>
                 <th className="text-left p-3">Description</th>
+                <th className="text-left p-3">Actions</th>
+                <th className="text-left p-3">Case History</th>
+
               </tr>
             </thead>
             <tbody>
               {filteredCases.map((c) => (
                 <tr key={c.id} className="border-t">
-                  <td className="p-3">{c.employeeName}</td>
+                  <td className="p-3">{c.employeeName} <span className="text-xs text-muted-foreground">(ID: {c.employeeId}{(() => {
+                    // Best-effort resolve employee number for display
+                    try {
+                      const emp = employees.find(e => e.id === c.employeeId);
+                      const empNo = (emp as any)?.employeeNumber;
+                      return empNo ? ` • Employee No: ${empNo}` : '';
+                    } catch { return ''; }
+                  })()})</span></td>
                   <td className="p-3">{c.caseType}</td>
                   <td className="p-3">
                     <Badge
@@ -215,22 +269,26 @@ export const DisciplinaryCases: React.FC = () => {
                   </td>
                   <td className="p-3">{c.date}</td>
                   <td className="p-3">{c.description}</td>
-                  <td className="p-3">
+                  <td className="p-3 space-x-2">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleCompleteCase(c)}
                       disabled={c.status === "closed"}
                     >
-                      Update Case Status
+                      Update Status
                     </Button>
                   </td>
+                  <td className="p-3">{c.updates && c.updates.length > 0 && (
+                      <UpdateHistoryButton updates={c.updates} />
+                    )}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </CardContent>
       </Card>
+
       {/* Complete Case Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-md">
@@ -249,6 +307,16 @@ export const DisciplinaryCases: React.FC = () => {
                 <option value="pending">Pending</option>
                 <option value="closed">Closed</option>
               </select>
+            </div>
+            <div>
+              <label className="block mb-1 font-medium">Status Update (optional)</label>
+              <textarea
+                className="w-full border rounded p-2"
+                rows={3}
+                value={statusUpdateNotes}
+                onChange={(e) => setStatusUpdateNotes(e.target.value)}
+                placeholder="e.g., Waiting disciplinary committee update"
+              />
             </div>
             {selectedStatus === "closed" && (
               <div>
@@ -276,3 +344,38 @@ export const DisciplinaryCases: React.FC = () => {
     </div>
   );
 };
+
+// Component to view all status updates in chronological order
+const UpdateHistoryButton: React.FC<{ updates: { timestamp: string; text: string }[] }> = ({ updates }) => {
+  const [open, setOpen] = useState(false);
+  
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="ghost">
+          View History ({updates.length})
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Status Update History</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          {updates.map((update, idx) => {
+            const dt = new Date(update.timestamp);
+            const formatted = isNaN(dt.getTime()) ? update.timestamp : dt.toLocaleString();
+            return (
+              <div key={idx} className="border-l-2 border-primary pl-4 pb-4 relative">
+                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary" />
+                <div className="text-xs text-muted-foreground mb-1">{formatted}</div>
+                <div className="text-sm whitespace-pre-wrap bg-muted p-3 rounded-md">{update.text}</div>
+              </div>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+

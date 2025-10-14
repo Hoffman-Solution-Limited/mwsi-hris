@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+
 import { Plus, Calendar, Clock, CheckCircle, XCircle, Filter, Download, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,45 +14,69 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLeave } from '@/contexts/LeaveContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
 
 export const LeaveManagement: React.FC = () => {
   const { user } = useAuth();
   const { leaveRequests, addLeaveRequest, approveManagerRequest, rejectManagerRequest, approveHrRequest, rejectHrRequest } = useLeave();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
+  const [balancesSearch, setBalancesSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [applyOpen, setApplyOpen] = useState(false);
   const [form, setForm] = useState({ type: 'annual', startDate: '', endDate: '', days: 1, reason: '' });
+  const { toast } = useToast();
 
-  // Filter leave requests based on user role
+  const isHrRole = ['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '');
+  const isManager = user?.role === 'manager';
+
+  // My queue only toggle (only for managers)
+  const [myQueueOnly, setMyQueueOnly] = useState<boolean>(!!isManager);
+
+  // Details dialog state
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<import('@/data/mockData').LeaveRequest | null>(null);
+  const [actionComment, setActionComment] = useState('');
+
+  // Reject confirmation state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<import('@/data/mockData').LeaveRequest | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    if (statusFilter !== 'all') return;
+    if (user.role === 'manager') {
+      setStatusFilter('pending_manager');
+    } else if (isHrRole) {
+      setStatusFilter('pending_hr');
+    }
+  }, []);
+
   const baseLeaves = useMemo(() => {
     if (user?.role === 'employee') {
       return leaveRequests.filter(leave => leave.employeeId === user.id);
     }
     if (user?.role === 'manager') {
-      // Only show leave requests for employees reporting to this manager
       const directReportIds = mockEmployees.filter(emp => emp.manager === user.name).map(emp => emp.id);
       return leaveRequests.filter(leave => directReportIds.includes(leave.employeeId));
     }
     return leaveRequests;
   }, [user, leaveRequests]);
-    
-  // Calculate leave statistics for employees
+
   const myApprovedLeaves = user?.role === 'employee' 
     ? leaveRequests.filter(leave => leave.employeeId === user.id && leave.status === 'approved')
     : [];
   const usedLeaveDays = myApprovedLeaves.reduce((sum, leave) => sum + leave.days, 0);
-  const leaveBalance = 25 - usedLeaveDays; // Assuming 25 days annual leave
+  const leaveBalance = 25 - usedLeaveDays; 
 
   const pendingManagerRequests = leaveRequests.filter(req => req.status === 'pending_manager');
   const pendingHrRequests = leaveRequests.filter(req => req.status === 'pending_hr');
   const approvedRequests = leaveRequests.filter(req => req.status === 'approved');
   const rejectedRequests = leaveRequests.filter(req => req.status === 'rejected');
 
-  // Calculate leave balances (mock data)
   const leaveBalances = useMemo(() => {
     if (user?.role === 'manager') {
-      // Only show balances for direct reports
       const directReports = mockEmployees.filter(emp => emp.manager === user.name);
       return directReports.map(emp => ({
         employeeId: emp.id,
@@ -96,8 +121,19 @@ export const LeaveManagement: React.FC = () => {
     }));
   }, [user, leaveRequests]);
 
-  // Filter leave requests
-  const filteredRequests = baseLeaves.filter(request => {
+  // Apply optional HR "my queue only" department filter
+  const hrScopedLeaves = useMemo(() => {
+    if (myQueueOnly && isHrRole && user?.department) {
+      const dept = user.department;
+      return baseLeaves.filter(req => {
+        const emp = mockEmployees.find(e => e.id === req.employeeId);
+        return emp?.department === dept;
+      });
+    }
+    return baseLeaves;
+  }, [myQueueOnly, isHrRole, user?.department, baseLeaves]);
+
+  const filteredRequests = hrScopedLeaves.filter(request => {
     const matchesSearch = request.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          request.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          request.reason.toLowerCase().includes(searchQuery.toLowerCase());
@@ -105,7 +141,6 @@ export const LeaveManagement: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Calendar data (mock)
   const calendarEvents = leaveRequests
     .filter(req => req.status === 'approved')
     .map(req => ({
@@ -117,7 +152,6 @@ export const LeaveManagement: React.FC = () => {
     }));
 
   const canActOnRequests = user && user.role !== 'employee';
-  const isHr = ['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '');
 
   const submitLeave = () => {
     if (!user) return;
@@ -371,6 +405,7 @@ export const LeaveManagement: React.FC = () => {
           </Card>
         </div>
       ) : (
+      <>
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2 gap-4">
           <TabsTrigger
@@ -389,8 +424,8 @@ export const LeaveManagement: React.FC = () => {
 
         {/* Requests Overview */}
         <TabsContent value="overview">
-          <div className="space-y-4">
-            <div className="flex gap-4">
+          <div className="space-y-6 mt-6">
+            <div className="flex gap-4 items-center">
               <Input
                 placeholder="Search leave requests..."
                 value={searchQuery}
@@ -409,6 +444,12 @@ export const LeaveManagement: React.FC = () => {
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
+              {isManager && (
+                <div className="flex items-center gap-2">
+                  <Switch checked={myQueueOnly} onCheckedChange={setMyQueueOnly} />
+                  <span className="text-sm">My queue only</span>
+                </div>
+              )}
               <Button variant="outline">
                 <Filter className="w-4 h-4 mr-2" />
                 Filter
@@ -460,22 +501,37 @@ export const LeaveManagement: React.FC = () => {
                               Applied: {new Date(request.appliedDate).toLocaleDateString()}
                             </p>
                           </div>
+                          <Button size="sm" variant="outline" onClick={() => { setSelectedRequest(request); setActionComment(''); setDetailsOpen(true); }}>
+                            Details
+                          </Button>
                           {request.status === 'pending_manager' && user?.role === 'manager' && (
                             <div className="flex gap-1">
-                              <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => approveManagerRequest(request.id)}>
+                              <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => {
+                                approveManagerRequest(request.id);
+                                toast({ title: 'Leave approved', description: `${request.employeeName}'s ${request.type} request approved.` });
+                              }}>
                                 <CheckCircle className="w-4 h-4" />
                               </Button>
-                              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => rejectManagerRequest(request.id)}>
+                              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => {
+                                setRejectTarget(request);
+                                setConfirmOpen(true);
+                              }}>
                                 <XCircle className="w-4 h-4" />
                               </Button>
                             </div>
                           )}
-                          {request.status === 'pending_hr' && isHr && (
+                          {request.status === 'pending_hr' && isHrRole && (
                             <div className="flex gap-1">
-                              <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => approveHrRequest(request.id)}>
+                              <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => {
+                                approveHrRequest(request.id);
+                                toast({ title: 'Leave approved', description: `${request.employeeName}'s ${request.type} request approved.` });
+                              }}>
                                 <CheckCircle className="w-4 h-4" />
                               </Button>
-                              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => rejectHrRequest(request.id)}>
+                              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => {
+                                setRejectTarget(request);
+                                setConfirmOpen(true);
+                              }}>
                                 <XCircle className="w-4 h-4" />
                               </Button>
                             </div>
@@ -560,20 +616,39 @@ export const LeaveManagement: React.FC = () => {
               <CardTitle>Employee Leave Balances</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Employee</th>
-                      <th>Department</th>
-                      <th>Annual Leave</th>
-                      <th>Sick Leave</th>
-                      <th>Emergency Leave</th>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Input
+                    placeholder="Search by employee name, ID, or department..."
+                    value={balancesSearch}
+                    onChange={(e) => setBalancesSearch(e.target.value)}
+                    className="max-w-md"
+                  />
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Annual Leave</th>
+                        <th>Sick Leave</th>
+                        <th>Emergency Leave</th>
 
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaveBalances.map((balance) => {
+                      </tr>
+                    </thead>
+                    <tbody>
+                    {leaveBalances
+                      .filter((b) => {
+                        const q = balancesSearch.toLowerCase().trim();
+                        if (!q) return true;
+                        return (
+                          b.employeeName.toLowerCase().includes(q) ||
+                          b.employeeId.toLowerCase().includes(q) ||
+                          b.department.toLowerCase().includes(q)
+                        );
+                      })
+                      .map((balance) => {
                       const employee = mockEmployees.find(emp => emp.id === balance.employeeId);
                       return (
                         <tr key={balance.employeeId}>
@@ -585,7 +660,7 @@ export const LeaveManagement: React.FC = () => {
                                   {balance.employeeName.split(' ').map(n => n[0]).join('')}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{balance.employeeName}</span>
+                              <span className="font-medium">{balance.employeeName} <span className="text-xs text-muted-foreground">(ID: {balance.employeeId} • Employee No: {(employee as any)?.employeeNumber || '—'})</span></span>
                             </div>
                           </td>
                           <td>{balance.department}</td>
@@ -632,8 +707,9 @@ export const LeaveManagement: React.FC = () => {
                         </tr>
                       );
                     })}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -707,7 +783,134 @@ export const LeaveManagement: React.FC = () => {
           </div>
         </TabsContent>
       </Tabs>
+      {/* Details Dialog */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Request Details</DialogTitle>
+            <DialogDescription>Review the request details, history and add comments before taking action.</DialogDescription>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Employee</p>
+                  <p className="font-medium">{selectedRequest.employeeName}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Type</p>
+                  <p className="font-medium capitalize">{selectedRequest.type}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Dates</p>
+                  <p className="font-medium">{selectedRequest.startDate} – {selectedRequest.endDate}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Days</p>
+                  <p className="font-medium">{selectedRequest.days}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Applied</p>
+                  <p className="font-medium">{new Date(selectedRequest.appliedDate).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Status</p>
+                  <Badge className={`status-${selectedRequest.status}`}>{selectedRequest.status}</Badge>
+                </div>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-sm mb-1">Reason</p>
+                <p className="text-sm">{selectedRequest.reason}</p>
+              </div>
+              {(selectedRequest as any).managerComments && (
+                <div className="text-sm">
+                  <p className="text-muted-foreground mb-1">Manager Comments</p>
+                  <p>{(selectedRequest as any).managerComments}</p>
+                </div>
+              )}
+              {(selectedRequest as any).hrComments && (
+                <div className="text-sm">
+                  <p className="text-muted-foreground mb-1">HR Comments</p>
+                  <p>{(selectedRequest as any).hrComments}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-medium mb-1">Add Comment (optional)</p>
+                <Textarea value={actionComment} onChange={(e) => setActionComment(e.target.value)} placeholder="Add a note for this action..." />
+              </div>
+          
+              <div className="flex justify-end gap-2">
+                {(selectedRequest.status === 'pending_manager' && isManager) || (selectedRequest.status === 'pending_hr' && isHrRole) ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setRejectTarget(selectedRequest);
+                        setConfirmOpen(true);
+                      }}
+                      className="text-destructive"
+                    >
+                      Reject
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (selectedRequest.status === 'pending_manager' && isManager) {
+                          approveManagerRequest(selectedRequest.id, actionComment);
+                        } else if (selectedRequest.status === 'pending_hr' && isHrRole) {
+                          approveHrRequest(selectedRequest.id, actionComment);
+                        }
+                        toast({ title: 'Leave approved', description: `${selectedRequest.employeeName}'s ${selectedRequest.type} request approved.` });
+                        setDetailsOpen(false);
+                        setActionComment('');
+                      }}
+                    >
+                      Approve
+                    </Button>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Confirmation Dialog */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Rejection</DialogTitle>
+            <DialogDescription>This action will reject the leave request. You can proceed or cancel.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <p><span className="text-muted-foreground">Employee: </span><span className="font-medium">{rejectTarget?.employeeName}</span></p>
+            <p><span className="text-muted-foreground">Type: </span><span className="font-medium capitalize">{rejectTarget?.type}</span></p>
+            <p><span className="text-muted-foreground">Dates: </span><span className="font-medium">{rejectTarget?.startDate} – {rejectTarget?.endDate}</span></p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
+            <Button
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => {
+                if (!rejectTarget) return;
+                if (rejectTarget.status === 'pending_manager' && isManager) {
+                  rejectManagerRequest(rejectTarget.id, actionComment || undefined);
+                } else if (rejectTarget.status === 'pending_hr' && isHrRole) {
+                  rejectHrRequest(rejectTarget.id, actionComment || undefined);
+                }
+                toast({ title: 'Leave rejected', description: `${rejectTarget.employeeName}'s ${rejectTarget.type} request rejected.`, variant: 'destructive' as any });
+                setConfirmOpen(false);
+                setDetailsOpen(false);
+                setRejectTarget(null);
+                setActionComment('');
+              }}
+            >
+              Confirm Reject
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      </>
       )}
     </div>
   );
-};
+}
