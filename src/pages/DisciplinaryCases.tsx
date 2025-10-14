@@ -254,7 +254,7 @@ export const DisciplinaryCases: React.FC = () => {
                 <th className="text-left p-3">Date</th>
                 <th className="text-left p-3">Description</th>
                 <th className="text-left p-3">Actions</th>
-                <th className="text-left p-3">Case Status</th>
+                <th className="text-left p-3">Case Status History</th>
 
               </tr>
             </thead>
