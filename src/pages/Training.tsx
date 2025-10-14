@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Plus, Search, Filter, GraduationCap, Clock, CheckCircle, Calendar, Upload, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,14 +16,22 @@ import { useTraining } from '@/contexts/TrainingContext';
 export const Training: React.FC = () => {
   const { user } = useAuth();
   const { trainings, startTraining, completeTraining } = useTraining();
+  const { editTraining, closeTraining, archiveTraining } = useTraining();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [completeOpen, setCompleteOpen] = useState(false);
   const [selectedTrainingId, setSelectedTrainingId] = useState<string | null>(null);
   const [certificateFile, setCertificateFile] = useState<File | null>(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<any>(null);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  // Edit form state
+  const [editTitle, setEditTitle] = useState('');
+  const [editProvider, setEditProvider] = useState('');
+  const [editExpiryDate, setEditExpiryDate] = useState<string | undefined>(undefined);
+  const [editType, setEditType] = useState<'mandatory' | 'development' | 'compliance'>('development');
 
   const filteredRecords = useMemo(() => {
     if (!user) return [] as typeof mockTrainingRecords;
@@ -42,6 +50,8 @@ export const Training: React.FC = () => {
   const completedTrainings = filteredRecords.filter(tr => tr.status === 'completed');
   const inProgressTrainings = filteredRecords.filter(tr => tr.status === 'in_progress');
   const notStartedTrainings = filteredRecords.filter(tr => tr.status === 'not_started');
+  const closedTrainings = filteredRecords.filter(tr => tr.status === 'closed');
+  const archivedTrainings = trainings.filter(tr => tr.archived);
 
   // Function to handle employee assignment
   const handleAssignTraining = () => {
@@ -56,6 +66,33 @@ export const Training: React.FC = () => {
     setAssignDialogOpen(false);
     setSelectedProgram(null);
     setSelectedEmployees([]);
+  };
+
+  // Admin actions: edit and close
+  useEffect(() => {
+    if (editDialogOpen && selectedTrainingId) {
+      const tr = trainings.find(t => t.id === selectedTrainingId);
+      if (tr) {
+        setEditTitle(tr.title || '');
+        setEditProvider(tr.provider || '');
+        setEditExpiryDate(tr.expiryDate);
+        setEditType(tr.type || 'development');
+      }
+    }
+  }, [editDialogOpen, selectedTrainingId, trainings]);
+
+  const handleSaveEdit = () => {
+    if (!selectedTrainingId) return;
+    editTraining(selectedTrainingId, { title: editTitle, provider: editProvider, expiryDate: editExpiryDate, type: editType });
+    setEditDialogOpen(false);
+    setSelectedTrainingId(null);
+  };
+
+  const handleConfirmClose = () => {
+    if (!selectedTrainingId) return;
+    closeTraining(selectedTrainingId);
+    setCloseConfirmOpen(false);
+    setSelectedTrainingId(null);
   };
 
   const handleSelectAllEmployees = (checked: boolean) => {
@@ -212,39 +249,45 @@ export const Training: React.FC = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          {mapRole(user?.role) === 'hr' ? (
-            <>
-              <TabsTrigger
-                value="overview"
-                className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-              >
-                Overview
-              </TabsTrigger>
-              <TabsTrigger
-                value="assignments"
-                className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-              >
-                Training Assignments
-              </TabsTrigger>
-            </>
-          ) : (
-            <>
-              <TabsTrigger
-                value="overview"
-                className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-              >
-                Overview
-              </TabsTrigger>
-              <TabsTrigger
-                value="records"
-                className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-              >
-                {(user?.role === 'employee' || user?.role === 'manager') ? 'My Trainings' : 'Employee Trainings'}
-              </TabsTrigger>
-            </>
-          )}
-        </TabsList>
+        <TabsList className="grid w-full grid-cols-3">
+            {mapRole(user?.role) === 'hr' ? (
+              <>
+                <TabsTrigger
+                  value="overview"
+                  className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+                >
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger
+                  value="assignments"
+                  className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+                >
+                  Training Assignments
+                </TabsTrigger>
+                <TabsTrigger
+                  value="history"
+                  className="bg-gray-200 text-gray-800 data-[state=active]:bg-slate-700 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+                >
+                  History
+                </TabsTrigger>
+              </>
+            ) : (
+              <>
+                <TabsTrigger
+                  value="overview"
+                  className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+                >
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger
+                  value="records"
+                  className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+                >
+                  {(user?.role === 'employee' || user?.role === 'manager') ? 'My Trainings' : 'Employee Trainings'}
+                </TabsTrigger>
+              </>
+            )}
+          </TabsList>
 
         {/* Overview */}
         <TabsContent value="overview">
@@ -273,6 +316,23 @@ export const Training: React.FC = () => {
                         <Badge className={`status-${training.status === 'completed' ? 'approved' : training.status === 'in_progress' ? 'pending' : 'draft'}`}>
                           {training.status.replace('_', ' ')}
                         </Badge>
+                        {['hr_manager', 'hr_staff'].includes(user?.role || '') && (
+                          <div className="ml-3 flex items-center gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => { setSelectedTrainingId(training.id); setEditDialogOpen(true); }}>
+                              Edit
+                            </Button>
+                            {training.status !== 'closed' && (
+                              <Button size="sm" variant="outline" onClick={() => { setSelectedTrainingId(training.id); setCloseConfirmOpen(true); }}>
+                                Close
+                              </Button>
+                            )}
+                            {training.status === 'closed' && (
+                              <Button size="sm" variant="destructive" onClick={() => archiveTraining(training.id)}>
+                                Archive
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -376,6 +436,36 @@ export const Training: React.FC = () => {
             </Card>
           </TabsContent>
         )}
+        {['hr_manager', 'hr_staff'].includes(user?.role || '') && (
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>Training History</CardTitle>
+                <CardDescription>Archived trainings and past records</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {archivedTrainings.length === 0 && <p className="text-sm text-muted-foreground">No archived trainings</p>}
+                  {archivedTrainings.map(tr => (
+                    <div key={tr.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{tr.title}</p>
+                        <p className="text-xs text-muted-foreground">Provider: {tr.provider} • Status: {tr.status}</p>
+                      </div>
+                      <div className="text-right">
+                        {tr.completionDate && <p className="text-xs">Completed: {new Date(tr.completionDate).toLocaleDateString()}</p>}
+                        <div className="mt-2 flex gap-2 justify-end">
+                          <Button size="sm" variant="ghost" onClick={() => { setSelectedTrainingId(tr.id); setEditDialogOpen(true); }}>Edit</Button>
+                          <Button size="sm" onClick={() => editTraining(tr.id, { archived: false })}>Restore</Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
         <TabsContent value="records">
           <Card>
             <CardHeader>
@@ -416,6 +506,13 @@ export const Training: React.FC = () => {
                           <p className="text-xs text-muted-foreground">
                             Expires: {new Date(training.expiryDate).toLocaleDateString()}
                           </p>
+                        )}
+                        {['hr_manager', 'hr_staff'].includes(user?.role || '') && (
+                          <div className="mt-2 flex gap-2 justify-end">
+                            <Button size="sm" variant="ghost" onClick={() => { setSelectedTrainingId(training.id); setEditDialogOpen(true); }}>Edit</Button>
+                            {training.status !== 'closed' && <Button size="sm" variant="outline" onClick={() => { setSelectedTrainingId(training.id); setCloseConfirmOpen(true); }}>Close</Button>}
+                            {training.status === 'closed' && <Button size="sm" variant="destructive" onClick={() => archiveTraining(training.id)}>Archive</Button>}
+                          </div>
                         )}
                         {(user?.role === 'employee' || user?.role === 'manager') && training.status !== 'completed' && (
                           <div className="flex justify-end gap-2 mt-2">
@@ -539,6 +636,50 @@ export const Training: React.FC = () => {
             >
               Assign Training to {selectedEmployees.length} Employee{selectedEmployees.length !== 1 ? 's' : ''}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Training Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={(o) => { setEditDialogOpen(o); if (!o) { setSelectedTrainingId(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Training</DialogTitle>
+            <DialogDescription>Modify training title, provider, type or expiry date.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Title</label>
+            <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Title" />
+            <label className="text-sm font-medium">Provider</label>
+            <Input value={editProvider} onChange={(e) => setEditProvider(e.target.value)} placeholder="Provider" />
+            <label className="text-sm font-medium">Type & Expiry Date</label>
+            <div className="flex gap-2">
+              <select value={editType} onChange={(e) => setEditType(e.target.value as any)} className="p-2 border rounded">
+                <option value="mandatory">mandatory</option>
+                <option value="development">development</option>
+                <option value="compliance">compliance</option>
+              </select>
+              <Input type="date" value={editExpiryDate || ''} onChange={(e) => setEditExpiryDate(e.target.value || undefined)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditDialogOpen(false); setSelectedTrainingId(null); }}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Close Confirmation Dialog */}
+      <Dialog open={closeConfirmOpen} onOpenChange={(o) => { setCloseConfirmOpen(o); if (!o) setSelectedTrainingId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Close Training</DialogTitle>
+            <DialogDescription>Closing a training will prevent further completions. You can archive it afterwards.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">Are you sure you want to close this training?</div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCloseConfirmOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleConfirmClose}>Close Training</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
