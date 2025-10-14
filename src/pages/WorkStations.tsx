@@ -60,7 +60,7 @@ const WorkStationsPage: React.FC = () => {
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="w-4 h-4 mr-2" />
-                Add Station
+                Add Work Station
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
