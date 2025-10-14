@@ -53,9 +53,9 @@ export const RolesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             byId.set(def.id, def);
           } else {
             // normalize display names for known roles
-            if (def.id === 'registry_manager') {
-              const r = byId.get(def.id)!;
-              r.name = 'Registry Manager';
+            const r = byId.get(def.id)!;
+            if (r.name !== def.name) {
+              r.name = def.name;
               byId.set(def.id, r);
             }
           }
