@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS disciplinary_cases (
   employee_name TEXT,
   case_type TEXT,
   status TEXT,
-  case_date DATE,
+  date DATE,
   description TEXT,
   verdict TEXT,
   updates JSONB,

@@ -13,6 +13,7 @@ router.get('/', async (_req: Request, res: Response) => {
       updates: r.updates || []
     })));
   } catch (err) {
+    console.error('GET /api/disciplinary error:', err);
     res.json([]);
   }
 });
@@ -22,11 +23,12 @@ router.post('/', async (req: Request, res: Response) => {
   const data = req.body;
   const id = data.id || uuidv4();
   try {
-    const q = `INSERT INTO disciplinary_cases(id, employee_id, employee_name, case_type, status, case_date, description, verdict, updates) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`;
-    const vals = [id, data.employeeId || null, data.employeeName || null, data.caseType || null, data.status || 'open', data.date || null, data.description || null, data.verdict || null, JSON.stringify(data.updates || [])];
+  const q = `INSERT INTO disciplinary_cases(id, employee_id, employee_name, case_type, status, date, description, verdict, updates) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`;
+  const vals = [id, data.employeeId || null, data.employeeName || null, data.caseType || null, data.status || 'open', data.date || null, data.description || null, data.verdict || null, JSON.stringify(data.updates || [])];
     const result = await pool.query(q, vals);
     res.status(201).json(result.rows[0]);
   } catch (err) {
+    console.error('POST /api/disciplinary error:', err);
     res.status(500).json({ error: String(err) });
   }
 });
@@ -57,6 +59,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     if (result.rowCount === 0) return res.status(404).json({ error: 'Not found' });
     res.json(result.rows[0]);
   } catch (err) {
+    console.error(`PUT /api/disciplinary/${id} error:`, err);
     res.status(500).json({ error: String(err) });
   }
 });
@@ -69,6 +72,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     if (result.rowCount === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ deleted: true, row: result.rows[0] });
   } catch (err) {
+    console.error(`DELETE /api/disciplinary/${id} error:`, err);
     res.status(500).json({ error: String(err) });
   }
 });
