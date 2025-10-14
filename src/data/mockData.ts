@@ -746,7 +746,7 @@ export const mockPerformanceReviews: PerformanceReview[] = [
     employeeName: 'Michael Davis',
     templateId: 'template-1',
     reviewPeriod: 'Q3 2024',
-    status: 'manager_review',
+    status: 'draft',
     employeeTargets: [
       { criteriaId: 'c1', target: 'Improve system uptime', description: 'Monitor and optimize servers.' },
       { criteriaId: 'c2', target: 'Document new features', description: 'Write user guides.' }

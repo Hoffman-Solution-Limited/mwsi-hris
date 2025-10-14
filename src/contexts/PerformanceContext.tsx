@@ -23,7 +23,7 @@ export interface PerformanceReview {
   employeeName: string;
   templateId?: string;
   reviewPeriod: string;
-  status: 'draft' | 'targets_set' | 'manager_review' | 'hr_review' | 'in_review' | 'completed';
+  status: 'new' | 'draft' | 'targets_set' | 'manager_review' | 'hr_review' | 'in_review' | 'completed' 
   employeeTargets?: {
     criteriaId: string;
     target: string;
