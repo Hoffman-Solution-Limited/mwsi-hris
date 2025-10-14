@@ -7,6 +7,7 @@ import { UserRole } from './AuthContext';
 export type AppUser = Employee & {
   role: UserRole;
   password?: string | null;
+  employeeId?: string;
 };
 
 type UsersContextType = {
@@ -62,6 +63,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             name: r.name,
             role: r.role || 'employee',
             status: r.status || 'active',
+            employeeId: r.employeeId,
           })) as AppUser[];
           setUsers(mapped);
         }

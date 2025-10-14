@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,9 +17,6 @@ import { Copy } from "lucide-react"
 import { useRoles } from '@/contexts/RolesContext'
 
 export type UserFormData = {
-  firstName?: string
-  middleName?: string
-  lastName?: string
   name?: string
   employeeNumber?: string
   email: string
@@ -33,7 +30,7 @@ type UserFormProps = {
   onSave: (data: UserFormData) => void
   mode?: "add" | "edit"
   onCancel?: () => void
-  onEmployeeNumberBlur?: (employeeNumber: string) => void
+  onEmployeeNumberBlur?: (employeeNumber: string) => Promise<void> | void
 }
 
 export function UserForm({ defaultValues, onSave, mode = "add", onCancel, onEmployeeNumberBlur }: UserFormProps) {
@@ -42,6 +39,8 @@ export function UserForm({ defaultValues, onSave, mode = "add", onCancel, onEmpl
   const watchedInvite = watch('sendInvite')
   const watchedPassword = watch('tempPassword')
   const { roles } = useRoles()
+  const [lookupBusy, setLookupBusy] = useState(false)
+  const debounceRef = useRef<number | null>(null)
 
   function generateTempPassword(len = 12) {
     const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ"
@@ -67,59 +66,74 @@ export function UserForm({ defaultValues, onSave, mode = "add", onCancel, onEmpl
   }, [watchedInvite])
 
   function handleSave(data: UserFormData) {
-    const parts = [data.firstName, data.middleName, data.lastName].filter(Boolean).map(s => String(s).trim())
-    const full = parts.join(' ')
-    onSave({ ...data, name: data.name || full })
+    onSave({ ...data, name: data.name })
   }
 
   return (
     <ScrollArea className="h-[600px] px-6">
       <form onSubmit={handleSubmit(handleSave)} className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold mb-2">Personal Information</h3>
-            <p className="text-sm text-muted-foreground mb-4">Provide the user's basic details. Fields marked with * are required.</p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <Label htmlFor="firstName">First name {watchedRole !== 'admin' ? '*' : ''}</Label>
-                <Input id="firstName" {...register('firstName', watchedRole === 'admin' ? {} : { required: 'First name is required' })} />
-                {errors.firstName && <p className="text-destructive text-sm">{(errors as any).firstName?.message}</p>}
-              </div>
-
-              <div>
-                <Label htmlFor="middleName">Middle name</Label>
-                <Input id="middleName" {...register('middleName')} />
-              </div>
-
-              <div>
-                <Label htmlFor="lastName">Last name {watchedRole !== 'admin' ? '*' : ''}</Label>
-                <Input id="lastName" {...register('lastName', watchedRole === 'admin' ? {} : { required: 'Last name is required' })} />
-                {errors.lastName && <p className="text-destructive text-sm">{(errors as any).lastName?.message}</p>}
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="employeeNumber">Employee Number (optional)</Label>
+        {/* Employee link section */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">Link to Employee</h3>
+          <p className="text-sm text-muted-foreground">Enter the employee number to auto-fill name and email.</p>
+          <div className="max-w-md relative flex items-end gap-2">
+            <div className="flex-1">
+              <Label htmlFor="employeeNumber">Employee Number</Label>
               <Input
                 id="employeeNumber"
                 {...register('employeeNumber')}
-                placeholder="e.g., EMP-0001"
-                onBlur={(e) => {
-                  if (onEmployeeNumberBlur) {
-                    onEmployeeNumberBlur(e.target.value)
+                placeholder="e.g., 20231234570"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (onEmployeeNumberBlur) {
+                      setLookupBusy(true)
+                      const maybe = onEmployeeNumberBlur((e.target as HTMLInputElement).value)
+                      if (maybe && typeof (maybe as any).finally === 'function') {
+                        ;(maybe as Promise<void>).finally(() => setLookupBusy(false))
+                      } else {
+                        setLookupBusy(false)
+                      }
+                    }
                   }
                 }}
               />
             </div>
+            <Button type="button" onClick={() => {
+              if (onEmployeeNumberBlur) {
+                setLookupBusy(true)
+                const v = (document.getElementById('employeeNumber') as HTMLInputElement)?.value || ''
+                const maybe = onEmployeeNumberBlur(v)
+                if (maybe && typeof (maybe as any).finally === 'function') {
+                  ;(maybe as Promise<void>).finally(() => setLookupBusy(false))
+                } else {
+                  setLookupBusy(false)
+                }
+              }
+            }}>Search</Button>
+            {lookupBusy && (
+              <Loader2 className="absolute right-3 top-9 h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
+        </div>
+
+        {/* Personal information (auto-filled) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6 max-w-xl">
+            <h3 className="text-lg font-semibold mb-2">Personal Information</h3>
+            <p className="text-sm text-muted-foreground mb-4">These details are auto-filled from the employee record after you enter the Employee Number.</p>
+
+            <div>
+              <Label htmlFor="name">Full name</Label>
+              <Input id="name" {...register('name')} readOnly />
+            </div>
 
             <div>
               <Label htmlFor="email">Email *</Label>
-              <Input id="email" type="email" {...register('email', { required: 'Email is required', pattern: { value: /[^\s@]+@[^\s@]+\.[^\s@]+/, message: 'Enter a valid email address' } })} />
+              <Input id="email" type="email" {...register('email', { required: 'Email is required', pattern: { value: /[^\s@]+@[^\s@]+\.[^\s@]+/, message: 'Enter a valid email address' } })} readOnly />
               {errors.email && <p className="text-destructive text-sm">{(errors as any).email?.message}</p>}
-              {!errors.email && <p className="text-xs text-muted-foreground mt-1">We'll use this to send account invitations and notifications.</p>}
+              {!errors.email && <p className="text-xs text-muted-foreground mt-1">Auto-filled from employee record. We'll use this to send account invitations and notifications.</p>}
             </div>
-
             <div>
               <Label htmlFor="role">Role *</Label>
               <Select value={watch('role')} onValueChange={(v: string) => setValue('role', v)}>
@@ -135,6 +149,7 @@ export function UserForm({ defaultValues, onSave, mode = "add", onCancel, onEmpl
           </div>
         </div>
 
+        {/* Account setup */}
         <div className="space-y-6">
           {mode === 'add' && <h3 className="text-lg font-semibold mb-2">Account Setup</h3>}
 
@@ -163,10 +178,15 @@ export function UserForm({ defaultValues, onSave, mode = "add", onCancel, onEmpl
           )}
         </div>
 
+        {/* Actions */}
         <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end mt-6">
           {onCancel && <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancel</Button>}
           <Button type="submit" className="sm:min-w-[160px]" disabled={isSubmitting}>
-            {isSubmitting ? <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />{mode === 'add' ? 'Saving...' : 'Updating...'}</span> : <span>{mode === 'add' ? 'Save Employee' : 'Update Employee'}</span>}
+            {isSubmitting ? (
+              <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />{mode === 'add' ? 'Creating...' : 'Updating...'}</span>
+            ) : (
+              <span>{mode === 'add' ? 'Create User' : 'Update User'}</span>
+            )}
           </Button>
         </div>
       </form>

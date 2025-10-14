@@ -12,6 +12,7 @@ export interface User {
   avatar?: string;
   department?: string;
   position?: string;
+  employeeId?: string; // Link to employees table when available
 }
 
 interface AuthContextType {
@@ -55,6 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         name: found.name || '',
         email: found.email,
         role: found.role.toLowerCase() as UserRole, // Normalize role
+        employeeId: (found as any).employeeId,
       };
       setUser(userToLogin);
       localStorage.setItem('hris-user', JSON.stringify(userToLogin));

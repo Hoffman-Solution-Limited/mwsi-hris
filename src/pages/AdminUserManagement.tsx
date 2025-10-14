@@ -14,7 +14,8 @@ import { Plus, User, Mail, RefreshCw, Edit as EditIcon } from 'lucide-react'
 import {UserForm} from '@/components/UserForm'
 import { useUsers, AppUser } from '@/contexts/UsersContext'
 import { useRoles } from '@/contexts/RolesContext'
-import { useEmployees } from '@/contexts/EmployeesContext'
+import { useEmployees, EmployeeRecord } from '@/contexts/EmployeesContext'
+import api from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -62,15 +63,25 @@ export default function AdminUserManagement() {
   const [userFormValues, setUserFormValues] = useState(initialUserFormValues)
   const [confirmationOpen, setConfirmationOpen] = useState(false)
   const [createdUserData, setCreatedUserData] = useState<any>(null)
+  const [matchedEmployee, setMatchedEmployee] = useState<EmployeeRecord | null>(null)
+  const [existsOpen, setExistsOpen] = useState(false)
+  const [existingUser, setExistingUser] = useState<AppUser | null>(null)
 
-  const handleEmployeeLookup = (employeeNumber: string) => {
+  const handleEmployeeLookup = async (employeeNumber: string) => {
     if (!employeeNumber) return
-    const employee = employees.find(e => e.employeeNumber?.toString() === employeeNumber)
+    let employee: EmployeeRecord | undefined
+    try {
+      const rows = await api.get(`/api/employees?employeeNumber=${encodeURIComponent(employeeNumber)}`)
+      if (Array.isArray(rows) && rows.length > 0) employee = rows[0] as EmployeeRecord
+    } catch {}
+    // fallback to local list if API fails
+    if (!employee) employee = employees.find(e => e.employeeNumber?.toString() === employeeNumber)
     if (employee) {
       toast({
         title: "Employee Found",
         description: `Populating form with details for ${employee.name}.`,
       })
+      setMatchedEmployee(employee)
       setUserFormValues(prev => ({
         ...prev,
         firstName: employee.firstName || '',
@@ -85,6 +96,7 @@ export default function AdminUserManagement() {
         description: `No employee found with number ${employeeNumber}. You can still create a user manually.`,
         variant: "destructive",
       })
+      setMatchedEmployee(null)
       // Reset if not found, but keep the entered number
       setUserFormValues(prev => ({
         ...initialUserFormValues,
@@ -168,7 +180,7 @@ export default function AdminUserManagement() {
 
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => setUserFormValues(initialUserFormValues)}>
+            <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => { setUserFormValues(initialUserFormValues); setMatchedEmployee(null); }}>
               <Plus className="w-4 h-4 mr-2" />
               Add New User
             </Button>
@@ -182,12 +194,26 @@ export default function AdminUserManagement() {
                 Note: Users can only be created for emails that exist in HR employee records.
               </DialogDescription>
             </DialogHeader>
+            {/* Preview panel for matched employee */}
+            {userFormValues.employeeNumber ? (
+              matchedEmployee ? (
+                <div className="mb-4 rounded-md border p-3 bg-muted/40">
+                  <div className="text-sm text-muted-foreground">Employee matched</div>
+                  <div className="font-medium">{matchedEmployee.name}</div>
+                  <div className="text-sm text-muted-foreground">{matchedEmployee.email}</div>
+                </div>
+              ) : (
+                <div className="mb-4 rounded-md border p-3 bg-amber-50 text-amber-900">
+                  <div className="text-sm">No match yet. Enter a valid employee number to auto-fill details.</div>
+                </div>
+              )
+            ) : null}
             <UserForm
               defaultValues={userFormValues}
               onEmployeeNumberBlur={handleEmployeeLookup}
               onSave={data => {
-                // assemble full name
-                const name = data.name || [data.firstName, data.middleName, data.lastName].filter(Boolean).join(' ')
+                // full name now provided directly (read-only), fallback to email
+                const name = data.name || data.email
 
                 // try lookup by employeeNumber first (if provided), otherwise by email
                 let matched = null
@@ -199,6 +225,14 @@ export default function AdminUserManagement() {
                 }
                 if (!matched) {
                   alert('This email or employee number does not match any employee record. Please ask HR to create the employee record first.')
+                  return
+                }
+
+                // Uniqueness validation: prevent multiple users for the same employee
+                const existing = users.find(u => String((u as any).employeeId || (u as any).employee_id) === String(matched!.id))
+                if (existing) {
+                  setExistingUser(existing)
+                  setExistsOpen(true)
                   return
                 }
 
@@ -493,6 +527,31 @@ export default function AdminUserManagement() {
               setConfirmationOpen(false)
               setCreatedUserData(null)
             }}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Already Exists Dialog */}
+      <Dialog open={existsOpen} onOpenChange={setExistsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>User already exists</DialogTitle>
+          </DialogHeader>
+          {existingUser ? (
+            <div className="space-y-2 py-4">
+              <p>
+                A user account already exists for this employee.
+              </p>
+              <div><strong>Name:</strong> {existingUser.name}</div>
+              <div><strong>Email:</strong> {existingUser.email}</div>
+              <div><strong>Role:</strong> {existingUser.role}</div>
+              <p className="text-sm text-muted-foreground">Each employee can only have one account.</p>
+            </div>
+          ) : (
+            <div className="py-4">A user account already exists for this employee.</div>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setExistsOpen(false)}>Close</Button>
           </div>
         </DialogContent>
       </Dialog>

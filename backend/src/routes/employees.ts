@@ -10,8 +10,7 @@ const toCamel = (s: string) => s.replace(/_([a-z])/g, (_m, p1) => p1.toUpperCase
 // whitelist of allowed employee DB columns (snake_case)
 const allowedColumns = new Set([
   'id','employee_number','name','email','position','department','manager','manager_id','hire_date','status','avatar','phone','date_of_birth',
-  'emergency_contact','salary','gender','cadre','employment_type','engagement_type','job_group','ethnicity','national_id','kra_pin','children','work_county','home_county','postal_address','postal_code','station_name','skill_level','company','documents','skills',
-  'first_name', 'middle_name', 'surname'
+  'emergency_contact','salary','gender','cadre','employment_type','engagement_type','job_group','ethnicity','national_id','kra_pin','children','work_county','home_county','postal_address','postal_code','station_name','skill_level','company'
 ]);
 
 function rowToCamel(row: any) {
@@ -22,9 +21,14 @@ function rowToCamel(row: any) {
   return out;
 }
 
-// GET /api/employees
+// List employees
 router.get('/', async (req: Request, res: Response) => {
   try {
+    const { employeeNumber } = req.query as { employeeNumber?: string };
+    if (employeeNumber && String(employeeNumber).trim().length > 0) {
+      const result = await pool.query('SELECT * FROM employees WHERE LOWER(employee_number::text) = LOWER($1) ORDER BY name ASC', [String(employeeNumber)]);
+      return res.json(result.rows.map(rowToCamel));
+    }
     const result = await pool.query('SELECT * FROM employees ORDER BY name ASC');
     res.json(result.rows.map(rowToCamel));
   } catch (err) {
@@ -53,6 +57,12 @@ router.post('/', async (req: Request, res: Response) => {
     if (data.firstName || data.surname) {
       data.name = [data.firstName, data.middleName, data.surname].filter(Boolean).join(' ');
     }
+    // Remove non-schema fields so they cannot accidentally be inserted
+    delete (data as any).firstName;
+    delete (data as any).middleName;
+    delete (data as any).surname;
+    delete (data as any).documents;
+    delete (data as any).skills;
 
     // map incoming camelCase keys to snake_case and whitelist
     const entries: Array<[string, any]> = [];
@@ -64,15 +74,15 @@ router.post('/', async (req: Request, res: Response) => {
       // skip id if provided
       if (snake === 'id') continue;
       let v = (data as any)[k];
-      if ((snake === 'documents' || snake === 'skills') && v !== undefined && v !== null) {
-        v = JSON.stringify(v);
-      }
+      // no JSON columns in current schema
       entries.push([snake, v == null ? null : v]);
     }
 
     const cols = entries.map(e => e[0]);
     const placeholders = entries.map((_, i) => `$${i+1}`);
     const vals = entries.map(e => e[1]);
+    // Debug log to help diagnose schema mismatches
+    try { console.log('employees.insert cols=', cols); } catch {}
     const q = `INSERT INTO employees(${cols.join(',')}) VALUES(${placeholders.join(',')}) RETURNING *`;
     const result = await pool.query(q, vals);
     res.status(201).json(rowToCamel(result.rows[0]));

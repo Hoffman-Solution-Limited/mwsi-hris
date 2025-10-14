@@ -36,15 +36,6 @@ app.get('/health', async (_req: Request, res: Response) => {
   }
 });
 
-app.get('/api/employees', async (_req: Request, res: Response) => {
-  try {
-    const result = await pool.query('SELECT * FROM employees ORDER BY created_at DESC LIMIT 200');
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
-
 app.post('/api/auth/login', async (req: Request, res: Response) => {
   const { email, password } = req.body as { email?: string; password?: string };
   if (!email || !password) return res.status(400).json({ error: 'email and password required' });

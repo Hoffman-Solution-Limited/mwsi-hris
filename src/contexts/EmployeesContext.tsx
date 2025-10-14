@@ -11,6 +11,7 @@ type EmployeesContextType = {
   addEmployee: (data: Omit<EmployeeRecord, 'id' | 'avatar' | 'status' | 'hireDate'> & Partial<Pick<EmployeeRecord, 'status' | 'hireDate'>>) => Promise<EmployeeRecord | void>;
   updateEmployee: (id: string, updates: Partial<EmployeeRecord>) => Promise<void>;
   removeEmployee: (id: string) => Promise<void>;
+  refresh: () => Promise<void>;
   renameStationAcrossEmployees?: (oldName: string, newName: string) => void;
   renameDesignationAcrossEmployees?: (oldName: string, newName: string) => void;
   renameSkillLevelAcrossEmployees?: (oldName: string, newName: string) => void;
@@ -33,28 +34,28 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(employees)); } catch {}
-  }, [employees]);
+  const refresh = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const rows = await api.get('/api/employees');
+      if (Array.isArray(rows)) setEmployees(rows as EmployeeRecord[]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  // Load employees from backend on mount, fallback to localStorage/mockData
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        setLoading(true);
         const rows = await api.get('/api/employees');
         if (!mounted) return;
-        if (Array.isArray(rows) && rows.length > 0) {
+        if (Array.isArray(rows)) {
           setEmployees(rows as EmployeeRecord[]);
         }
       } catch (err) {
-        // keep local mock data if backend not reachable
-        // console.debug('employees load failed, using local', String(err));
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     })();
     return () => { mounted = false; };
@@ -68,7 +69,8 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const payload = { ...data } as any;
       const created = await api.post('/api/employees', payload);
-      setEmployees(prev => [created as EmployeeRecord, ...prev]);
+      // Pull fresh from server to avoid drift and ensure DB-generated fields are present
+      await refresh();
       return created as EmployeeRecord;
     } catch (err) {
       // Log and notify when API fails, then fallback to local when API fails
@@ -103,7 +105,7 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  const value = useMemo(() => ({ employees, loading, addEmployee, updateEmployee, removeEmployee }), [employees, loading, addEmployee, updateEmployee, removeEmployee]);
+  const value = useMemo(() => ({ employees, loading, addEmployee, updateEmployee, removeEmployee, refresh }), [employees, loading, addEmployee, updateEmployee, removeEmployee, refresh]);
 
   // attach helper to rename stations across employees
   const renameStationAcrossEmployees = (oldName: string, newName:string) => {

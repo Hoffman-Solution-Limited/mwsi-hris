@@ -15,7 +15,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useEmployees } from "@/contexts/EmployeesContext"
-import { useUsers } from "@/contexts/UsersContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
 import { useToast } from '@/hooks/use-toast'
@@ -35,8 +34,7 @@ export const EmployeeDirectory: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("all")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const navigate = useNavigate()
-  const { users: employees, addUser } = useUsers() // Use users as employees
-  const { users } = useUsers()
+  const { employees, loading, refresh } = useEmployees()
   const { toast } = useToast()
 
   // Get logged-in user (manager) from context
@@ -47,11 +45,32 @@ export const EmployeeDirectory: React.FC = () => {
   const canonical = mapRole(user?.role)
   const isManager = canonical === 'manager';
   const baseEmployees = canonical === 'manager'
-    ? user ? employees.filter(e => String(e.managerId || '') === String(user.id || '')) : []
+    ? user
+      ? employees.filter(e => {
+          const mgrId = String(e.managerId ?? '')
+          const userEmpId = String((user as any).employeeId ?? '')
+          if (userEmpId && mgrId && mgrId === userEmpId) return true
+          // fallback heuristics if IDs aren’t wired
+          if (!mgrId && e.manager) {
+            const nameMatch = e.manager.toLowerCase() === (user.name || '').toLowerCase()
+            return nameMatch
+          }
+          return false
+        })
+      : []
     : employees;
 
-  // Unique departments based on scoped employees (keep for legacy filters)
-  const departments = [...new Set(baseEmployees.map((emp) => emp.department))]
+  // Unique departments/stations based on scoped employees (filter blanks)
+  const departments = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const emp of baseEmployees) {
+      const d = (emp.department || '').trim();
+      const s = (emp.stationName || '').trim();
+      if (d) set.add(d);
+      if (s) set.add(s);
+    }
+    return Array.from(set).sort();
+  }, [baseEmployees]);
 
   // Filter employees within scoped set
   const filteredEmployees = baseEmployees.filter((employee) => {
@@ -185,6 +204,11 @@ export const EmployeeDirectory: React.FC = () => {
             Export
           </Button>
 
+          {/* Manual refresh to pull latest from backend */}
+          <Button variant="secondary" size="sm" onClick={() => refresh()} disabled={!!loading}>
+            Refresh
+          </Button>
+
           {/* Add Employee as separate page */}
           {(mapRole(user?.role) === 'admin' || mapRole(user?.role) === 'hr') && (
             <Button size="sm" onClick={() => navigate("/employees/new") }>
@@ -228,7 +252,7 @@ export const EmployeeDirectory: React.FC = () => {
             </div>
 
             <div className="flex gap-2">
-              {["admin", "hr_manager"].includes(user?.role) && (
+              {(["admin", "hr"].includes(mapRole(user?.role))) && (
                 <Select
                   value={departmentFilter}
                   onValueChange={setDepartmentFilter}
@@ -238,9 +262,9 @@ export const EmployeeDirectory: React.FC = () => {
                   </SelectTrigger>
 
                   <SelectContent>
-                    <SelectItem value="all">All Departments</SelectItem>
+                    <SelectItem key="dept-all" value="all">All Departments</SelectItem>
                     {departments.map((dept) => (
-                        <SelectItem key={dept} value={dept}>
+                        <SelectItem key={`dept-${dept}`} value={dept}>
                           {dept}
                         </SelectItem>
                       ))}
