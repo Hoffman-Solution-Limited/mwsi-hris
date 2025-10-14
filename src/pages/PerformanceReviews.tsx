@@ -424,7 +424,7 @@ export const PerformanceReviews: React.FC = () => {
             </TabsTrigger>
           </TabsList>
         ) : user?.role === 'hr_manager' || user?.role === 'hr_staff' ? (
-          <TabsList className="grid w-full grid-cols-3 gap-2">
+          <TabsList className="grid w-full grid-cols-2 gap-2">
             <TabsTrigger
               value="assign"
               className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
@@ -436,12 +436,6 @@ export const PerformanceReviews: React.FC = () => {
               className="bg-yellow-600 text-white data-[state=active]:bg-yellow-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
             >
               Pending Reviews
-            </TabsTrigger>
-            <TabsTrigger
-              value="history"
-              className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-            >
-              Review History
             </TabsTrigger>
           </TabsList>
         ) : (
@@ -665,13 +659,98 @@ export const PerformanceReviews: React.FC = () => {
                             <div className="mt-2">
                               <Badge variant="outline" className="bg-yellow-50">Pending HR Review</Badge>
                             </div>
+                            {review.managerComments && (
+                              <div className="mt-2">
+                                <p className="text-sm font-medium">Manager Comments:</p>
+                                <p className="text-sm text-muted-foreground">{review.managerComments}</p>
+                              </div>
+                            )}
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium">Manager Score: {review.overallScore?.toFixed(1)}/5.0</p>
-                            <Button variant="outline" size="sm" className="mt-2">
-                              <Eye className="w-4 h-4 mr-2" />
-                              Review & Approve
-                            </Button>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="mt-2" onClick={() => {
+                                  setSelectedReview(review);
+                                  setEditComments(review.hrComments || '');
+                                  setEditScore(review.overallScore || '');
+                                }}>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  Review & Approve
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle>HR Review - {review.employeeName}</DialogTitle>
+                                  <DialogDescription>
+                                    Review the manager's evaluation and provide final HR comments
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <p className="font-medium">Employee: {review.employeeName}</p>
+                                      <p className="text-sm text-muted-foreground">Period: {review.reviewPeriod}</p>
+                                      <p className="text-sm text-muted-foreground">Department: {employee?.department}</p>
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">Manager Score: {review.overallScore?.toFixed(1)}/5.0</p>
+                                    </div>
+                                  </div>
+                                  
+                                  {review.employeeTargets && review.employeeTargets.length > 0 && (
+                                    <div>
+                                      <p className="font-medium mb-2">Employee Targets:</p>
+                                      <div className="space-y-2">
+                                        {review.employeeTargets.map((target, idx) => {
+                                          const criteria = template?.criteria.find(c => c.id === target.criteriaId);
+                                          return (
+                                            <div key={idx} className="bg-muted/30 p-3 rounded">
+                                              <p className="font-medium text-sm">{criteria?.name}</p>
+                                              <p className="text-sm">{target.target}</p>
+                                              {target.description && <p className="text-xs text-muted-foreground">{target.description}</p>}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {review.managerComments && (
+                                    <div>
+                                      <p className="font-medium mb-2">Manager Comments:</p>
+                                      <div className="bg-muted/30 p-3 rounded">
+                                        <p className="text-sm">{review.managerComments}</p>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  <div>
+                                    <label className="font-medium block mb-2">HR Final Comments:</label>
+                                    <Textarea 
+                                      value={editComments}
+                                      onChange={(e) => setEditComments(e.target.value)}
+                                      placeholder="Provide final HR review comments..."
+                                      rows={4}
+                                    />
+                                  </div>
+                                </div>
+                                <DialogFooter>
+                                  <Button variant="outline" onClick={() => setSelectedReview(null)}>
+                                    Cancel
+                                  </Button>
+                                  <Button onClick={() => {
+                                    if (selectedReview) {
+                                      submitHrReview(selectedReview.id, [], editComments);
+                                      setSelectedReview(null);
+                                      setEditComments('');
+                                    }
+                                  }}>
+                                    Approve & Complete Review
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
                           </div>
                         </div>
                       </div>
