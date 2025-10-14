@@ -35,9 +35,9 @@ const navGroups: NavGroup[] = [
     items: [
       { path: '/', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
       { path: '/search', label: 'Global Search', icon: <Search className="w-5 h-5" /> },
-      { path: '/profile', label: 'My Profile', icon: <User className="w-5 h-5" />, roles: ['employee', 'manager', 'hr_manager', 'registry_manager'] },
+      { path: '/profile', label: 'My Profile', icon: <User className="w-5 h-5" />, roles: ['employee', 'manager', 'hr_manager', 'registry_manager', 'hr_staff', 'registry_staff'] },
   { path: '/my-files', label: 'My Files', icon: <FileText className="w-5 h-5" />, roles: ['employee', 'manager', 'hr_manager', 'registry_manager', 'registry_staff'] },
-  { path: '/manager-apply-leave', label: 'Apply for Leave', icon: <Calendar className='w-5 h-5' />, roles: ['manager', 'employee', 'hr_manager', 'registry_manager', 'registry_staff'] },
+  { path: '/manager-apply-leave', label: 'Apply for Leave', icon: <Calendar className='w-5 h-5' />, roles: ['manager', 'employee', 'hr_manager', 'registry_manager', 'registry_staff', 'hr_staff'] },
     ]
   },
   {
@@ -60,7 +60,7 @@ const navGroups: NavGroup[] = [
   {
     title: "Document",
     items: [
-  { path: '/employee-files', label: 'Employee File Tracking', icon: <FileText className="w-5 h-5" />, roles: ['registry_manager', 'registry_staff'] },
+  { path: '/employee-files', label: 'Employee File Tracking', icon: <FileText className="w-5 h-5" />, roles: ['registry_manager', 'registry_staff', 'hr_staff', 'hr_manager'] },
   { path: '/registry/requests', label: 'Registry Requests', icon: <Activity className="w-5 h-5" />, roles: ['registry_manager', 'registry_staff'] },
   { path: '/registry/documents', label: 'Document Types', icon: <List className="w-5 h-5" />, roles: ['registry_manager', 'registry_staff'] },
     ]

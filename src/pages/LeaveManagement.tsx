@@ -32,9 +32,14 @@ export const LeaveManagement: React.FC = () => {
 
   const isHrRole = ['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '');
   const isManager = user?.role === 'manager' || user?.role === 'registry_manager';
+  const isHrManager = user?.role === 'hr_manager';
+  const isHrStaff = user?.role === 'hr_staff';
 
-  // My queue only toggle (only for managers)
-  const [myQueueOnly, setMyQueueOnly] = useState<boolean>(!!isManager);
+  // My queue only toggle (for managers and HR)
+  const [myQueueOnly, setMyQueueOnly] = useState<boolean>(!!(isManager || isHrRole));
+
+  // HR Manager mode: act as Team Manager (direct reports) vs HR Oversight (all)
+  const [hrMode, setHrMode] = useState<'hr' | 'team'>(isHrManager ? 'hr' : 'hr');
 
   // Details dialog state
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -61,7 +66,7 @@ export const LeaveManagement: React.FC = () => {
     if (user?.role === 'employee') {
       return leaveRequests.filter(leave => leave.employeeId === user.id);
     }
-    if (user?.role === 'manager' || user?.role === 'registry_manager') {
+    if (user?.role === 'manager' || user?.role === 'registry_manager' || (isHrManager && hrMode === 'team')) {
   const directReportIds = employees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase())).map(emp => emp.id);
       return leaveRequests.filter(leave => directReportIds.includes(leave.employeeId));
     }
@@ -80,7 +85,7 @@ export const LeaveManagement: React.FC = () => {
   const rejectedRequests = leaveRequests.filter(req => req.status === 'rejected');
 
   const leaveBalances = useMemo(() => {
-    if (user?.role === 'manager' || user?.role === 'registry_manager') {
+    if (user?.role === 'manager' || user?.role === 'registry_manager' || (isHrManager && hrMode === 'team')) {
   const directReports = employees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase()));
       return directReports.map(emp => ({
         employeeId: emp.id,
@@ -129,7 +134,8 @@ export const LeaveManagement: React.FC = () => {
 
   // Apply optional HR "my queue only" department filter
   const hrScopedLeaves = useMemo(() => {
-    if (myQueueOnly && isHrRole && user?.department) {
+    // HR oversight: optionally scope by department when myQueueOnly is on
+    if (myQueueOnly && isHrRole && user?.department && (!isHrManager || hrMode === 'hr')) {
       const dept = user.department;
       return baseLeaves.filter(req => {
         const emp = employees.find(e => e.id === req.employeeId);
@@ -137,7 +143,7 @@ export const LeaveManagement: React.FC = () => {
       });
     }
     return baseLeaves;
-  }, [myQueueOnly, isHrRole, user?.department, baseLeaves]);
+  }, [myQueueOnly, isHrRole, user?.department, baseLeaves, isHrManager, hrMode, employees]);
 
   const filteredRequests = hrScopedLeaves.filter(request => {
     const matchesSearch = request.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -450,10 +456,24 @@ export const LeaveManagement: React.FC = () => {
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
-              {isManager && (
+              {(isManager || isHrManager) && (
                 <div className="flex items-center gap-2">
                   <Switch checked={myQueueOnly} onCheckedChange={setMyQueueOnly} />
                   <span className="text-sm">My queue only</span>
+                </div>
+              )}
+              {isHrManager && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm">Mode:</label>
+                  <Select value={hrMode} onValueChange={(v: any) => setHrMode(v)}>
+                    <SelectTrigger className="w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hr">HR Oversight</SelectItem>
+                      <SelectItem value="team">My Team</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
               <Button variant="outline">
@@ -528,7 +548,7 @@ export const LeaveManagement: React.FC = () => {
                               </Button>
                             </>
                           )}
-                          {request.status === 'pending_manager' && (user?.role === 'manager' || user?.role === 'registry_manager') && (
+                          {request.status === 'pending_manager' && ((user?.role === 'manager' || user?.role === 'registry_manager') || (isHrManager && hrMode === 'team')) && (
                             <div className="flex gap-1">
                               <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => {
                                 approveManagerRequest(request.id);
@@ -864,7 +884,7 @@ export const LeaveManagement: React.FC = () => {
               </div>
           
               <div className="flex justify-end gap-2">
-                {(selectedRequest.status === 'pending_manager' && isManager) || (selectedRequest.status === 'pending_hr' && isHrRole) ? (
+                {(selectedRequest.status === 'pending_manager' && (isManager || (isHrManager && hrMode === 'team'))) || (selectedRequest.status === 'pending_hr' && isHrRole) ? (
                   <>
                     <Button
                       variant="outline"
@@ -878,7 +898,7 @@ export const LeaveManagement: React.FC = () => {
                     </Button>
                     <Button
                       onClick={() => {
-                        if (selectedRequest.status === 'pending_manager' && isManager) {
+                        if (selectedRequest.status === 'pending_manager' && (isManager || (isHrManager && hrMode === 'team'))) {
                           approveManagerRequest(selectedRequest.id, actionComment);
                         } else if (selectedRequest.status === 'pending_hr' && isHrRole) {
                           approveHrRequest(selectedRequest.id, actionComment);
@@ -964,7 +984,7 @@ export const LeaveManagement: React.FC = () => {
               className="bg-red-600 text-white hover:bg-red-700"
               onClick={() => {
                 if (!rejectTarget) return;
-                if (rejectTarget.status === 'pending_manager' && isManager) {
+                if (rejectTarget.status === 'pending_manager' && (isManager || (isHrManager && hrMode === 'team'))) {
                   rejectManagerRequest(rejectTarget.id, actionComment || undefined);
                 } else if (rejectTarget.status === 'pending_hr' && isHrRole) {
                   rejectHrRequest(rejectTarget.id, actionComment || undefined);
