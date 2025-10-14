@@ -6,10 +6,19 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { PermissionsProvider } from "@/contexts/PermissionsContext";
+import RequirePermission from "@/components/auth/RequirePermission";
 import { LeaveProvider } from "@/contexts/LeaveContext";
 import { DocumentProvider } from "@/contexts/DocumentContext";
 import { PerformanceProvider } from "@/contexts/PerformanceContext";
+import { DepartmentGoalsProvider } from "@/contexts/DepartmentGoalsContext";
 import { TrainingProvider } from "@/contexts/TrainingContext";
+import { UsersProvider } from "@/contexts/UsersContext";
+import { SystemCatalogProvider } from "@/contexts/SystemCatalogContext";
+import { SystemLogsProvider } from "@/contexts/SystemLogsContext";
+import { EmployeesProvider } from "@/contexts/EmployeesContext";
+import { NotificationsProvider } from "@/contexts/NotificationsContext";
+import { FileTrackingProvider } from "@/contexts/FileTrackingContext";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { Layout } from "@/components/layout/Layout";
 import { Dashboard } from "@/pages/Dashboard";
@@ -22,19 +31,38 @@ import { LeaveManagement } from "@/pages/LeaveManagement";
 import { PerformanceReviews } from "@/pages/PerformanceReviews";
 import { Documents } from "@/pages/Documents";
 import { Reports } from "@/pages/Reports";
+import AddEmployeePage from "@/pages/AddEmployee";
+import EditEmployeePage from "@/pages/EditEmployee";
+import PerformanceReviewDetails from "@/pages/PerformanceReviewDetails";
+import HrReviewPage from "@/pages/HrReviewPage";
+import ManagerReviewPage from "@/pages/ManagerReviewPage";
+import EmployeeSelfAppraisalPage from "@/pages/EmployeeSelfAppraisalPage";
+import EmployeeAcknowledgmentPage from "@/pages/EmployeeAcknowledgmentPage";
 import { Admin } from "@/pages/Admin";
 import { DesignationPage } from "@/pages/Designation";
 import {SkillsPage} from "@/pages/Skills";
+import { EmployeeByCounty } from "@/pages/EmployeeByCounty";
 import ApplyLeave from "@/pages/ApplyLeave";
 import ManagerApplyLeave from "@/pages/ManagerApplyLeave";
-import { EmployeeByCounty } from "@/pages/EmployeeByCounty";
+ import ReviewDetails from '@/pages/ReviewDetails';
+
 import { DisciplinaryCases } from "@/pages/DisciplinaryCases";
 import { ForgotPasswordPage } from "@/components/auth/ForgotPasswordPage";
 import AdminUserManagement from '@/pages/AdminUserManagement';
 import RoleConfiguration from '@/pages/AdminRoleConfiguration';
 import SystemSettings from '@/pages/AdminSystemSettings';
 import DataManagement from '@/pages/AdminDataManagement';
+import AdminPerformanceTemplates from '@/pages/AdminPerformanceTemplates';
+import AdminDepartmentGoals from '@/pages/AdminDepartmentGoals';
+import AdminTrainingManagement from '@/pages/AdminTrainingManagement';
+import AdminSystemLogs from '@/pages/AdminSystemLogs';
+import WorkStationsPage from '@/pages/WorkStations';
+import ChangePassword from '@/pages/ChangePassword';
 import NotFound from "./pages/NotFound";
+import DocumentTrackingPage from "@/pages/Document";
+import MyFilesPage from "@/pages/MyFiles";
+import RequestsManagementPage from "@/pages/RequestsManagement";
+import EmploymentAttributesPage from "@/pages/EmploymentAttributes";
 
 const queryClient = new QueryClient();
 
@@ -51,125 +79,84 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <LeaveProvider>
-        <DocumentProvider>
-          <PerformanceProvider>
-            <TrainingProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-  <Routes>
-  <Route path="/login" element={<LoginPage />} />
-  <Route path="/apply-leave" element={<ProtectedRoute><ApplyLeave /></ProtectedRoute>} />
-  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-  <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-  <Route path="/search" element={<ProtectedRoute><Layout><GlobalSearch /></Layout></ProtectedRoute>} />
-  <Route path="/employees" element={<ProtectedRoute><Layout><EmployeeDirectory /></Layout></ProtectedRoute>} />
-  <Route path="/employees/:id" element={<ProtectedRoute><Layout><EmployeeProfile /></Layout></ProtectedRoute>} />
-  <Route path="/profile" element={<ProtectedRoute><Layout><EmployeeProfile /></Layout></ProtectedRoute>} />
-  <Route path="/recruitment" element={<ProtectedRoute><Layout><Recruitment /></Layout></ProtectedRoute>} />
-  <Route path="/training" element={<ProtectedRoute><Layout><Training /></Layout></ProtectedRoute>} />
-  <Route path="/leave" element={<ProtectedRoute><Layout><LeaveManagement /></Layout></ProtectedRoute>} />
-  <Route path="/performance" element={<ProtectedRoute><Layout><PerformanceReviews /></Layout></ProtectedRoute>} />
-  <Route path="/hr-performance-filled" element={<ProtectedRoute><Layout><HRPerformanceFilledList /></Layout></ProtectedRoute>} />
-  <Route path="/documents" element={<ProtectedRoute><Layout><Documents /></Layout></ProtectedRoute>} />
-  <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
-  <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />
-  <Route path="/manager-apply-leave" element={<ProtectedRoute><Layout><ManagerApplyLeave /></Layout></ProtectedRoute>} />
+      <PermissionsProvider>
+      <NotificationsProvider>
+      <SystemLogsProvider>
+        <LeaveProvider>
+          <DocumentProvider>
+            <DepartmentGoalsProvider>
+            <PerformanceProvider>
+              <TrainingProvider>
+                <UsersProvider>
+                  <SystemCatalogProvider>
+                    <EmployeesProvider>
+                    <FileTrackingProvider>
+                      <TooltipProvider>
+                        <Toaster />
+                        <Sonner />
+                        <BrowserRouter>
+                          <Routes>
+                          <Route path="/login" element={<LoginPage />} />
+                          <Route path="/apply-leave" element={<ProtectedRoute><ApplyLeave /></ProtectedRoute>} />
+                          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                          <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+                          <Route path="/search" element={<ProtectedRoute><Layout><GlobalSearch /></Layout></ProtectedRoute>} />
+                          <Route path="/employees" element={<ProtectedRoute><Layout><EmployeeDirectory /></Layout></ProtectedRoute>} />
+                          <Route path="/employees/:id" element={<ProtectedRoute><Layout><EmployeeProfile /></Layout></ProtectedRoute>} />
+                          <Route path="/employees/new" element={<ProtectedRoute><Layout><AddEmployeePage /></Layout></ProtectedRoute>} />
+                          <Route path="/employees/:id/edit" element={<ProtectedRoute><Layout><EditEmployeePage /></Layout></ProtectedRoute>} />
+                          <Route path="/profile" element={<ProtectedRoute><Layout><EmployeeProfile /></Layout></ProtectedRoute>} />
+                          <Route path="/recruitment" element={<ProtectedRoute><Layout><Recruitment /></Layout></ProtectedRoute>} />
+                          <Route path="/training" element={<ProtectedRoute><Layout><Training /></Layout></ProtectedRoute>} />
+                          <Route path="/leave" element={<ProtectedRoute><Layout><LeaveManagement /></Layout></ProtectedRoute>} />
+                          <Route path="/performance" element={<ProtectedRoute><Layout><PerformanceReviews /></Layout></ProtectedRoute>} />
+                          <Route path="/performance/reviews/:id" element={<ProtectedRoute><Layout><PerformanceReviewDetails /></Layout></ProtectedRoute>} />
+                          <Route path="/performance/reviews/:id/hr" element={<ProtectedRoute><Layout><HrReviewPage /></Layout></ProtectedRoute>} />
+                          <Route path="/performance/reviews/:id/manager" element={<ProtectedRoute><Layout><ManagerReviewPage /></Layout></ProtectedRoute>} />
+                          <Route path="/performance/reviews/:id/self" element={<ProtectedRoute><Layout><EmployeeSelfAppraisalPage /></Layout></ProtectedRoute>} />
+                          <Route path="/performance/reviews/:id/acknowledge" element={<ProtectedRoute><Layout><EmployeeAcknowledgmentPage /></Layout></ProtectedRoute>} />
+                          <Route path="/hr-performance-filled" element={<ProtectedRoute><Layout><HRPerformanceFilledList /></Layout></ProtectedRoute>} />
+                          <Route path="/documents" element={<ProtectedRoute><Layout><Documents /></Layout></ProtectedRoute>} />
+                          <Route path="/employee-files" element={<ProtectedRoute><RequirePermission permission="page.employee-files"><Layout><DocumentTrackingPage /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/my-files" element={<ProtectedRoute><Layout><MyFilesPage /></Layout></ProtectedRoute>} />
+                          <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
+                          <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />
+                          <Route path="/manager-apply-leave" element={<ProtectedRoute><Layout><ManagerApplyLeave /></Layout></ProtectedRoute>} />
+                          <Route path="/performance/reviews/:id" element={<ReviewDetails />} />
 
-
-
-  {/* ✅ Wrap Designations same way */}
-  <Route path="/Designation"
-    element={
-      <ProtectedRoute>
-        <Layout>
-          <DesignationPage />
-        </Layout>
-      </ProtectedRoute>
-    }
-  />
-  <Route
-  path="/employees-by-county"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <EmployeeByCounty />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/disciplinary"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <DisciplinaryCases />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/skills"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <SkillsPage />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/admin/users"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <AdminUserManagement />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/admin/roles"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <RoleConfiguration />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/admin/settings"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <SystemSettings />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/admin/data"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <DataManagement />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
-
-  <Route path="*" element={<NotFound />} />
-</Routes>
-
-        </BrowserRouter>
-      </TooltipProvider>
-            </TrainingProvider>
-          </PerformanceProvider>
-        </DocumentProvider>
-      </LeaveProvider>
+                          {/* ✅ Wrap Designations same way */}
+                          <Route path="/Designation" element={<ProtectedRoute><Layout><DesignationPage /></Layout></ProtectedRoute>} />
+                          <Route path="/employees-by-county" element={<ProtectedRoute><Layout><EmployeeByCounty /></Layout></ProtectedRoute>} />
+                          <Route path="/disciplinary" element={<ProtectedRoute><Layout><DisciplinaryCases /></Layout></ProtectedRoute>} />
+                          <Route path="/skills" element={<ProtectedRoute><Layout><SkillsPage /></Layout></ProtectedRoute>} />
+                          <Route path="/admin/users" element={<ProtectedRoute><RequirePermission permission="page.admin.users"><Layout><AdminUserManagement /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/roles" element={<ProtectedRoute><RequirePermission permission="page.admin.roles"><Layout><RoleConfiguration /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/settings" element={<ProtectedRoute><RequirePermission permission="page.admin.settings"><Layout><SystemSettings /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/data" element={<ProtectedRoute><RequirePermission permission="page.admin.data"><Layout><DataManagement /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/performance-templates" element={<ProtectedRoute><RequirePermission permission="page.admin.performance-templates"><Layout><AdminPerformanceTemplates /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/department-goals" element={<ProtectedRoute><RequirePermission permission="page.admin.department-goals"><Layout><AdminDepartmentGoals /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/training-management" element={<ProtectedRoute><RequirePermission permission="page.admin.training-management"><Layout><AdminTrainingManagement /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/system-logs" element={<ProtectedRoute><RequirePermission permission="page.admin.system-logs"><Layout><AdminSystemLogs /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/registry/requests" element={<ProtectedRoute><RequirePermission permission="page.registry.requests"><Layout><RequestsManagementPage /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/employment-attributes" element={<ProtectedRoute><Layout><EmploymentAttributesPage /></Layout></ProtectedRoute>} />
+                          <Route path="/work-stations" element={<ProtectedRoute><Layout><WorkStationsPage /></Layout></ProtectedRoute>} />
+                          <Route path="/change-password" element={<ProtectedRoute><Layout><ChangePassword /></Layout></ProtectedRoute>} />
+                          <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </BrowserRouter>
+                      </TooltipProvider>
+                    </FileTrackingProvider>
+                    </EmployeesProvider>
+                  </SystemCatalogProvider>
+                </UsersProvider>
+              </TrainingProvider>
+            </PerformanceProvider>
+            </DepartmentGoalsProvider>
+          </DocumentProvider>
+        </LeaveProvider>
+      </SystemLogsProvider>
+      </NotificationsProvider>
+      </PermissionsProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
