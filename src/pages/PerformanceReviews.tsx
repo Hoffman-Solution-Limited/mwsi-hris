@@ -184,7 +184,6 @@ export const PerformanceReviews: React.FC = () => {
         status: 'draft',
         employeeTargets: [],
         managerScores: [],
-        hrScores: [],
         managerComments: '',
         hrComments: '',
         deadlineDate: deadlineDate || undefined,
