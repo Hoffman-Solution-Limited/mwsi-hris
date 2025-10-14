@@ -44,7 +44,7 @@ const navGroups: NavGroup[] = [
     title: "HR Management",
     items: [
       { path: '/employees', label: 'Employee Directory', icon: <Users className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'manager'] },
-      { path: '/managers', label: 'Managers', icon: <UserCheck2 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'admin'] },
+      { path: '/managers', label: 'Managers', icon: <UserCheck2 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/leave', label: 'Leave Management', icon: <Calendar className='w-5 h-5' />, roles: ['hr_manager', 'hr_staff', 'manager'] },
       { path: '/recruitment', label: 'Recruitment', icon: <UserPlus className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/disciplinary', label: 'Disciplinary Cases', icon: <AlertTriangle className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },

@@ -41,7 +41,7 @@ export default function AdminUserManagement() {
   }
 
   const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'hr_manager' | 'employee' | 'manager'>('all')
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'hr_manager' | 'employee' | 'manager' | 'registry_manager'>('all')
   const [editingUser, setEditingUser] = useState<AppUser | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [addOpen, setAddOpen] = useState(false)
@@ -115,6 +115,7 @@ export default function AdminUserManagement() {
             <option value="all">All Roles</option>
             <option value="admin">Admin</option>
             <option value="hr_manager">HR</option>
+            <option value="registry_manager">Registry</option>
             <option value="employee">Employee</option>
             <option value="manager">Manager</option>
           </select>
@@ -169,7 +170,7 @@ export default function AdminUserManagement() {
           <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl">
             <DialogHeader>
               <DialogTitle>Import Users from CSV</DialogTitle>
-              <DialogDescription>Upload a CSV with columns: name,email,role. Roles: Admin,HR,Manager,Employee.</DialogDescription>
+              <DialogDescription>Upload a CSV with columns: name,email,role. Roles: Admin,HR,Registry,Manager,Employee.</DialogDescription>
             </DialogHeader>
               <div className="space-y-4">
                 <div className="flex gap-2">
@@ -240,7 +241,7 @@ export default function AdminUserManagement() {
                 setHeaders(rawHeaders);
                 // default mapping (internal only)
                 const mapping: Record<string, 'name'|'email'|'role'|'skip'> = {};
-                rawHeaders.forEach(h => {
+                  rawHeaders.forEach(h => {
                   const lower = h.toLowerCase();
                   if (lower.includes('email')) mapping[h] = 'email';
                   else if (lower.includes('name')) mapping[h] = 'name';
@@ -267,7 +268,7 @@ export default function AdminUserManagement() {
                   // validations
                   if (!r.email || !r.role) r.error = 'Missing email or role';
                   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) r.error = 'Invalid email';
-                  else if (!['Admin','HR','Manager','Employee'].includes((r.role || '').toString())) r.error = 'Invalid role';
+                  else if (!['Admin','HR','Registry','Manager','Employee'].includes((r.role || '').toString())) r.error = 'Invalid role';
                   return r;
                 });
                 setImportRows(rows);
@@ -295,6 +296,7 @@ export default function AdminUserManagement() {
                                 <option value="">-- select --</option>
                                 <option>Admin</option>
                                 <option>HR</option>
+                                <option>Registry</option>
                                 <option>Manager</option>
                                 <option>Employee</option>
                               </select>
@@ -313,15 +315,18 @@ export default function AdminUserManagement() {
                         const copy = { ...r };
                         if (!copy.email || !copy.role) copy.error = 'Missing email or role';
                         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(copy.email)) copy.error = 'Invalid email';
-                        else if (!['Admin','HR','Manager','Employee'].includes((copy.role || '').toString())) copy.error = 'Invalid role';
+                        else if (!['Admin','HR','Registry','Manager','Employee'].includes((copy.role || '').toString())) copy.error = 'Invalid role';
                         else delete copy.error;
                         return copy;
                       });
                       setImportRows(revalidated);
                       const good = revalidated.filter(r => !r.error);
                       good.forEach(r => {
-                        addUser({ name: r.name, email: r.email, role: r.role as any, position: 'Imported', department: 'Imported', hireDate: new Date().toISOString() });
-                        if (r.role === 'Manager') {
+                        // normalize role text to internal role strings
+                        const roleText = (r.role || '').toString();
+                        const internalRole = roleText.toLowerCase() === 'admin' ? 'admin' : roleText.toLowerCase() === 'hr' ? 'hr_manager' : roleText.toLowerCase() === 'manager' ? 'manager' : roleText.toLowerCase() === 'registry' ? 'registry_manager' : 'employee';
+                        addUser({ name: r.name, email: r.email, role: internalRole as any, position: 'Imported', department: 'Imported', hireDate: new Date().toISOString() });
+                        if (roleText === 'Manager') {
                           // create minimal employee record for manager
                           addEmployee({ name: r.name || (r.email || ''), email: r.email, position: 'Manager', department: 'Unassigned' } as any)
                         }
