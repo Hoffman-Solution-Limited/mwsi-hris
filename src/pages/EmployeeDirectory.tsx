@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { mockEmployees } from "@/data/mockData"
+import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
 import {
   Dialog,
@@ -33,8 +34,18 @@ export const EmployeeDirectory: React.FC = () => {
   // Unique departments
   const departments = [...new Set(mockEmployees.map((emp) => emp.department))]
 
-  // Filter employees
+  // Get logged-in user (manager) from context
+  // Use useAuth hook for consistent logic
+  const { user } = useAuth();
+
+  // Filter employees: if manager, show only direct reports
   const filteredEmployees = mockEmployees.filter((employee) => {
+    if (user?.role === 'manager') {
+      // Only show employees whose manager field matches logged-in manager's name
+      if (employee.manager !== user.name) {
+        return false;
+      }
+    }
     const matchesSearch =
       employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       employee.email.toLowerCase().includes(searchQuery.toLowerCase()) ||

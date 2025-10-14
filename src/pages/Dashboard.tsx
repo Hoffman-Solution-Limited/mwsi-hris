@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ import {
   Edit
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useLeave } from '@/contexts/LeaveContext';
 import { usePerformance } from '@/contexts/PerformanceContext';
 import { useDocuments } from '@/contexts/DocumentContext';
@@ -36,20 +38,21 @@ export const Dashboard: React.FC = () => {
   const { leaveRequests } = useLeave();
   const { reviews } = usePerformance();
   const { documents } = useDocuments();
-  
+  const navigate = useNavigate();
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   // Calculate metrics based on user role
   const isEmployee = user?.role === 'employee';
   const isManager = user?.role === 'manager';
   const isHr = ['hr_manager', 'hr_staff'].includes(user?.role || '');
   
   if (isEmployee) {
-    // Employee-specific metrics
+  // Employee-specific metrics
     const myLeaves = leaveRequests.filter(req => req.employeeId === user.id);
     const myTrainings = mockTrainingRecords.filter(tr => tr.employeeId === user.id);
     const myReviews = mockPerformanceReviews.filter(rev => rev.employeeId === user.id);
     const myDocuments = mockDocuments.filter(doc => doc.uploadedBy === user.name);
     
-    const pendingLeaves = myLeaves.filter(req => req.status === 'pending').length;
+  const pendingLeaves = myLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr').length;
     const approvedLeaves = myLeaves.filter(req => req.status === 'approved').length;
     const completedTrainings = myTrainings.filter(tr => tr.status === 'completed').length;
     const pendingTrainings = myTrainings.filter(tr => tr.status !== 'completed').length;
@@ -81,7 +84,6 @@ export const Dashboard: React.FC = () => {
               <Progress value={(leaveBalance / 25) * 100} className="mt-2" />
             </CardContent>
           </Card>
-          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pending Leaves</CardTitle>
@@ -92,7 +94,6 @@ export const Dashboard: React.FC = () => {
               <p className="text-xs text-muted-foreground">awaiting approval</p>
             </CardContent>
           </Card>
-          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Training Progress</CardTitle>
@@ -104,7 +105,6 @@ export const Dashboard: React.FC = () => {
               <Progress value={(completedTrainings / (myTrainings.length || 1)) * 100} className="mt-2" />
             </CardContent>
           </Card>
-          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">My Documents</CardTitle>
@@ -124,21 +124,45 @@ export const Dashboard: React.FC = () => {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full justify-start" variant="outline">
+              <Button
+                className="w-full justify-start bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                variant="default"
+                onClick={() => navigate('/leave')}
+              >
                 <Calendar className="w-4 h-4 mr-2" />
                 Apply for Leave
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button
+                className="w-full justify-start bg-green-600 text-white hover:bg-green-700 active:bg-green-800 focus:ring-2 focus:ring-green-400 focus:outline-none"
+                variant="default"
+                onClick={() => navigate('/profile')}
+              >
                 <User className="w-4 h-4 mr-2" />
                 View My Profile
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button
+                className="w-full justify-start bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800 focus:ring-2 focus:ring-purple-400 focus:outline-none"
+                variant="default"
+                onClick={() => navigate('/documents')}
+              >
                 <FileText className="w-4 h-4 mr-2" />
                 Upload Document
               </Button>
             </CardContent>
           </Card>
-          
+          {/* Leave Modal */}
+          <Dialog open={leaveModalOpen} onOpenChange={setLeaveModalOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Apply for Leave</DialogTitle>
+              </DialogHeader>
+              {/* You can add your leave application form here */}
+              <div className="py-4">Leave application form goes here.</div>
+              <DialogFooter>
+                <Button onClick={() => setLeaveModalOpen(false)}>Close</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <Card>
             <CardHeader>
               <CardTitle>Latest Performance Review</CardTitle>
@@ -184,7 +208,7 @@ export const Dashboard: React.FC = () => {
       const employee = mockEmployees.find(emp => emp.id === review.employeeId);
       return employee?.manager === user.name;
     });
-    const pendingTeamLeaves = teamLeaves.filter(req => req.status === 'pending');
+  const pendingTeamLeaves = teamLeaves.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr');
     const pendingTeamReviews = teamReviews.filter(review => review.status === 'targets_set');
 
     return (
@@ -358,7 +382,7 @@ export const Dashboard: React.FC = () => {
   // HR/Admin view - existing dashboard
   const totalEmployees = mockEmployees.length;
   const activeEmployees = mockEmployees.filter(emp => emp.status === 'active').length;
-  const pendingLeaves = leaveRequests.filter(req => req.status === 'pending').length;
+  const pendingLeaves = leaveRequests.filter(req => req.status === 'pending_manager' || req.status === 'pending_hr').length;
   const pendingDocuments = documents.filter(doc => doc.status === 'pending').length;
   const openPositions = mockPositions.filter(pos => pos.status === 'open').length;
   const completedTrainings = mockTrainingRecords.filter(tr => tr.status === 'completed').length;
