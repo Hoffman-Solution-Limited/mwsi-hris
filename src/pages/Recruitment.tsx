@@ -12,6 +12,9 @@ import { EmployeeForm } from "@/components/EmployeeForm";
 import { useEmployees } from "@/contexts/EmployeesContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { ChevronsUpDown, Check } from "lucide-react";
 import { useSystemCatalog } from "@/contexts/SystemCatalogContext";
 
 const Recruitment: React.FC = () => {
@@ -21,13 +24,12 @@ const Recruitment: React.FC = () => {
   const [positions, setPositions] = useState<any[]>(mockPositions as any[]);
   const { addEmployee } = useEmployees();
   const { user } = useAuth();
-  const { designations, skillLevels, stations, jobGroups, engagementTypes } = useSystemCatalog();
+  const { designations, stations, engagementTypes } = useSystemCatalog();
   const [jobForm, setJobForm] = useState({
     title: "", // kept for display, synced from designation
     designation: "",
-    skillLevel: "",
-    stationName: "",
-    jobGroup: "",
+    stations: [] as string[],
+    grossSalary: "",
     employmentType: "",
     status: "open",
     description: "",
@@ -43,12 +45,15 @@ const Recruitment: React.FC = () => {
   const [hireFirstName, setHireFirstName] = useState("");
   const [hireMiddleName, setHireMiddleName] = useState("");
   const [hireSurname, setHireSurname] = useState("");
+  const [hireCloseJob, setHireCloseJob] = useState(true);
+  const [hireConfirmOpen, setHireConfirmOpen] = useState(false);
+  const [hireStation, setHireStation] = useState<string>("");
   // View Details dialog for job postings
   const [viewOpen, setViewOpen] = useState(false);
   const [viewJob, setViewJob] = useState<any>(null);
   const [viewHiredOpen, setViewHiredOpen] = useState(false);
   const [viewHired, setViewHired] = useState<any>(null);
-  const [hiredCandidates, setHiredCandidates] = useState(mockHiredCandidates);
+  const [hiredCandidates, setHiredCandidates] = useState<any[]>(mockHiredCandidates as any[]);
 
   // Create Employee dialog state (for hired candidates)
   const [createEmpOpen, setCreateEmpOpen] = useState(false);
@@ -108,9 +113,8 @@ const Recruitment: React.FC = () => {
       id: editingJob?.id ?? String(Date.now()),
       title: jobForm.title || jobForm.designation,
       designation: jobForm.designation,
-      skillLevel: jobForm.skillLevel,
-      stationName: jobForm.stationName,
-      jobGroup: jobForm.jobGroup,
+      stations: jobForm.stations,
+      grossSalary: jobForm.grossSalary ? Number(jobForm.grossSalary) : undefined,
       employmentType: jobForm.employmentType,
       status: jobForm.status || 'open',
       description: jobForm.description,
@@ -131,9 +135,8 @@ const Recruitment: React.FC = () => {
     setJobForm({
       title: "",
       designation: "",
-      skillLevel: "",
-      stationName: "",
-      jobGroup: "",
+      stations: [],
+      grossSalary: "",
       employmentType: "",
       status: "open",
       description: "",
@@ -154,19 +157,23 @@ const Recruitment: React.FC = () => {
       surname: hireSurname.trim(),
       position: hireJob.title,
       designation: hireJob.designation,
-      skillLevel: hireJob.skillLevel,
-      stationName: hireJob.stationName,
-      jobGroup: hireJob.jobGroup,
+      stations: hireStation ? [hireStation] : ((hireJob as any)?.stations || (hireJob?.stationName ? [hireJob.stationName] : [])),
+      grossSalary: (hireJob as any)?.grossSalary,
       employmentType: hireJob.employmentType,
       description: hireJob.description,
       closingDate: hireJob.closingDate,
     } as any;
     setHiredCandidates(prev => [hired, ...prev]);
+    if (hireCloseJob && hireJob?.id) {
+      setPositions(prev => prev.map(p => p.id === hireJob.id ? { ...p, status: 'closed' } : p));
+    }
     setHireDialogOpen(false);
     setHireJob(null);
     setHireFirstName("");
     setHireMiddleName("");
     setHireSurname("");
+    setHireStation("");
+    setHireCloseJob(true);
   };
 
   return (
@@ -185,9 +192,8 @@ const Recruitment: React.FC = () => {
             setJobForm({
               title: "",
               designation: "",
-              skillLevel: "",
-              stationName: "",
-              jobGroup: "",
+              stations: [],
+              grossSalary: "",
               employmentType: "",
               status: "open",
               description: "",
@@ -228,47 +234,66 @@ const Recruitment: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            {/* Skill Level */}
+            {/* Stations (Searchable multi-select) */}
             <div>
-              <label className="text-sm font-medium">Skill Level</label>
-              <Select value={jobForm.skillLevel} onValueChange={(v) => setJobForm(prev => ({ ...prev, skillLevel: v }))}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select skill level" />
-                </SelectTrigger>
-                <SelectContent>
-                  {skillLevels.map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
+              <label className="text-sm font-medium">Stations</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" type="button" className="mt-1 w-full justify-between">
+                    {jobForm.stations.length > 0 ? `${jobForm.stations.length} selected` : "Select stations"}
+                    <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-[300px]">
+                  <Command>
+                    <CommandInput placeholder="Search stations..." />
+                    <CommandList>
+                      <CommandEmpty>No stations found.</CommandEmpty>
+                      <CommandGroup>
+                        {stations.map((s) => {
+                          const checked = jobForm.stations.includes(s);
+                          return (
+                            <CommandItem
+                              key={s}
+                              value={s}
+                              onSelect={() => {
+                                const next = checked
+                                  ? jobForm.stations.filter((x) => x !== s)
+                                  : [...jobForm.stations, s];
+                                setJobForm((prev) => ({ ...prev, stations: next }));
+                              }}
+                              className="flex items-center justify-between"
+                            >
+                              <span>{s}</span>
+                              <Check className={`h-4 w-4 ${checked ? 'opacity-100' : 'opacity-0'}`} />
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {jobForm.stations.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {jobForm.stations.map((s) => (
+                    <span key={s} className="px-2 py-0.5 text-xs rounded bg-secondary text-secondary-foreground">
+                      {s}
+                    </span>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              )}
             </div>
-            {/* Station Name */}
+            {/* Gross Salary */}
             <div>
-              <label className="text-sm font-medium">Station Name</label>
-              <Select value={jobForm.stationName} onValueChange={(v) => setJobForm(prev => ({ ...prev, stationName: v }))}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select station" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stations.map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Job Group */}
-            <div>
-              <label className="text-sm font-medium">Job Group</label>
-              <Select value={jobForm.jobGroup} onValueChange={(v) => setJobForm(prev => ({ ...prev, jobGroup: v }))}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select job group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jobGroups.map(j => (
-                    <SelectItem key={j} value={j}>{j}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium">Gross Salary</label>
+              <Input
+                className="mt-1"
+                type="number"
+                placeholder="e.g. 120000"
+                value={jobForm.grossSalary}
+                onChange={(e) => setJobForm(prev => ({ ...prev, grossSalary: e.target.value }))}
+              />
             </div>
             {/* Employment Type */}
             <div>
@@ -350,7 +375,7 @@ const Recruitment: React.FC = () => {
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="font-bold text-lg text-primary mb-1">{job.title}</p>
-                        <p className="text-sm text-muted-foreground">{(job as any).designation ?? job.title} • {(job as any).skillLevel ?? '—'} • {(job as any).stationName ?? '—'}</p>
+                        <p className="text-sm text-muted-foreground">{(job as any).designation ?? job.title} • {(job as any).stations ? (job as any).stations.join(', ') : ((job as any).stationName || '—')} • {typeof (job as any).grossSalary !== 'undefined' ? `KES ${(job as any).grossSalary}` : '—'}</p>
                         <p className="text-xs text-gray-500">Posted: {job.postedDate} &bull; Closes: {job.closingDate}</p>
                         <div className="mt-2 text-gray-700">
                           <div dangerouslySetInnerHTML={{ __html: job.description }} />
@@ -370,9 +395,8 @@ const Recruitment: React.FC = () => {
                         setJobForm({
                           title: job.title || job.designation || '',
                           designation: (job as any).designation || '',
-                          skillLevel: (job as any).skillLevel || '',
-                          stationName: (job as any).stationName || '',
-                          jobGroup: (job as any).jobGroup || '',
+                          stations: (job as any).stations || ((job as any).stationName ? [(job as any).stationName] : []),
+                          grossSalary: typeof (job as any).grossSalary !== 'undefined' ? String((job as any).grossSalary) : "",
                           employmentType: (job as any).employmentType || '',
                           status: job.status || 'open',
                           description: job.description || '',
@@ -394,7 +418,7 @@ const Recruitment: React.FC = () => {
             )}
           </div>
           {/* Hire Candidate Dialog */}
-          <Dialog open={hireDialogOpen} onOpenChange={setHireDialogOpen}>
+          <Dialog open={hireDialogOpen} onOpenChange={(v) => { setHireDialogOpen(v); if (!v) { setHireCloseJob(true); } }}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Hire Candidate for {hireJob?.title}</DialogTitle>
@@ -418,12 +442,53 @@ const Recruitment: React.FC = () => {
                   Employment Type: <span className="font-medium">{hireJob?.employmentType || '—'}</span>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Station: <span className="font-medium">{hireJob?.stationName || '—'}</span>
+                  Stations: <span className="font-medium">{(hireJob as any)?.stations ? (hireJob as any).stations.join(', ') : (hireJob?.stationName || '—')}</span>
                 </div>
+                {/* Hire station selection (from job's stations) */}
+                <div>
+                  <label className="text-sm font-medium">Assign Station</label>
+                  <Select value={hireStation} onValueChange={setHireStation}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select station" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {((hireJob as any)?.stations && (hireJob as any).stations.length > 0
+                        ? (hireJob as any).stations
+                        : (hireJob?.stationName ? [hireJob.stationName] : [])
+                      ).map((s: string) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Gross Salary: <span className="font-medium">{typeof (hireJob as any)?.grossSalary !== 'undefined' ? `KES ${(hireJob as any)?.grossSalary}` : '—'}</span>
+                </div>
+                <label className="flex items-center gap-2 text-sm mt-2">
+                  <input type="checkbox" checked={hireCloseJob} onChange={(e) => setHireCloseJob(e.target.checked)} />
+                  <span>Close this job after hiring</span>
+                </label>
               </div>
               <DialogFooter className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setHireDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleHireCandidate} disabled={!hireFirstName.trim() || !hireSurname.trim()}>Confirm Hire</Button>
+                <Button onClick={() => setHireConfirmOpen(true)} disabled={!hireFirstName.trim() || !hireSurname.trim() || (((hireJob as any)?.stations?.length || (hireJob?.stationName ? 1 : 0)) > 0 && !hireStation)}>Confirm Hire</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          {/* Hire Confirmation Dialog */}
+          <Dialog open={hireConfirmOpen} onOpenChange={setHireConfirmOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirm Hire</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 text-sm">
+                <p>Hire <span className="font-semibold">{[hireFirstName, hireMiddleName, hireSurname].filter(Boolean).join(' ')}</span> for <span className="font-semibold">{hireJob?.title}</span>?</p>
+                <p>Assign Station: <span className="font-semibold">{hireStation || '—'}</span></p>
+                <p>Close job after hiring: <span className="font-semibold">{hireCloseJob ? 'Yes' : 'No'}</span></p>
+              </div>
+              <DialogFooter className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setHireConfirmOpen(false)}>Cancel</Button>
+                <Button onClick={() => { setHireConfirmOpen(false); handleHireCandidate(); }}>Confirm</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -452,16 +517,12 @@ const Recruitment: React.FC = () => {
                   <p className="text-muted-foreground">{(viewHired as any)?.position || (viewHired as any)?.designation || '—'}</p>
                 </div>
                 <div>
-                  <p className="font-medium">Skill Level</p>
-                  <p className="text-muted-foreground">{(viewHired as any)?.skillLevel || '—'}</p>
+                  <p className="font-medium">Stations</p>
+                  <p className="text-muted-foreground">{(viewHired as any)?.stations ? (viewHired as any).stations.join(', ') : ((viewHired as any)?.stationName || '—')}</p>
                 </div>
                 <div>
-                  <p className="font-medium">Station Name</p>
-                  <p className="text-muted-foreground">{(viewHired as any)?.stationName || '—'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Job Group</p>
-                  <p className="text-muted-foreground">{(viewHired as any)?.jobGroup || '—'}</p>
+                  <p className="font-medium">Gross Salary</p>
+                  <p className="text-muted-foreground">{typeof (viewHired as any)?.grossSalary !== 'undefined' ? `KES ${(viewHired as any)?.grossSalary}` : '—'}</p>
                 </div>
                 <div>
                   <p className="font-medium">Employment Type</p>
@@ -505,16 +566,12 @@ const Recruitment: React.FC = () => {
                   <p className="text-muted-foreground">{(viewJob as any)?.designation || '—'}</p>
                 </div>
                 <div>
-                  <p className="font-medium">Skill Level</p>
-                  <p className="text-muted-foreground">{(viewJob as any)?.skillLevel || '—'}</p>
+                  <p className="font-medium">Stations</p>
+                  <p className="text-muted-foreground">{(viewJob as any)?.stations ? (viewJob as any).stations.join(', ') : ((viewJob as any)?.stationName || '—')}</p>
                 </div>
                 <div>
-                  <p className="font-medium">Station Name</p>
-                  <p className="text-muted-foreground">{(viewJob as any)?.stationName || '—'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Job Group</p>
-                  <p className="text-muted-foreground">{(viewJob as any)?.jobGroup || '—'}</p>
+                  <p className="font-medium">Gross Salary</p>
+                  <p className="text-muted-foreground">{typeof (viewJob as any)?.grossSalary !== 'undefined' ? `KES ${(viewJob as any)?.grossSalary}` : '—'}</p>
                 </div>
                 <div>
                   <p className="font-medium">Employment Type</p>
@@ -576,7 +633,7 @@ const Recruitment: React.FC = () => {
                     <div>
                       <p className="font-semibold">{candidate.name}</p>
                       <p className="text-sm text-muted-foreground">{candidate.position} • {candidate.employmentType || '—'}</p>
-                      <p className="text-xs text-muted-foreground">{candidate.skillLevel || '—'} • {candidate.stationName || '—'} • {candidate.jobGroup || '—'}</p>
+                      <p className="text-xs text-muted-foreground">{candidate.stations ? candidate.stations.join(', ') : (candidate.stationName || '—')} • {typeof candidate.grossSalary !== 'undefined' ? `KES ${candidate.grossSalary}` : '—'}</p>
                       {candidate.closingDate && (
                         <p className="text-xs text-muted-foreground">Posting closed: {candidate.closingDate}</p>
                       )}
@@ -624,13 +681,13 @@ const Recruitment: React.FC = () => {
                 homeCounty: "",
                 postalAddress: "",
                 postalCode: "",
-                stationName: prefillCandidate.stationName || "",
+                stationName: (prefillCandidate.stations && prefillCandidate.stations.length > 0) ? prefillCandidate.stations[0] : (prefillCandidate.stationName || ""),
                 skillLevel: prefillCandidate.skillLevel || "",
                 company: "Ministry of Water, Sanitation and Irrigation",
                 dateOfBirth: "",
                 hireDate: new Date().toISOString().slice(0,10),
                 emergencyContact: "",
-                salary: undefined,
+                salary: typeof prefillCandidate.grossSalary !== 'undefined' ? prefillCandidate.grossSalary : undefined,
                 status: 'active'
               }}
               onSave={handleCreateEmployeeSave}

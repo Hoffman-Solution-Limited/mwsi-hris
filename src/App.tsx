@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { PermissionsProvider } from "@/contexts/PermissionsContext";
+import RequirePermission from "@/components/auth/RequirePermission";
 import { LeaveProvider } from "@/contexts/LeaveContext";
 import { DocumentProvider } from "@/contexts/DocumentContext";
 import { PerformanceProvider } from "@/contexts/PerformanceContext";
@@ -34,6 +36,7 @@ import EditEmployeePage from "@/pages/EditEmployee";
 import PerformanceReviewDetails from "@/pages/PerformanceReviewDetails";
 import HrReviewPage from "@/pages/HrReviewPage";
 import ManagerReviewPage from "@/pages/ManagerReviewPage";
+import EmployeeSelfAppraisalPage from "@/pages/EmployeeSelfAppraisalPage";
 import { Admin } from "@/pages/Admin";
 import { DesignationPage } from "@/pages/Designation";
 import {SkillsPage} from "@/pages/Skills";
@@ -74,6 +77,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <PermissionsProvider>
       <NotificationsProvider>
       <SystemLogsProvider>
         <LeaveProvider>
@@ -107,9 +111,10 @@ const App = () => (
                           <Route path="/performance/reviews/:id" element={<ProtectedRoute><Layout><PerformanceReviewDetails /></Layout></ProtectedRoute>} />
                           <Route path="/performance/reviews/:id/hr" element={<ProtectedRoute><Layout><HrReviewPage /></Layout></ProtectedRoute>} />
                           <Route path="/performance/reviews/:id/manager" element={<ProtectedRoute><Layout><ManagerReviewPage /></Layout></ProtectedRoute>} />
+                          <Route path="/performance/reviews/:id/self" element={<ProtectedRoute><Layout><EmployeeSelfAppraisalPage /></Layout></ProtectedRoute>} />
                           <Route path="/hr-performance-filled" element={<ProtectedRoute><Layout><HRPerformanceFilledList /></Layout></ProtectedRoute>} />
                           <Route path="/documents" element={<ProtectedRoute><Layout><Documents /></Layout></ProtectedRoute>} />
-                          <Route path="/employee-files" element={<ProtectedRoute><Layout><DocumentTrackingPage /></Layout></ProtectedRoute>} />
+                          <Route path="/employee-files" element={<ProtectedRoute><RequirePermission permission="page.employee-files"><Layout><DocumentTrackingPage /></Layout></RequirePermission></ProtectedRoute>} />
                           <Route path="/my-files" element={<ProtectedRoute><Layout><MyFilesPage /></Layout></ProtectedRoute>} />
                           <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
                           <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />
@@ -120,15 +125,15 @@ const App = () => (
                           <Route path="/employees-by-county" element={<ProtectedRoute><Layout><EmployeeByCounty /></Layout></ProtectedRoute>} />
                           <Route path="/disciplinary" element={<ProtectedRoute><Layout><DisciplinaryCases /></Layout></ProtectedRoute>} />
                           <Route path="/skills" element={<ProtectedRoute><Layout><SkillsPage /></Layout></ProtectedRoute>} />
-                          <Route path="/admin/users" element={<ProtectedRoute><Layout><AdminUserManagement /></Layout></ProtectedRoute>} />
-                          <Route path="/admin/roles" element={<ProtectedRoute><Layout><RoleConfiguration /></Layout></ProtectedRoute>} />
-                          <Route path="/admin/settings" element={<ProtectedRoute><Layout><SystemSettings /></Layout></ProtectedRoute>} />
-                          <Route path="/admin/data" element={<ProtectedRoute><Layout><DataManagement /></Layout></ProtectedRoute>} />
-                          <Route path="/admin/performance-templates" element={<ProtectedRoute><Layout><AdminPerformanceTemplates /></Layout></ProtectedRoute>} />
-                          <Route path="/admin/department-goals" element={<ProtectedRoute><Layout><AdminDepartmentGoals /></Layout></ProtectedRoute>} />
-                          <Route path="/admin/training-management" element={<ProtectedRoute><Layout><AdminTrainingManagement /></Layout></ProtectedRoute>} />
-                          <Route path="/admin/system-logs" element={<ProtectedRoute><Layout><AdminSystemLogs /></Layout></ProtectedRoute>} />
-                          <Route path="/admin/requests" element={<ProtectedRoute><Layout><RequestsManagementPage /></Layout></ProtectedRoute>} />
+                          <Route path="/admin/users" element={<ProtectedRoute><RequirePermission permission="page.admin.users"><Layout><AdminUserManagement /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/roles" element={<ProtectedRoute><RequirePermission permission="page.admin.roles"><Layout><RoleConfiguration /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/settings" element={<ProtectedRoute><RequirePermission permission="page.admin.settings"><Layout><SystemSettings /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/data" element={<ProtectedRoute><RequirePermission permission="page.admin.data"><Layout><DataManagement /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/performance-templates" element={<ProtectedRoute><RequirePermission permission="page.admin.performance-templates"><Layout><AdminPerformanceTemplates /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/department-goals" element={<ProtectedRoute><RequirePermission permission="page.admin.department-goals"><Layout><AdminDepartmentGoals /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/training-management" element={<ProtectedRoute><RequirePermission permission="page.admin.training-management"><Layout><AdminTrainingManagement /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/admin/system-logs" element={<ProtectedRoute><RequirePermission permission="page.admin.system-logs"><Layout><AdminSystemLogs /></Layout></RequirePermission></ProtectedRoute>} />
+                          <Route path="/registry/requests" element={<ProtectedRoute><RequirePermission permission="page.registry.requests"><Layout><RequestsManagementPage /></Layout></RequirePermission></ProtectedRoute>} />
                           <Route path="/employment-attributes" element={<ProtectedRoute><Layout><EmploymentAttributesPage /></Layout></ProtectedRoute>} />
                           <Route path="/work-stations" element={<ProtectedRoute><Layout><WorkStationsPage /></Layout></ProtectedRoute>} />
                           <Route path="/change-password" element={<ProtectedRoute><Layout><ChangePassword /></Layout></ProtectedRoute>} />
@@ -147,6 +152,7 @@ const App = () => (
         </LeaveProvider>
       </SystemLogsProvider>
       </NotificationsProvider>
+      </PermissionsProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
