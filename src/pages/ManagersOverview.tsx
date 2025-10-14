@@ -58,7 +58,7 @@ const TreeItem: React.FC<{
 
           <button onClick={() => onOpenProfile(node)} className="flex items-center gap-3 text-left">
             <Avatar className={`${depth === 0 ? 'w-10 h-10' : 'w-8 h-8'}`}>
-              <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(node.name || node.email || 'EMP')}`} />
+              <AvatarImage src={node.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(node.name || node.email || 'EMP')}`} />
               <AvatarFallback>{(node.name || node.email || '').split(' ').map((s: string) => s[0]).join('')}</AvatarFallback>
             </Avatar>
             <div>
@@ -108,7 +108,7 @@ const ManagersOverview: React.FC = () => {
     // Also include managers detected from employee records (position contains 'manager') that might not have a user
     const mgrFromEmployees = employees
       .filter(e => /manager/i.test(e.position || ''))
-      .map(e => ({ id: e.id, name: e.name, email: e.email, position: e.position, department: e.department }))
+      .map(e => ({ id: e.id, name: e.name, email: e.email, position: e.position, department: e.department, avatar: e.avatar }))
 
     // Combine by unique name/email/id (prefer users)
     const combined: any[] = []
@@ -118,7 +118,7 @@ const ManagersOverview: React.FC = () => {
       const key = u.email || u.id || u.name
       if (!seen.has(key)) {
         seen.add(key)
-        combined.push({ id: u.id, name: u.name || u.email, email: u.email, position: 'Manager', department: 'Unassigned' })
+        combined.push({ id: u.id, name: u.name || u.email, email: u.email, position: 'Manager', department: 'Unassigned', avatar: u.avatar })
       }
     })
 
@@ -126,7 +126,7 @@ const ManagersOverview: React.FC = () => {
       const key = e.email || e.id || e.name
       if (!seen.has(key)) {
         seen.add(key)
-        combined.push({ id: e.id, name: e.name, email: e.email, position: e.position, department: e.department })
+        combined.push({ id: e.id, name: e.name, email: e.email, position: e.position, department: e.department, avatar: e.avatar })
       }
     })
 
@@ -168,8 +168,10 @@ const ManagersOverview: React.FC = () => {
     // If the clicked node is an employee (has id in employees list) open the quick dialog. Otherwise fallback to navigation
     const asEmployee = employees.find(e => e.id === m.id || e.email === m.email || e.name === m.name)
     if (asEmployee) {
-      // show quick profile in dialog
-      setDialogEmployee(asEmployee)
+      // Prefer any avatar present on the user's account (users context)
+      const matchedUser = users.find(u => u.id === asEmployee.id || u.email === asEmployee.email || u.name === asEmployee.name)
+      const payload = { ...asEmployee, ...(matchedUser ? { userAvatar: matchedUser.avatar } : {}) }
+      setDialogEmployee(payload)
       setDialogOpen(true)
       return
     }
@@ -264,7 +266,7 @@ const ManagersOverview: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
                   <Avatar className="w-20 h-20">
-                    <AvatarImage src={dialogEmployee.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(dialogEmployee.name || dialogEmployee.email)}`} />
+                    <AvatarImage src={dialogEmployee.avatar || dialogEmployee.userAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(dialogEmployee.name || dialogEmployee.email)}`} />
                     <AvatarFallback className="text-xl">{(dialogEmployee.name || '').split(' ').map((s:any)=>s[0]).join('')}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
