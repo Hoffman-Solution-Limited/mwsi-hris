@@ -1,13 +1,19 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { mockEmployees, Employee } from '@/data/mockData';
+import { Employee } from '@/types/models';
+import api from '@/lib/api';
+import { toast } from '@/hooks/use-toast';
 
 export type EmployeeRecord = Employee;
 
 type EmployeesContextType = {
   employees: EmployeeRecord[];
-  addEmployee: (data: Omit<EmployeeRecord, 'id' | 'avatar' | 'status' | 'hireDate'> & Partial<Pick<EmployeeRecord, 'status' | 'hireDate'>>) => void;
-  updateEmployee: (id: string, updates: Partial<EmployeeRecord>) => void;
-  removeEmployee: (id: string) => void;
+  loading: boolean;
+  addEmployee: (data: Omit<EmployeeRecord, 'id' | 'avatar' | 'status' | 'hireDate'> & Partial<Pick<EmployeeRecord, 'status' | 'hireDate'>>) => Promise<EmployeeRecord | void>;
+  updateEmployee: (id: string, updates: Partial<EmployeeRecord>) => Promise<void>;
+  updateEmployeeStrict?: (id: string, updates: Partial<EmployeeRecord>) => Promise<void>;
+  updateEmployeeStatus?: (id: string, status: EmployeeRecord['status']) => Promise<void>;
+  removeEmployee: (id: string) => Promise<void>;
+  refresh: () => Promise<void>;
   renameStationAcrossEmployees?: (oldName: string, newName: string) => void;
   renameDesignationAcrossEmployees?: (oldName: string, newName: string) => void;
   renameSkillLevelAcrossEmployees?: (oldName: string, newName: string) => void;
@@ -24,75 +30,104 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [employees, setEmployees] = useState<EmployeeRecord[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) return JSON.parse(raw) as EmployeeRecord[];
     } catch {}
-    return mockEmployees;
+    return [];
   });
+  const [loading, setLoading] = useState(true);
+
+  const refresh = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const rows = await api.get('/api/employees');
+      if (Array.isArray(rows)) setEmployees(rows as EmployeeRecord[]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(employees)); } catch {}
-  }, [employees]);
+    let mounted = true;
+    (async () => {
+      try {
+        const rows = await api.get('/api/employees');
+        if (!mounted) return;
+        if (Array.isArray(rows)) {
+          setEmployees(rows as EmployeeRecord[]);
+        }
+      } catch (err) {
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   // Removed legacy backfill from staffNumber; employeeNumber must be managed by HR
 
-  // One-time migration: if localStorage employees are missing employeeNumber, backfill from mockData by id
-  useEffect(() => {
-    const missing = employees.some((e: any) => !e.employeeNumber);
-    if (!missing) return;
-    setEmployees(prev => prev.map((e: any) => {
-      if (e.employeeNumber) return e;
-      const seed = (mockEmployees as any[]).find(m => m.id === e.id);
-      if (seed && seed.employeeNumber) {
-        return { ...e, employeeNumber: seed.employeeNumber } as EmployeeRecord;
-      }
-      return e;
-    }));
-  }, []);
+  // No mock-based backfills here; rely on backend or explicit HR edits for missing employeeNumbers
 
-  // One-time deduplication: if many employees share the same employeeNumber, restore from mock where possible
-  useEffect(() => {
-    const FLAG = 'hris-empno-dedupe-v1';
+  const addEmployee: EmployeesContextType['addEmployee'] = async (data) => {
     try {
-      if (localStorage.getItem(FLAG)) return;
-    } catch {}
-    const nums = employees.map((e: any) => e.employeeNumber).filter(Boolean) as string[];
-    if (nums.length < 2) return;
-    const unique = new Set(nums);
-    const hasDupes = unique.size < nums.length;
-    if (!hasDupes) return;
-    // perform dedupe using mock as source of truth
-    setEmployees(prev => prev.map((e: any) => {
-      const seed = (mockEmployees as any[]).find(m => m.id === e.id);
-      if (seed?.employeeNumber && seed.employeeNumber !== e.employeeNumber) {
-        return { ...e, employeeNumber: seed.employeeNumber } as EmployeeRecord;
-      }
-      return e;
-    }));
-    try { localStorage.setItem(FLAG, '1'); } catch {}
-  }, [employees]);
-
-  const addEmployee: EmployeesContextType['addEmployee'] = (data) => {
-    const id = crypto.randomUUID();
-    const avatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.name || 'EMP')}`;
-    const hireDate = data.hireDate || new Date().toISOString().slice(0,10);
-    const status = data.status || 'active';
-    const employeeNumber = (data as any).employeeNumber ? String((data as any).employeeNumber) : undefined;
-    const rec: EmployeeRecord = { id, avatar, hireDate, status, ...(employeeNumber ? { employeeNumber } : {}), ...data } as EmployeeRecord;
-    setEmployees(prev => [rec, ...prev]);
+      const payload = { ...data } as any;
+      const created = await api.post('/api/employees', payload);
+      // Pull fresh from server to avoid drift and ensure DB-generated fields are present
+      await refresh();
+      return created as EmployeeRecord;
+    } catch (err) {
+      // Log and notify when API fails, then fallback to local when API fails
+      try { console.error('addEmployee api error', err); } catch {}
+      try { toast({ title: 'Employee save failed', description: String(err) }); } catch {}
+      const id = crypto.randomUUID();
+      const avatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent((data as any).name || 'EMP')}`;
+      const hireDate = (data as any).hireDate || new Date().toISOString().slice(0,10);
+      const status = (data as any).status || 'active';
+      const employeeNumber = (data as any).employeeNumber ? String((data as any).employeeNumber) : undefined;
+      const rec: EmployeeRecord = { id, avatar, hireDate, status, ...(employeeNumber ? { employeeNumber } : {}), ...data } as EmployeeRecord;
+      setEmployees(prev => [rec, ...prev]);
+    }
   };
 
-  const updateEmployee: EmployeesContextType['updateEmployee'] = (id, updates) => {
-    setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...updates } as EmployeeRecord : e)));
+  const updateEmployee: EmployeesContextType['updateEmployee'] = async (id, updates) => {
+    try {
+      const updated = await api.put(`/api/employees/${id}`, updates);
+      setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...(updated as EmployeeRecord) } as EmployeeRecord : e)));
+    } catch (err) {
+      // Optimistic fallback when API fails
+      setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...updates } as EmployeeRecord : e)));
+    }
   };
 
-  const removeEmployee: EmployeesContextType['removeEmployee'] = (id) => {
-    setEmployees(prev => prev.filter(e => e.id !== id));
+  // Strict updater: throws on API error (no optimistic fallback)
+  const updateEmployeeStrict: EmployeesContextType['updateEmployeeStrict'] = async (id, updates) => {
+    const updated = await api.put(`/api/employees/${id}`, updates);
+    setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...(updated as EmployeeRecord) } as EmployeeRecord : e)));
   };
 
-  const value = useMemo(() => ({ employees, addEmployee, updateEmployee, removeEmployee }), [employees]);
+  const updateEmployeeStatus: EmployeesContextType['updateEmployeeStatus'] = async (id, status) => {
+    try {
+      const updated = await api.put(`/api/employees/${id}`, { status });
+      setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...(updated as EmployeeRecord) } as EmployeeRecord : e)));
+    } catch (err) {
+      // optimistic fallback
+      setEmployees(prev => prev.map(e => (e.id === id ? { ...e, status } as EmployeeRecord : e)));
+    }
+  };
+
+  const removeEmployee: EmployeesContextType['removeEmployee'] = async (id) => {
+    try {
+      await api.del(`/api/employees/${id}`);
+      setEmployees(prev => prev.filter(e => e.id !== id));
+    } catch (err) {
+      // fallback: remove locally
+      setEmployees(prev => prev.filter(e => e.id !== id));
+    }
+  };
+
+  const value = useMemo(() => ({ employees, loading, addEmployee, updateEmployee, updateEmployeeStrict, updateEmployeeStatus, removeEmployee, refresh }), [employees, loading, addEmployee, updateEmployee, updateEmployeeStrict, updateEmployeeStatus, removeEmployee, refresh]);
 
   // attach helper to rename stations across employees
-  const renameStationAcrossEmployees = (oldName: string, newName: string) => {
+  const renameStationAcrossEmployees = (oldName: string, newName:string) => {
     const o = oldName?.trim();
     const n = newName?.trim();
     if (!o || !n) return;

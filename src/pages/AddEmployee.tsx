@@ -11,10 +11,11 @@ import { ArrowLeft } from "lucide-react";
 const AddEmployeePage: React.FC = () => {
   const { addEmployee } = useEmployees();
   const { user } = useAuth();
-  const { users } = useUsers();
+  const { users, updateUser } = useUsers();
   const navigate = useNavigate();
 
-  const canAdd = ["admin", "hr_manager"].includes(user?.role || "");
+  // Allow admin and HR roles (hr_manager, hr_staff, and legacy 'hr') to add employees
+  const canAdd = ["admin", "hr_manager", "hr_staff", "hr"].includes(user?.role || "");
 
   return (
     <div className="space-y-6">
@@ -37,11 +38,13 @@ const AddEmployeePage: React.FC = () => {
           ) : (
             <EmployeeForm
               defaultValues={{
-                name: "",
+                firstName: "",
+                middleName: "",
+                surname: "",
                 email: "",
                 phone: "",
                 position: "",
-                department: "",
+                // department removed; use stationName instead
                 cadre: undefined as any,
                 gender: undefined,
                 employmentType: "Permanent",
@@ -59,31 +62,41 @@ const AddEmployeePage: React.FC = () => {
                 skillLevel: "",
                 company: "Ministry of Water, Sanitation and Irrigation",
                 dateOfBirth: "",
-                hireDate: "",
-                emergencyContact: "",
+                hireDate: new Date().toISOString().slice(0,10),
                 salary: undefined,
                 status: "active",
+                role: 'employee',
+                // Next of kin defaults
+                nextOfKinName: "",
+                nextOfKinRelationship: "",
+                nextOfKinPhone: "",
+                nextOfKinEmail: "",
+                // Special needs defaults
+                hasSpecialNeeds: false,
+                specialNeedsDescription: "",
+                homeSubcounty: "",
               }}
-              onSave={(data) => {
+              onSave={async (data) => {
                 // Resolve manager name from managerId if provided
                 let managerName: string | undefined = undefined;
                 if ((data as any).managerId) {
                   const m = users.find(u => u.id === (data as any).managerId || u.email === (data as any).managerId);
                   if (m && m.name) managerName = m.name;
                 }
-                addEmployee({
+                const created = await addEmployee({
                   id: undefined as any,
+                  firstName: data.firstName,
+                  middleName: data.middleName,
+                  surname: data.surname,
                   name: data.name,
                   email: data.email,
                   position: data.position,
-                  department: data.department,
                   manager: managerName,
                   managerId: (data as any).managerId || undefined,
                   hireDate: data.hireDate || new Date().toISOString().slice(0, 10),
                   status: (data.status as any) || "active",
                   avatar: "",
                   phone: data.phone,
-                  emergencyContact: data.emergencyContact,
                   salary: data.salary,
                   documents: [],
                   skills: [],
@@ -101,11 +114,29 @@ const AddEmployeePage: React.FC = () => {
                   homeCounty: data.homeCounty,
                   postalAddress: data.postalAddress,
                   postalCode: data.postalCode,
-                  stationName: data.stationName,
+                  // Ensure stationName is set from the station selector (form's `department` field)
+                  stationName: (data as any).stationName,
                   skillLevel: data.skillLevel,
                   company: data.company,
                   dateOfBirth: data.dateOfBirth,
+                  role: (data as any).role,
+                  // Next of kin
+                  nextOfKinName: (data as any).nextOfKinName,
+                  nextOfKinRelationship: (data as any).nextOfKinRelationship,
+                  nextOfKinPhone: (data as any).nextOfKinPhone,
+                  nextOfKinEmail: (data as any).nextOfKinEmail,
+                  // Special needs
+                  hasSpecialNeeds: (data as any).hasSpecialNeeds,
+                  specialNeedsDescription: (data as any).specialNeedsDescription,
+                  homeSubcounty: (data as any).homeSubcounty,
                 } as any);
+                // If this employee already has a user account, align the user's role
+                try {
+                  const u = users.find(u => (u.email || '').toLowerCase() === (data.email || '').toLowerCase());
+                  if (u && (data as any).role && u.role !== (data as any).role) {
+                    updateUser(u.id, { role: (data as any).role });
+                  }
+                } catch {}
                 navigate("/employees");
               }}
             />

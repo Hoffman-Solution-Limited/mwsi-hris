@@ -1,0 +1,58 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: mwsi_hris_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./database/generated/mock-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/generated/02-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - ./database/generated/12-employees-status-retired.sql:/docker-entrypoint-initdb.d/12-employees-status-retired.sql:ro
+      - ./database/generated/13-employees-kin-special-needs.sql:/docker-entrypoint-initdb.d/13-employees-kin-special-needs.sql:ro
+      - ./database/generated/14-employees-home-subcounty.sql:/docker-entrypoint-initdb.d/14-employees-home-subcounty.sql:ro
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://devuser:devpass@db:5432/mwsi_hris_dev
+      NODE_ENV: development
+      PORT: 5000
+      # Allow CORS from frontend container and localhost
+      CORS_ORIGIN: http://localhost:8080
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    environment:
+      VITE_API_BASE: http://localhost:5000
+      HOST: 0.0.0.0
+      PORT: 8080
+      # Ensure file watching works through Docker on Windows/macOS
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    volumes:
+      # Mount the project into the container for hot reload
+      - ./:/usr/src/app
+      # Preserve container's node_modules so host's doesn't shadow it
+      - /usr/src/app/node_modules
+
+volumes:
+  db_data:

@@ -1,31 +1,105 @@
-Project Guide
-Technologies Used
+MWSI-HRIS
 
-This project is built with:
+Full-stack HRIS built with Vite + React (frontend) and Node/Express + PostgreSQL (backend). Containerized for easy local development.
 
-- Vite
--  TypeScript
--  React
--  shadcn-ui
--  Tailwind CSS
+## Tech stack
+- Frontend: Vite, React, TypeScript, shadcn-ui, Tailwind CSS
+- Backend: Node.js (Express), TypeScript, JWT auth
+- Database: PostgreSQL
+- Tooling: Docker Compose
 
-Running the Project Locally
-Prerequisites
+## Repository structure (abridged)
+```
+backend/            # Node/Express API
+database/generated/ # SQL schema + seed files (applied by Docker on first run)
+src/                # Frontend app (Vite + React)
+docker-compose.yml  # db + backend + frontend dev stack
+RUNNING.md          # Detailed run guide
+docs/BACKEND_PLAN.md# Backend completion roadmap
+```
 
-Node.js & npm installed — install with nvm
+## Quick start (Docker)
 
-Steps
-# 1. Clone the repository
-git clone <YOUR_GIT_URL>
+This runs Postgres, backend, and frontend together.
 
-# 2. Navigate to the project directory
-cd <YOUR_PROJECT_NAME>
+1) Preinstall backend deps once so Docker can build the image
+```powershell
+cd backend; npm install; cd ..
+```
 
-# 3. Install dependencies
+2) Start the stack
+```powershell
+docker-compose up --build
+```
+
+3) Open services
+- Frontend: http://localhost:8080
+- Backend:  http://localhost:5000
+- Postgres: localhost:5432 (user: devuser, password: devpass, db: mwsi_hris_dev)
+
+Reset DB (reapply schema + seed)
+```powershell
+docker-compose down -v; docker-compose up --build
+```
+
+More details are in `RUNNING.md`.
+
+## Local development without full Docker
+
+Run DB in Docker, backend + frontend on host.
+
+1) Start Postgres in Docker
+```powershell
+docker-compose up -d db
+```
+
+2) Backend (.env in `backend/`)
+```
+DATABASE_URL=postgres://devuser:devpass@localhost:5432/mwsi_hris_dev
+PORT=5000
+JWT_SECRET=dev-secret-change-me
+```
+
+Start backend
+```powershell
+cd backend
 npm install
-
-# 4. Start the development server
 npm run dev
+```
 
+3) Frontend (from repo root)
+```powershell
+npm install
+$env:VITE_API_BASE = "http://localhost:5000"
+npm run dev -- --port 8080
+```
 
-The project will start with auto-reloading and an instant preview in your browser.
+## Environment variables
+- Backend
+	- `DATABASE_URL` (inside Docker defaults to `postgres://devuser:devpass@db:5432/mwsi_hris_dev`)
+	- `PORT` (default 5000)
+	- `JWT_SECRET` (set per environment)
+	- `CORS_ORIGIN` (Docker sets `http://localhost:8080`)
+- Frontend
+	- `VITE_API_BASE` (Docker sets `http://localhost:5000`)
+
+## Scripts
+- Root (frontend)
+	- `npm run dev` — Vite dev server
+	- `npm run build` — build frontend
+	- `npm run preview` — preview built frontend
+	- `npm run lint` — lint
+- Backend (`backend/`)
+	- `npm run dev` — start API in watch mode
+	- `npm run build` — compile TypeScript
+	- `npm start` — run compiled API
+	- `npm test` — run backend tests
+
+## Troubleshooting
+- Port conflicts (5432/5000/8080): stop other services or adjust ports in `docker-compose.yml`.
+- CORS during local dev: either run Vite on 8080 to match Docker CORS origin or extend allowed origins in `backend/src/app.ts`.
+- Re-seeding DB: `docker-compose down -v` then `docker-compose up --build`.
+
+## Additional docs
+- Detailed run steps: see `RUNNING.md`
+- Backend roadmap: see `docs/BACKEND_PLAN.md`

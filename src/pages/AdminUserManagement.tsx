@@ -14,10 +14,23 @@ import { Plus, User, Mail, RefreshCw, Edit as EditIcon } from 'lucide-react'
 import {UserForm} from '@/components/UserForm'
 import { useUsers, AppUser } from '@/contexts/UsersContext'
 import { useRoles } from '@/contexts/RolesContext'
-import { useEmployees } from '@/contexts/EmployeesContext'
+import { useEmployees, EmployeeRecord } from '@/contexts/EmployeesContext'
+import { mapRole } from '@/lib/roles'
+import api from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+
+const initialUserFormValues = {
+  firstName: '',
+  middleName: '',
+  lastName: '',
+  employeeNumber: '',
+  name: '',
+  email: '',
+  role: 'employee',
+  sendInvite: true,
+}
 
 export default function AdminUserManagement() {
   const navigate = useNavigate()
@@ -48,6 +61,53 @@ export default function AdminUserManagement() {
   const [currentPage, setCurrentPage] = useState(1)
   const [addOpen, setAddOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [userFormValues, setUserFormValues] = useState(initialUserFormValues)
+  const [confirmationOpen, setConfirmationOpen] = useState(false)
+  const [createdUserData, setCreatedUserData] = useState<any>(null)
+  const [matchedEmployee, setMatchedEmployee] = useState<EmployeeRecord | null>(null)
+  const [existsOpen, setExistsOpen] = useState(false)
+  const [existingUser, setExistingUser] = useState<AppUser | null>(null)
+
+  const handleEmployeeLookup = async (employeeNumber: string) => {
+    if (!employeeNumber) return
+    let employee: EmployeeRecord | undefined
+    try {
+      const rows = await api.get(`/api/employees?employeeNumber=${encodeURIComponent(employeeNumber)}`)
+      if (Array.isArray(rows) && rows.length > 0) employee = rows[0] as EmployeeRecord
+    } catch {}
+    // fallback to local list if API fails
+    if (!employee) employee = employees.find(e => e.employeeNumber?.toString() === employeeNumber)
+    if (employee) {
+      toast({
+        title: "Employee Found",
+        description: `Populating form with details for ${employee.name}.`,
+      })
+      setMatchedEmployee(employee)
+      setUserFormValues(prev => ({
+        ...prev,
+        firstName: employee.firstName || '',
+        middleName: employee.middleName || '',
+        lastName: employee.lastName || '',
+        email: employee.email || '',
+        name: employee.name || '',
+        // Auto-populate role from employee if present; default to 'employee'
+        role: (employee as any).role || 'employee',
+      }))
+    } else {
+      toast({
+        title: "Employee Not Found",
+        description: `No employee found with number ${employeeNumber}. You can still create a user manually.`,
+        variant: "destructive",
+      })
+      setMatchedEmployee(null)
+      // Reset if not found, but keep the entered number
+      setUserFormValues(prev => ({
+        ...initialUserFormValues,
+        employeeNumber: prev.employeeNumber,
+      }))
+    }
+  }
+
   const [importRows, setImportRows] = useState<Array<{ id: number; cols: string[]; name?: string; email?: string; role?: string; error?: string }>>([])
   const [headers, setHeaders] = useState<string[]>([])
   const usersPerPage = 5
@@ -123,7 +183,7 @@ export default function AdminUserManagement() {
 
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700">
+            <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => { setUserFormValues(initialUserFormValues); setMatchedEmployee(null); }}>
               <Plus className="w-4 h-4 mr-2" />
               Add New User
             </Button>
@@ -137,26 +197,65 @@ export default function AdminUserManagement() {
                 Note: Users can only be created for emails that exist in HR employee records.
               </DialogDescription>
             </DialogHeader>
+            {/* Preview panel for matched employee */}
+            {userFormValues.employeeNumber ? (
+              matchedEmployee ? (
+                <div className="mb-4 rounded-md border p-3 bg-muted/40">
+                  <div className="text-sm text-muted-foreground">Employee matched</div>
+                  <div className="font-medium">{matchedEmployee.name}</div>
+                  <div className="text-sm text-muted-foreground">{matchedEmployee.email}</div>
+                </div>
+              ) : (
+                <div className="mb-4 rounded-md border p-3 bg-amber-50 text-amber-900">
+                  <div className="text-sm">No match yet. Enter a valid employee number to auto-fill details.</div>
+                </div>
+              )
+            ) : null}
             <UserForm
-              defaultValues={{
-                name: '',
-                email: '',
-                role: 'employee',
-              }}
+              defaultValues={userFormValues}
+              onEmployeeNumberBlur={handleEmployeeLookup}
               onSave={data => {
-                const userData = { 
-                  ...data, 
-                  name: data.name || data.email, // Use email as name if not provided
-                  position: 'N/A', 
-                  department: 'N/A', 
-                  hireDate: new Date().toISOString() 
-                };
-                handleAddEmployee(userData)
-                // TODO: integrate with backend to send invitation email using temp password
+                // full name now provided directly (read-only), fallback to email
+                const name = data.name || data.email
+
+                // try lookup by employeeNumber first (if provided), otherwise by email
+                let matched = null
+                if (data.employeeNumber) {
+                  matched = employees.find(e => (e.employeeNumber || '').toString().toLowerCase() === (data.employeeNumber || '').toString().toLowerCase())
+                }
+                if (!matched) {
+                  matched = employees.find(e => (e.email || '').toLowerCase() === (data.email || '').toLowerCase())
+                }
+                if (!matched) {
+                  alert('This email or employee number does not match any employee record. Please ask HR to create the employee record first.')
+                  return
+                }
+
+                // Uniqueness validation: prevent multiple users for the same employee
+                const existing = users.find(u => String((u as any).employeeId || (u as any).employee_id) === String(matched!.id))
+                if (existing) {
+                  setExistingUser(existing)
+                  setExistsOpen(true)
+                  return
+                }
+
+                const userData: any = {
+                  email: data.email,
+                  name: name || data.email,
+                  role: data.role,
+                  employee_id: matched.id,
+                  position: matched.position || 'N/A',
+                  department: matched.stationName || matched.department || 'N/A',
+                  hireDate: matched.hireDate || new Date().toISOString(),
+                }
+                addUser(userData)
+                // handle invite
                 if (data.sendInvite) {
                   console.log('Send invite enabled. Temp password:', data.tempPassword)
                 }
                 setAddOpen(false)
+                setCreatedUserData(userData)
+                setConfirmationOpen(true)
               }}
               onCancel={() => setAddOpen(false)}
             />
@@ -302,6 +401,7 @@ export default function AdminUserManagement() {
                             <td className="p-2 text-xs text-muted-foreground">{r.error || 'OK'}</td>
                           </tr>
                         ))}
+
                       </tbody>
                     </table>
                   </div>
@@ -412,6 +512,53 @@ export default function AdminUserManagement() {
         ))}
       </div>
 
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>User Created Successfully</DialogTitle>
+          </DialogHeader>
+          {createdUserData && (
+            <div className="space-y-2 py-4">
+              <p>An account has been created for <strong>{createdUserData.name}</strong>.</p>
+              <div><strong>Email:</strong> {createdUserData.email}</div>
+              <div><strong>Role:</strong> {createdUserData.role}</div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button onClick={() => {
+              setConfirmationOpen(false)
+              setCreatedUserData(null)
+            }}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Already Exists Dialog */}
+      <Dialog open={existsOpen} onOpenChange={setExistsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>User already exists</DialogTitle>
+          </DialogHeader>
+          {existingUser ? (
+            <div className="space-y-2 py-4">
+              <p>
+                A user account already exists for this employee.
+              </p>
+              <div><strong>Name:</strong> {existingUser.name}</div>
+              <div><strong>Email:</strong> {existingUser.email}</div>
+              <div><strong>Role:</strong> {existingUser.role}</div>
+              <p className="text-sm text-muted-foreground">Each employee can only have one account.</p>
+            </div>
+          ) : (
+            <div className="py-4">A user account already exists for this employee.</div>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setExistsOpen(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit User Dialog (reuses UserForm to match Add UI) */}
       <Dialog open={!!editingUser} onOpenChange={(open) => { if (!open) setEditingUser(null) }}>
         <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl">
@@ -423,7 +570,7 @@ export default function AdminUserManagement() {
               Update user information or change account password for Admins.
             </DialogDescription>
           </DialogHeader>
-          {editingUser && editingUser.role === 'admin' ? (
+          {editingUser && mapRole(editingUser.role) === 'admin' ? (
             <div className="space-y-4">
               <p className="mb-2">This is a pure Admin account. You can only change the password here.</p>
               <form onSubmit={(e) => {

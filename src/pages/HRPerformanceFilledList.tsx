@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePerformance } from '@/contexts/PerformanceContext';
 import { TemplateCriteriaList } from '@/components/performance/TemplateCriteriaList';
 import { useAuth } from '@/contexts/AuthContext';
-import { mockEmployees } from '@/data/mockData';
+import { useEmployees } from '@/contexts/EmployeesContext';
 import { Navigate } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 
@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 const HRPerformanceFilledList: React.FC = () => {
   const { reviews, templates } = usePerformance();
   const { user } = useAuth();
+  const { employees } = useEmployees();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
@@ -55,7 +56,7 @@ const HRPerformanceFilledList: React.FC = () => {
                   <td className="p-3">{
                     review.status === 'manager_review'
                       ? (() => {
-                          const emp = mockEmployees.find(e => e.name === review.employeeName);
+                          const emp = employees.find(e => e.name === review.employeeName);
                           return emp && emp.manager ? emp.manager : 'Manager';
                         })()
                       : review.status === 'hr_review'

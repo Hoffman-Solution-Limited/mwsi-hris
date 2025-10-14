@@ -13,7 +13,6 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog"
-import { mockEmployees } from "@/data/mockData"
 import { useSystemCatalog } from "@/contexts/SystemCatalogContext"
 import { useEmployees } from "@/contexts/EmployeesContext"
 
@@ -33,12 +32,12 @@ export const DesignationPage: React.FC = () => {
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editingValue, setEditingValue] = useState("")
   const { designations, addDesignation, editDesignation } = useSystemCatalog()
-  const { renameDesignationAcrossEmployees } = useEmployees()
+  const { renameDesignationAcrossEmployees, employees } = useEmployees()
 
   // 🔹 Build list with counts from mock employees for display
   const allDesignations: Designation[] = useMemo(() => {
     const counts: Record<string, number> = {}
-    mockEmployees.forEach((emp) => {
+    employees.forEach((emp) => {
       const pos = emp.position || "Unassigned"
       counts[pos] = (counts[pos] || 0) + 1
     })
@@ -47,7 +46,7 @@ export const DesignationPage: React.FC = () => {
       name: item.value,
       employeeCount: counts[item.value] || 0,
     }))
-  }, [designations])
+  }, [designations, employees])
 
   // 🔹 Filter by search
   const filteredDesignations = allDesignations.filter((d) =>

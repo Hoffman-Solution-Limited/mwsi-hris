@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { Employee, mockEmployees } from '@/data/mockData'; // Import Employee type and mockEmployees
+import { Employee } from '@/types/models';
+import api from '@/lib/api';
 import { UserRole } from './AuthContext';
 
 // AppUser now extends Employee and uses a consistent UserRole type
 export type AppUser = Employee & {
   role: UserRole;
   password?: string | null;
+  employeeId?: string;
 };
 
 type UsersContextType = {
@@ -21,69 +23,56 @@ const STORAGE_KEY = 'hris-users';
 
 const UsersContext = createContext<UsersContextType | undefined>(undefined);
 
-// Combine mockEmployees with role and password info to create a single source of truth
-const seedUsers: AppUser[] = mockEmployees.map(emp => {
-  let role: UserRole = 'employee';
-  if (emp.email === 'admin@mwsi.com') role = 'admin';
-  else if (emp.email === 'sarah.johnson@mwsi.com') role = 'hr_manager';
-  else if (emp.email === 'david.manager@mwsi.com') role = 'manager';
-  else if (emp.email === 'emily.chen@mwsi.com') role = 'registry_manager';
-  
-  return {
-    ...emp,
-    role,
-    password: 'demo123'
-  };
-});
-
-// Add any users that don't exist in mockEmployees
-if (!seedUsers.find(u => u.email === 'admin.test@mwsi.com')) {
-    seedUsers.push({
-        id: 'admin-test',
-        email: 'admin.test@mwsi.com',
-        name: 'Test Admin',
-        role: 'admin',
-        status: 'active',
-        password: 'demo123',
-        position: 'Admin',
-        department: 'IT',
-        hireDate: new Date().toISOString(),
-    });
-}
-
-if (!seedUsers.find(u => u.email === 'testing@mwsi.com')) {
-    seedUsers.push({
-        id: 'testing-user',
-        email: 'testing@mwsi.com',
-        name: 'Testing User',
-        role: 'testing' as UserRole,
-        status: 'active',
-        password: 'demo123',
-        position: 'Tester',
-        department: 'QA',
-        hireDate: new Date().toISOString(),
-    });
-}
+// Minimal built-in seed users (used only if localStorage and API are empty)
+const seedUsers: AppUser[] = [
+  {
+    id: 'admin-test',
+    email: 'admin.test@mwsi.com',
+    name: 'Test Admin',
+    role: 'admin',
+    status: 'active',
+    password: 'demo123',
+    position: 'Admin',
+    department: 'IT',
+    hireDate: new Date().toISOString(),
+  },
+];
 
 
 export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [users, setUsers] = useState<AppUser[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const storedUsers = JSON.parse(raw) as AppUser[];
-        // Merge stored users with seed users to ensure all are present
-        const userMap = new Map(storedUsers.map(u => [u.email, u]));
-        seedUsers.forEach(su => {
-          if (!userMap.has(su.email)) {
-            userMap.set(su.email, su);
-          }
-        });
-        return Array.from(userMap.values());
-      }
+      if (raw) return JSON.parse(raw) as AppUser[];
     } catch {}
     return seedUsers;
   });
+
+  // Load users from backend on mount; keep local fallback
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const rows = await api.get('/api/users');
+        if (!mounted) return;
+        if (Array.isArray(rows) && rows.length > 0) {
+          // Map backend rows into AppUser shape conservatively
+          const mapped = (rows as any[]).map(r => ({
+            id: r.id,
+            email: r.email,
+            name: r.name,
+            role: r.role || 'employee',
+            status: r.status || 'active',
+            employeeId: r.employeeId,
+          })) as AppUser[];
+          setUsers(mapped);
+        }
+      } catch (err) {
+        // ignore, fallback to local seedUsers/localStorage
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     try {
@@ -92,20 +81,43 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [users]);
 
   const addUser = (u: Omit<AppUser, 'id' | 'status'> & { status?: AppUser['status'] }) => {
-    const newUser: AppUser = {
-      id: crypto.randomUUID(),
-      status: 'active',
-      ...u,
-    };
-    setUsers(prev => [...prev, newUser]);
+    (async () => {
+      try {
+        const payload = { ...u } as any;
+        const created = await api.post('/api/users', payload);
+        setUsers(prev => [...prev, { ...(created as AppUser), status: created.status || 'active' }]);
+      } catch (err) {
+        const newUser = {
+          id: crypto.randomUUID(),
+          status: 'active',
+          ...u,
+        } as AppUser;
+        setUsers(prev => [...prev, newUser]);
+      }
+    })();
   };
 
   const changePassword = (id: string, newPassword: string | null) => {
-    setUsers(prev => prev.map(u => (u.id === id ? { ...u, password: newPassword } : u)));
+    (async () => {
+      try {
+        // backend currently does not expose password change; we update locally for now
+        await api.put(`/api/users/${id}`, { password: newPassword });
+        setUsers(prev => prev.map(u => (u.id === id ? { ...u, password: newPassword } : u)));
+      } catch (err) {
+        setUsers(prev => prev.map(u => (u.id === id ? { ...u, password: newPassword } : u)));
+      }
+    })();
   };
 
   const updateUser = (id: string, updates: Partial<AppUser>) => {
-    setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
+    (async () => {
+      try {
+        const updated = await api.put(`/api/users/${id}`, updates);
+        setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...(updated as any) } : u)));
+      } catch (err) {
+        setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
+      }
+    })();
   };
 
   const toggleStatus = (id: string) => {

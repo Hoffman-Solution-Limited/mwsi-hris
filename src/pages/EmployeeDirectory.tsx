@@ -15,7 +15,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useEmployees } from "@/contexts/EmployeesContext"
-import { useUsers } from "@/contexts/UsersContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
 import { useToast } from '@/hooks/use-toast'
@@ -27,15 +26,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { EmployeeForm } from "@/components/EmployeeForm"
+import { getWorkStation, getInitialsParts } from '@/lib/utils'
 
 export const EmployeeDirectory: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [departmentFilter, setDepartmentFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list")
+  const [pageSize, setPageSize] = useState<number>(10)
+  const [page, setPage] = useState<number>(1)
   const navigate = useNavigate()
-  const { users: employees, addUser } = useUsers() // Use users as employees
-  const { users } = useUsers()
+  const { employees, loading, refresh, updateEmployeeStatus } = useEmployees()
   const { toast } = useToast()
 
   // Get logged-in user (manager) from context
@@ -46,27 +47,60 @@ export const EmployeeDirectory: React.FC = () => {
   const canonical = mapRole(user?.role)
   const isManager = canonical === 'manager';
   const baseEmployees = canonical === 'manager'
-    ? user ? employees.filter(e => String(e.managerId || '') === String(user.id || '')) : []
+    ? user
+      ? employees.filter(e => {
+          const mgrId = String(e.managerId ?? '')
+          const userEmpId = String((user as any).employeeId ?? '')
+          if (userEmpId && mgrId && mgrId === userEmpId) return true
+          // fallback heuristics if IDs aren’t wired
+          if (!mgrId && e.manager) {
+            const nameMatch = e.manager.toLowerCase() === (user.name || '').toLowerCase()
+            return nameMatch
+          }
+          return false
+        })
+      : []
     : employees;
 
-  // Unique departments based on scoped employees
-  const departments = [...new Set(baseEmployees.map((emp) => emp.department))]
+  // Unique departments/stations based on scoped employees (filter blanks)
+  const departments = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const emp of baseEmployees) {
+      const d = (emp.department || '').trim();
+      const s = (emp.stationName || '').trim();
+      if (d) set.add(d);
+      if (s) set.add(s);
+    }
+    return Array.from(set).sort();
+  }, [baseEmployees]);
 
   // Filter employees within scoped set
   const filteredEmployees = baseEmployees.filter((employee) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.department.toLowerCase().includes(searchQuery.toLowerCase())
+      employee.name.toLowerCase().includes(q) ||
+      employee.email.toLowerCase().includes(q) ||
+      employee.position.toLowerCase().includes(q) ||
+      (employee.department || '').toLowerCase().includes(q) ||
+      (employee.stationName || '').toLowerCase().includes(q)
 
     const matchesDepartment =
-      departmentFilter === "all" || employee.department === departmentFilter
+      departmentFilter === "all" || employee.department === departmentFilter || employee.stationName === departmentFilter
     const matchesStatus =
       statusFilter === "all" || employee.status === statusFilter
 
     return matchesSearch && matchesDepartment && matchesStatus
   })
+
+  // Reset to first page when filters/search change
+  React.useEffect(() => { setPage(1) }, [searchQuery, departmentFilter, statusFilter])
+
+  const total = filteredEmployees.length
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  React.useEffect(() => { if (page > totalPages) setPage(totalPages) }, [totalPages])
+  const startIndex = Math.min((page - 1) * pageSize, Math.max(0, total))
+  const endIndex = Math.min(startIndex + pageSize, total)
+  const pagedEmployees = filteredEmployees.slice(startIndex, endIndex)
 
   const canOpenProfile = canonical !== 'manager'
 
@@ -182,6 +216,11 @@ export const EmployeeDirectory: React.FC = () => {
             Export
           </Button>
 
+          {/* Manual refresh to pull latest from backend */}
+          <Button variant="secondary" size="sm" onClick={() => refresh()} disabled={!!loading}>
+            Refresh
+          </Button>
+
           {/* Add Employee as separate page */}
           {(mapRole(user?.role) === 'admin' || mapRole(user?.role) === 'hr') && (
             <Button size="sm" onClick={() => navigate("/employees/new") }>
@@ -225,7 +264,7 @@ export const EmployeeDirectory: React.FC = () => {
             </div>
 
             <div className="flex gap-2">
-              {["admin", "hr_manager"].includes(user?.role) && (
+              {(["admin", "hr"].includes(mapRole(user?.role))) && (
                 <Select
                   value={departmentFilter}
                   onValueChange={setDepartmentFilter}
@@ -235,12 +274,12 @@ export const EmployeeDirectory: React.FC = () => {
                   </SelectTrigger>
 
                   <SelectContent>
-                    <SelectItem value="all">All Departments</SelectItem>
+                    <SelectItem key="dept-all" value="all">All Departments</SelectItem>
                     {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
-                      </SelectItem>
-                    ))}
+                        <SelectItem key={`dept-${dept}`} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               )}
@@ -254,6 +293,7 @@ export const EmployeeDirectory: React.FC = () => {
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                   <SelectItem value="terminated">Terminated</SelectItem>
+                  <SelectItem value="retired">Retired</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -284,7 +324,7 @@ export const EmployeeDirectory: React.FC = () => {
       {/* Results Summary */}
       <div className="flex justify-between items-center">
         <p className="text-sm text-muted-foreground">
-          Showing {filteredEmployees.length} of {baseEmployees.length} employees
+          {total === 0 ? 'No employees found' : `Showing ${startIndex + (total ? 1 : 0)}-${endIndex} of ${total} employees`}
         </p>
       </div>
 
@@ -302,10 +342,9 @@ export const EmployeeDirectory: React.FC = () => {
                   <Avatar className="w-16 h-16 mb-4">
                     <AvatarImage src={employee.avatar} />
                     <AvatarFallback className="text-lg font-semibold">
-                      {employee.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                      {(() => { const [f, l] = getInitialsParts(employee.name); return (
+                        <span><span className="text-blue-600">{f}</span>{l ? <span className="text-emerald-600">{l}</span> : null}</span>
+                      )})()}
                     </AvatarFallback>
                   </Avatar>
                   <h3 className="font-semibold text-lg mb-1">
@@ -315,7 +354,7 @@ export const EmployeeDirectory: React.FC = () => {
                     {employee.position}
                   </p>
                   <p className="text-xs text-muted-foreground mb-3">
-                    {employee.department}
+                    {getWorkStation(employee)}
                   </p>
                   {employee.cadre && (
                     <Badge variant="outline" className="mb-3 capitalize">{employee.cadre}</Badge>
@@ -335,6 +374,16 @@ export const EmployeeDirectory: React.FC = () => {
                       📅 Joined{" "}
                       {new Date(employee.hireDate).toLocaleDateString()}
                     </p>
+                    {(["admin","hr"].includes(mapRole(user?.role))) && (
+                      <>
+                        {((employee as any).nextOfKinName || (employee as any).nextOfKinRelationship) && (
+                          <p>👤 Next of Kin: {(employee as any).nextOfKinName || '—'}{(employee as any).nextOfKinRelationship ? ` (${String((employee as any).nextOfKinRelationship)})` : ''}</p>
+                        )}
+                        {((employee as any).hasSpecialNeeds) && (
+                          <p>♿ Special Needs{(employee as any).specialNeedsDescription ? `: ${String((employee as any).specialNeedsDescription)}` : ''}</p>
+                        )}
+                      </>
+                    )}
                   </div>)}
                 </div>
               </CardContent>
@@ -343,8 +392,20 @@ export const EmployeeDirectory: React.FC = () => {
         </div>
       ) : (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Employee List</CardTitle>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Rows per page</span>
+              <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1) }}>
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -361,7 +422,7 @@ export const EmployeeDirectory: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEmployees.map((employee) => (
+                  {pagedEmployees.map((employee) => (
                     <tr
                       key={employee.id}
                       className="cursor-pointer"
@@ -372,17 +433,13 @@ export const EmployeeDirectory: React.FC = () => {
                           <Avatar className="w-10 h-10">
                             <AvatarImage src={employee.avatar} />
                             <AvatarFallback>
-                              {employee.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
+                              {(() => { const [f, l] = getInitialsParts(employee.name); return (
+                                <span><span className="text-blue-600">{f}</span>{l ? <span className="text-emerald-600">{l}</span> : null}</span>
+                              )})()}
                             </AvatarFallback>
                           </Avatar>
                           <div>
                             <p className="font-medium">{employee.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              ID: {employee.id}
-                            </p>
                             <p className="text-xs text-muted-foreground">
                               Employee No: {(employee as any).employeeNumber}
                             </p>
@@ -397,34 +454,87 @@ export const EmployeeDirectory: React.FC = () => {
                           </p>
                         )}
                       </td>
-                      <td>{employee.department}</td>
+                      <td>{getWorkStation(employee)}</td>
                       <td className="capitalize">{employee.cadre || '-'}</td>
                       <td>
-                        <Badge
-                          variant={
-                            employee.status === "active"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          {employee.status}
-                        </Badge>
+                        {/* HR/Admin can change status inline */}
+                        {(["admin","hr"].includes(mapRole(user?.role))) ? (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Select
+                              value={employee.status || 'active'}
+                              onValueChange={async (val) => {
+                                try {
+                                  await updateEmployeeStatus?.(employee.id, val as any)
+                                  toast({ title: 'Status updated', description: `${employee.name} → ${val}` })
+                                } catch (err: any) {
+                                  toast({ title: 'Update failed', description: String(err), variant: 'destructive' })
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-36 capitalize">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="inactive">Inactive</SelectItem>
+                                <SelectItem value="terminated">Terminated</SelectItem>
+                                <SelectItem value="retired">Retired</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ) : (
+                          <Badge
+                            variant={
+                              employee.status === "active"
+                                ? "default"
+                                : "secondary"
+                            }
+                            className="capitalize"
+                          >
+                            {employee.status}
+                          </Badge>
+                        )}
                       </td>
-                      {!isManager && (<><td>{new Date(employee.hireDate).toLocaleDateString()}</td>
-                      <td>
-                        <div className="text-sm">
-                          <p>{employee.email}</p>
-                          {employee.phone && (
-                            <p className="text-muted-foreground">
-                              {employee.phone}
-                            </p>
-                          )}
-                        </div>
-                      </td></>)}
+                      {!isManager && (
+                        <>
+                          <td>{new Date(employee.hireDate).toLocaleDateString()}</td>
+                          <td>
+                            <div className="text-sm">
+                              <p>{employee.email}</p>
+                              {employee.phone && (
+                                <p className="text-muted-foreground">{employee.phone}</p>
+                              )}
+                              {["admin","hr"].includes(mapRole(user?.role)) && (
+                                <>
+                                  {((employee as any).nextOfKinName || (employee as any).nextOfKinRelationship) && (
+                                    <p className="text-muted-foreground">Next of Kin: {(employee as any).nextOfKinName || '—'}{(employee as any).nextOfKinRelationship ? ` (${String((employee as any).nextOfKinRelationship)})` : ''}</p>
+                                  )}
+                                  {((employee as any).hasSpecialNeeds) && (
+                                    <p className="text-muted-foreground">Special Needs{(employee as any).specialNeedsDescription ? `: ${String((employee as any).specialNeedsDescription)}` : ''}</p>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+            {/* Pagination controls */}
+            <div className="flex items-center justify-between p-4">
+              <div className="text-sm text-muted-foreground">
+                {total === 0 ? 'No rows' : `Showing ${startIndex + (total ? 1 : 0)}-${endIndex} of ${total}`}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPage(1)} disabled={page === 1}>First</Button>
+                <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+                <span className="text-sm">Page {page} of {totalPages}</span>
+                <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+                <Button variant="outline" size="sm" onClick={() => setPage(totalPages)} disabled={page === totalPages}>Last</Button>
+              </div>
             </div>
           </CardContent>
         </Card>

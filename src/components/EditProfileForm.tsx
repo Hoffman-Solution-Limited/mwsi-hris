@@ -29,7 +29,6 @@ type ProfileFormData = {
   company?: string
   dateOfBirth?: string
   hireDate?: string
-  emergencyContact?: string
   salary?: number
   status?: 'active' | 'inactive' | 'terminated'
   cadre?: 'Support' | 'Technical' | 'Management'
@@ -42,7 +41,7 @@ export function EditProfileForm({ defaultValues, onSave }: {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<ProfileFormData>({
     defaultValues,
   })
-  const { designations, skillLevels, stations, jobGroups, engagementTypes, ethnicities } = useSystemCatalog()
+  const { designations, skillLevels, stations, stationNames, jobGroups, engagementTypes, ethnicities } = useSystemCatalog()
 
   // Kenyan counties list (47)
   const counties = [
@@ -172,7 +171,7 @@ export function EditProfileForm({ defaultValues, onSave }: {
                 </SelectTrigger>
                 <SelectContent>
                   {ethnicities.map((e) => (
-                    <SelectItem key={e} value={e}>{e}</SelectItem>
+                    <SelectItem key={e.value} value={e.value}>{e.value}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -199,10 +198,7 @@ export function EditProfileForm({ defaultValues, onSave }: {
               <Input id="children" type="number" {...register("children")} />
             </div>
 
-            <div>
-              <Label htmlFor="emergencyContact">Emergency Contact</Label>
-              <Input id="emergencyContact" {...register("emergencyContact")} />
-            </div>
+            {/* Emergency Contact removed; Next of Kin section exists in Employee form */}
           </div>
 
           {/* Employment Information */}
@@ -230,14 +226,17 @@ export function EditProfileForm({ defaultValues, onSave }: {
                   <SelectValue placeholder="Select position" />
                 </SelectTrigger>
                 <SelectContent>
-                  {designations.map((d) => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
-                  ))}
+                  {designations.map((d) => {
+                    const val = (d as any).value ?? (d as any);
+                    const label = (d as any).label ?? val;
+                    return (
+                      <SelectItem key={val} value={val}>{label}</SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
               {errors.position && <p className="text-destructive text-sm">{errors.position.message}</p>}
             </div>
-
             <div>
               <Label htmlFor="employmentType">Engagement Type</Label>
               <Select value={watchedEmploymentType} onValueChange={(value) => setValue("employmentType", value)}>
@@ -245,8 +244,8 @@ export function EditProfileForm({ defaultValues, onSave }: {
                   <SelectValue placeholder="Select engagement type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {engagementTypes.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  {engagementTypes.map((t, i) => (
+                    <SelectItem key={i} value={String(t)}>{String(t)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -259,8 +258,8 @@ export function EditProfileForm({ defaultValues, onSave }: {
                   <SelectValue placeholder="Select job group" />
                 </SelectTrigger>
                 <SelectContent>
-                  {jobGroups.map((g) => (
-                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  {jobGroups.map((g, i) => (
+                    <SelectItem key={i} value={String(g)}>{String(g)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -308,9 +307,13 @@ export function EditProfileForm({ defaultValues, onSave }: {
                   <SelectValue placeholder="Select skill level" />
                 </SelectTrigger>
                 <SelectContent>
-                  {skillLevels.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
+                  {skillLevels.map((s) => {
+                    const val = (s as any).value ?? s
+                    const label = (s as any).label ?? String(val)
+                    return (
+                      <SelectItem key={String(val)} value={String(val)}>{label}</SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -322,8 +325,8 @@ export function EditProfileForm({ defaultValues, onSave }: {
                   <SelectValue placeholder="Select station" />
                 </SelectTrigger>
                 <SelectContent>
-                  {stations.map((st) => (
-                    <SelectItem key={st} value={st}>{st}</SelectItem>
+                  {stationNames.map((name) => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

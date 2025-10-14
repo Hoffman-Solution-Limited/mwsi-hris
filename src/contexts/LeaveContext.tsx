@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { mockLeaveRequests, LeaveRequest } from '@/data/mockData';
+import { LeaveRequest } from '@/types/models';
+import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 type LeaveContextType = {
@@ -9,6 +10,8 @@ type LeaveContextType = {
   rejectManagerRequest: (id: string, comments?: string) => void;
   approveHrRequest: (id: string, comments?: string) => void;
   rejectHrRequest: (id: string, comments?: string) => void;
+  updateLeaveRequest: (id: string, changes: Partial<LeaveRequest>) => Promise<LeaveRequest | null>;
+  deleteLeaveRequest: (id: string) => Promise<LeaveRequest | null>;
 };
 
 const LeaveContext = createContext<LeaveContextType | undefined>(undefined);
@@ -18,94 +21,166 @@ const STORAGE_KEY = 'hris-leave-requests';
 export const LeaveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {}
-    }
-    return mockLeaveRequests;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) return JSON.parse(stored) as LeaveRequest[];
+    } catch {}
+    return [];
   });
 
+  // Persist to localStorage and attempt to load from backend on mount (fallback to mock/local)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(leaveRequests));
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(leaveRequests)); } catch {}
   }, [leaveRequests]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const rows = await api.get('/api/leaves');
+        if (!mounted) return;
+        if (Array.isArray(rows) && rows.length > 0) setLeaveRequests(rows as LeaveRequest[]);
+      } catch (err) {
+        // fallback to mock/local
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const addLeaveRequest: LeaveContextType['addLeaveRequest'] = (input) => {
     if (!user) return;
-    const newRequest: LeaveRequest = {
-      id: crypto.randomUUID(),
-      employeeId: input.employeeId,
-      employeeName: user.name,
-      type: input.type,
-      startDate: input.startDate,
-      endDate: input.endDate,
-      days: input.days,
-      status: 'pending_manager',
-      reason: input.reason,
-      appliedDate: new Date().toISOString().slice(0, 10)
-    };
-    setLeaveRequests(prev => [newRequest, ...prev]);
+    (async () => {
+      try {
+        const payload = { ...input, employeeName: user.name, status: 'pending_manager', appliedDate: new Date().toISOString().slice(0,10) };
+        const created = await api.post('/api/leaves', payload);
+        setLeaveRequests(prev => [created as LeaveRequest, ...prev]);
+      } catch (err) {
+        const newRequest: LeaveRequest = {
+          id: crypto.randomUUID(),
+          employeeId: input.employeeId,
+          employeeName: user.name,
+          type: input.type,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          days: input.days,
+          status: 'pending_manager',
+          reason: input.reason,
+          appliedDate: new Date().toISOString().slice(0, 10)
+        };
+        setLeaveRequests(prev => [newRequest, ...prev]);
+      }
+    })();
   };
 
   const approveManagerRequest = (id: string, comments?: string) => {
     if (!user) return;
-    setLeaveRequests(prev => prev.map(r => 
-      r.id === id 
-        ? { 
-            ...r, 
-            status: 'pending_hr', 
-            managerComments: comments,
-            approvedBy: user.name,
-            approvedDate: new Date().toISOString().slice(0, 10)
-          } 
-        : r
-    ));
+    (async () => {
+      try {
+        const updated = await api.put(`/api/leaves/${id}`, { status: 'pending_hr', managerComments: comments, approvedBy: user.name, approvedDate: new Date().toISOString().slice(0,10) });
+        setLeaveRequests(prev => prev.map(r => (r.id === id ? (updated as LeaveRequest) : r)));
+      } catch (err) {
+        setLeaveRequests(prev => prev.map(r => 
+          r.id === id 
+            ? { 
+                ...r, 
+                status: 'pending_hr', 
+                managerComments: comments,
+                approvedBy: user.name,
+                approvedDate: new Date().toISOString().slice(0, 10)
+              } 
+            : r
+        ));
+      }
+    })();
   };
 
   const rejectManagerRequest = (id: string, comments?: string) => {
     if (!user) return;
-    setLeaveRequests(prev => prev.map(r => 
-      r.id === id 
-        ? { 
-            ...r, 
-            status: 'rejected', 
-            managerComments: comments,
-            approvedBy: user.name,
-            approvedDate: new Date().toISOString().slice(0, 10)
-          } 
-        : r
-    ));
+    (async () => {
+      try {
+        const updated = await api.put(`/api/leaves/${id}`, { status: 'rejected', managerComments: comments, approvedBy: user.name, approvedDate: new Date().toISOString().slice(0,10) });
+        setLeaveRequests(prev => prev.map(r => (r.id === id ? (updated as LeaveRequest) : r)));
+      } catch (err) {
+        setLeaveRequests(prev => prev.map(r => 
+          r.id === id 
+            ? { 
+                ...r, 
+                status: 'rejected', 
+                managerComments: comments,
+                approvedBy: user.name,
+                approvedDate: new Date().toISOString().slice(0, 10)
+              } 
+            : r
+        ));
+      }
+    })();
   };
 
   const approveHrRequest = (id: string, comments?: string) => {
     if (!user) return;
-    setLeaveRequests(prev => prev.map(r => 
-      r.id === id 
-        ? { 
-            ...r, 
-            status: 'approved', 
-            hrComments: comments,
-            approvedBy: user.name,
-            approvedDate: new Date().toISOString().slice(0, 10)
-          } 
-        : r
-    ));
+    (async () => {
+      try {
+        const updated = await api.put(`/api/leaves/${id}`, { status: 'approved', hrComments: comments, approvedBy: user.name, approvedDate: new Date().toISOString().slice(0,10) });
+        setLeaveRequests(prev => prev.map(r => (r.id === id ? (updated as LeaveRequest) : r)));
+      } catch (err) {
+        setLeaveRequests(prev => prev.map(r => 
+          r.id === id 
+            ? { 
+                ...r, 
+                status: 'approved', 
+                hrComments: comments,
+                approvedBy: user.name,
+                approvedDate: new Date().toISOString().slice(0, 10)
+              } 
+            : r
+        ));
+      }
+    })();
   };
 
   const rejectHrRequest = (id: string, comments?: string) => {
     if (!user) return;
-    setLeaveRequests(prev => prev.map(r => 
-      r.id === id 
-        ? { 
-            ...r, 
-            status: 'rejected', 
-            hrComments: comments,
-            approvedBy: user.name,
-            approvedDate: new Date().toISOString().slice(0, 10)
-          } 
-        : r
-    ));
+    (async () => {
+      try {
+        const updated = await api.put(`/api/leaves/${id}`, { status: 'rejected', hrComments: comments, approvedBy: user.name, approvedDate: new Date().toISOString().slice(0,10) });
+        setLeaveRequests(prev => prev.map(r => (r.id === id ? (updated as LeaveRequest) : r)));
+      } catch (err) {
+        setLeaveRequests(prev => prev.map(r => 
+          r.id === id 
+            ? { 
+                ...r, 
+                status: 'rejected', 
+                hrComments: comments,
+                approvedBy: user.name,
+                approvedDate: new Date().toISOString().slice(0, 10)
+              } 
+            : r
+        ));
+      }
+    })();
+  };
+
+  const updateLeaveRequest = async (id: string, changes: Partial<LeaveRequest>) => {
+    try {
+      const updated = await api.put(`/api/leaves/${id}`, changes);
+      setLeaveRequests(prev => prev.map(r => r.id === id ? (updated as LeaveRequest) : r));
+      return updated as LeaveRequest;
+    } catch (err) {
+      setLeaveRequests(prev => prev.map(r => r.id === id ? { ...r, ...changes } : r));
+      return null;
+    }
+  };
+
+  const deleteLeaveRequest = async (id: string) => {
+    try {
+  const deleted = await api.del(`/api/leaves/${id}`);
+      setLeaveRequests(prev => prev.filter(r => r.id !== id));
+      return deleted as LeaveRequest;
+    } catch (err) {
+      // fallback: remove locally
+      setLeaveRequests(prev => prev.filter(r => r.id !== id));
+      return null;
+    }
   };
 
   const value = useMemo(() => ({ 
@@ -115,6 +190,7 @@ export const LeaveProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     rejectManagerRequest,
     approveHrRequest,
     rejectHrRequest
+    , updateLeaveRequest, deleteLeaveRequest
   }), [leaveRequests]);
 
   return (

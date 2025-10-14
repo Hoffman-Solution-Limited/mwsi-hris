@@ -6,14 +6,20 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useSystemCatalog } from "@/contexts/SystemCatalogContext"
+import { KENYA_COUNTIES, KENYA_SUBCOUNTIES } from "@/lib/kenya-admin"
 import { useUsers } from "@/contexts/UsersContext"
+import { useToast } from '@/hooks/use-toast'
+import { Textarea } from "@/components/ui/textarea"
 
 export type EmployeeFormData = {
-  name: string
+  firstName: string
+  middleName?: string
+  surname: string
+  name?: string // This will be constructed from the parts
   email: string
   phone?: string
   position: string
-  department: string
+  // department removed; use stationName (work station) instead
   gender?: 'male' | 'female' | 'other'
   employmentType?: string
   jobGroup?: string
@@ -32,12 +38,21 @@ export type EmployeeFormData = {
   company?: string
   dateOfBirth?: string
   hireDate?: string
-  emergencyContact?: string
   salary?: number
-  status?: 'active' | 'inactive' | 'terminated'
+  status?: 'active' | 'inactive' | 'terminated' | 'retired'
   cadre?: 'Support' | 'Technical' | 'Management'
-  isManager?: boolean
   managerId?: string
+  maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed'
+  // Next of kin details
+  nextOfKinName?: string
+  nextOfKinRelationship?: string
+  nextOfKinPhone?: string
+  nextOfKinEmail?: string
+  // Special needs
+  hasSpecialNeeds?: boolean
+  specialNeedsDescription?: string
+  // Address details
+  homeSubcounty?: string
 }
 
 export function EmployeeForm({
@@ -49,7 +64,11 @@ export function EmployeeForm({
   onSave: (data: EmployeeFormData) => void
   mode?: "add" | "edit"
 }) {
-  const { designations, skillLevels, stations, jobGroups, engagementTypes, ethnicities } = useSystemCatalog()
+  const { designations, skillLevels, stations, stationNames, jobGroups, engagementTypes, ethnicities } = useSystemCatalog()
+  const designationOptions = designations.map(d => d.value)
+  const jobGroupOptions = jobGroups.map(j => j.value)
+  const engagementOptions = engagementTypes.map(e => e.value)
+  const skillLevelOptions = skillLevels.map(s => s.value)
   const { findByEmail } = useUsers()
   const { users } = useUsers()
   const [managerQuery, setManagerQuery] = React.useState('')
@@ -78,23 +97,32 @@ export function EmployeeForm({
   const watchedEthnicity = watch("ethnicity")
   const watchedStatus = watch("status")
   const watchedCadre = watch("cadre")
+  const watchedStationName = watch("stationName")
+  const watchedHasSpecialNeeds = watch("hasSpecialNeeds")
+  const { toast } = useToast();
 
   // Kenyan counties list (47)
-  const counties = [
-    "Mombasa","Kwale","Kilifi","Tana River","Lamu","Taita-Taveta",
-    "Garissa","Wajir","Mandera","Marsabit","Isiolo","Meru","Tharaka-Nithi",
-    "Embu","Kitui","Machakos","Makueni","Nyandarua","Nyeri","Kirinyaga",
-    "Murang'a","Kiambu","Turkana","West Pokot","Samburu","Trans Nzoia",
-    "Uasin Gishu","Elgeyo-Marakwet","Nandi","Baringo","Laikipia","Nakuru",
-    "Narok","Kajiado","Kericho","Bomet","Kakamega","Vihiga","Bungoma",
-    "Busia","Siaya","Kisumu","Homa Bay","Migori","Kisii","Nyamira",
-    "Nairobi"
-  ]
+  const counties = KENYA_COUNTIES
+
+  // Basic county -> subcounty mapping (expandable). Used by Home subcounty select.
+  const subcountyMap: Record<string, string[]> = KENYA_SUBCOUNTIES
 
   // Phone dial code selection - default to Kenya (+254) regardless of current phone value
   const [phoneDial, setPhoneDial] = React.useState<string>("+254")
 
   const handleSave = (data: EmployeeFormData) => {
+    // Normalize Next of Kin phone to E.164 (+254...) if entered in local format
+    const normalizeKinPhone = (raw?: string) => {
+      if (!raw) return raw
+      const s = String(raw).replace(/\s+/g, '')
+      if (/^\+[1-9]\d{6,14}$/.test(s)) return s
+      const m = s.match(/^(?:\+?254|0)?(7\d{8}|1\d{8})$/)
+      if (m) return `+254${m[1]}`
+      return s
+    }
+    if ((data as any).nextOfKinPhone) {
+      ;(data as any).nextOfKinPhone = normalizeKinPhone((data as any).nextOfKinPhone)
+    }
     // Required validations for system-selected fields
     if (!data.position) {
       setError("position", { type: "required", message: "Position is required" });
@@ -108,11 +136,17 @@ export function EmployeeForm({
       setError("stationName", { type: "required", message: "Station is required" });
       return;
     }
-    // Enforce mapping: email must exist in system users (created by Admin)
+    // If Home County selected, require Home Subcounty
+    if (data.homeCounty && !data.homeSubcounty) {
+      setError("homeSubcounty" as any, { type: "required", message: "Select a Home Subcounty" } as any);
+      return;
+    }
+    // Enforce mapping: email should ideally exist in system users (created by Admin)
     const u = findByEmail(data.email || '')
     if (!u) {
-      alert('No matching user account found for this email. Please ensure Admin has created the user first.');
-      return;
+      // Don't block save outright — confirm with the user so the form doesn't appear to do nothing
+      const proceed = window.confirm('No matching user account was found for this email. It is recommended to create the user account first, but do you want to create the employee anyway?');
+      if (!proceed) return;
     }
     // If a managerId was chosen, set the manager name from employees or users list
     if (data.managerId) {
@@ -120,9 +154,32 @@ export function EmployeeForm({
       const managerUser = users.find(u => u.id === data.managerId || u.email === data.managerId)
       if (managerUser && managerUser.name) (data as any).manager = managerUser.name
     }
-    onSave(data)
+    // Construct full name
+    const fullName = [data.firstName, data.middleName, data.surname].filter(Boolean).join(' ')
+    onSave({ ...data, name: fullName })
     if (mode === "add") reset() // only reset on add
   }
+
+  // When validation errors change, scroll to first error and show a toast summary
+  React.useEffect(() => {
+    const errKeys = Object.keys(errors || {});
+    if (errKeys.length === 0) return;
+    // find first field element and scroll into view
+    const first = errKeys[0];
+    const el = document.querySelector(`#${first}`) as HTMLElement | null;
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.focus?.();
+    }
+
+    // build a compact message
+    const msgs = errKeys.map(k => {
+      const m = (errors as any)[k]?.message;
+      return m ? `${k}: ${m}` : k;
+    }).slice(0,5).join('\n');
+
+    toast({ title: 'Fix form errors', description: msgs });
+  }, [errors]);
 
   // Initialize managerQuery from defaultValues (managerId or manager name)
   React.useEffect(() => {
@@ -142,13 +199,30 @@ export function EmployeeForm({
       <form onSubmit={handleSubmit(handleSave)} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Personal Information */}
-          <div className="space-y-4">
+          <div className="space-y-4 rounded-lg border p-4">
             <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
             
             <div>
-              <Label htmlFor="name">Full Name *</Label>
-              <Input id="name" {...register("name", { required: "Name is required" })} />
-              {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
+              <Label htmlFor="employeeNumber">Employee Number *</Label>
+              <Input id="employeeNumber" {...register("employeeNumber", { required: "Employee Number is required" })} />
+              {errors.employeeNumber && <p className="text-destructive text-sm">{errors.employeeNumber.message}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <Label htmlFor="firstName">First Name *</Label>
+                <Input id="firstName" {...register("firstName", { required: "First name is required" })} />
+                {errors.firstName && <p className="text-destructive text-sm">{errors.firstName.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor="middleName">Middle Name</Label>
+                <Input id="middleName" {...register("middleName")} />
+              </div>
+              <div>
+                <Label htmlFor="surname">Surname *</Label>
+                <Input id="surname" {...register("surname", { required: "Surname is required" })} />
+                {errors.surname && <p className="text-destructive text-sm">{errors.surname.message}</p>}
+              </div>
             </div>
 
             <div>
@@ -244,9 +318,24 @@ export function EmployeeForm({
                   <SelectValue placeholder="Select ethnicity" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ethnicities.map((e) => (
-                    <SelectItem key={e} value={e}>{e}</SelectItem>
-                  ))}
+                    {ethnicities.map((e) => (
+                      <SelectItem key={e.value} value={e.value}>{e.value}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="maritalStatus">Marital Status</Label>
+              <Select value={watch('maritalStatus') as any} onValueChange={(value: any) => setValue('maritalStatus', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="single">Single</SelectItem>
+                  <SelectItem value="married">Married</SelectItem>
+                  <SelectItem value="divorced">Divorced</SelectItem>
+                  <SelectItem value="widowed">Widowed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -255,12 +344,6 @@ export function EmployeeForm({
               <Label htmlFor="dateOfBirth">Date of Birth *</Label>
               <Input id="dateOfBirth" type="date" {...register("dateOfBirth", { required: "Date of birth is required" })} />
               {errors.dateOfBirth && <p className="text-destructive text-sm">{errors.dateOfBirth.message}</p>}
-            </div>
-
-            <div>
-              <Label htmlFor="employeeNumber">Employee Number *</Label>
-              <Input id="employeeNumber" {...register("employeeNumber", { required: "Employee Number is required" })} />
-              {errors as any && (errors as any).employeeNumber && <p className="text-destructive text-sm">{(errors as any).employeeNumber.message as any}</p>}
             </div>
 
             <div>
@@ -278,14 +361,67 @@ export function EmployeeForm({
               <Input id="children" type="number" {...register("children")} />
             </div>
 
+            {/* Emergency Contact removed; using Next of Kin section instead */}
+
+            {/* Home address details moved under Personal Information */}
             <div>
-              <Label htmlFor="emergencyContact">Emergency Contact</Label>
-              <Input id="emergencyContact" {...register("emergencyContact")} />
+              <Label htmlFor="homeCounty">Home County</Label>
+              <Select value={watch("homeCounty")} onValueChange={(value) => setValue("homeCounty", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select county" />
+                </SelectTrigger>
+                <SelectContent>
+                  {counties.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Home Subcounty dropdown dependent on Home County */}
+            {(() => {
+              const county = watch('homeCounty') || ''
+              const subcounty = watch('homeSubcounty')
+              const list = subcountyMap[county] || []
+              const disabled = !county
+              
+              // If the form is in edit mode and a subcounty is set,
+              // but it's not in the list for the selected county, add it to the list.
+              // This handles the initial load where the list might not be ready yet.
+              if (mode === 'edit' && subcounty && !list.includes(subcounty)) {
+                list.push(subcounty);
+              }
+
+              return (
+                <div>
+                  <Label htmlFor="homeSubcounty">Home Subcounty</Label>
+                  <Select value={subcounty || ''} onValueChange={(v) => setValue('homeSubcounty', v)}>
+                    <SelectTrigger disabled={disabled}>
+                      <SelectValue placeholder={disabled ? 'Select county first' : 'Select subcounty'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {list.map(sc => (<SelectItem key={sc} value={sc}>{sc}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">{disabled ? 'Select Home County to enable subcounty list' : 'Choose the subcounty where the employee resides'}</p>
+                  {(errors as any).homeSubcounty && <p className="text-destructive text-sm">{(errors as any).homeSubcounty?.message}</p>}
+                </div>
+              )
+            })()}
+
+            <div>
+              <Label htmlFor="postalAddress">Postal Address</Label>
+              <Input id="postalAddress" {...register("postalAddress")} />
+            </div>
+
+            <div>
+              <Label htmlFor="postalCode">Postal Code</Label>
+              <Input id="postalCode" {...register("postalCode")} />
             </div>
           </div>
 
           {/* Employment Information */}
-          <div className="space-y-4">
+          <div className="space-y-4 rounded-lg border p-4">
             <h3 className="text-lg font-semibold mb-4">Employment Information</h3>
 
             <div>
@@ -313,7 +449,7 @@ export function EmployeeForm({
                   <SelectValue placeholder="Select position" />
                 </SelectTrigger>
                 <SelectContent>
-                  {designations.map((d) => (
+                  {designationOptions.map((d) => (
                     <SelectItem key={d} value={d}>{d}</SelectItem>
                   ))}
                 </SelectContent>
@@ -321,13 +457,7 @@ export function EmployeeForm({
               {errors.position && <p className="text-destructive text-sm">{errors.position.message}</p>}
             </div>
 
-            <div>
-              <Label htmlFor="isManager">Is Manager</Label>
-              <div className="mt-1">
-                <input type="checkbox" id="isManager" {...register('isManager')} />
-                <span className="ml-2 text-sm text-muted-foreground">Toggle if this employee is a manager (allows assigning reports to them).</span>
-              </div>
-            </div>
+            {/* Role selection removed: Admin assigns roles when creating users */}
 
             <div>
               <Label htmlFor="managerId">Manager</Label>
@@ -339,7 +469,6 @@ export function EmployeeForm({
                   value={managerQuery}
                   onChange={(e) => setManagerQuery(e.target.value)}
                   onBlur={() => {
-                    // Try to resolve managerQuery to a user and set managerId
                     const q = managerQuery.trim().toLowerCase();
                     if (!q) return;
                     const userMatch = users.find(u => (u.email && u.email.toLowerCase() === q) || (u.name && u.name.toLowerCase() === q));
@@ -364,7 +493,7 @@ export function EmployeeForm({
                       <div className="text-xs text-muted-foreground">Choose from registered managers</div>
                     </div>
                     <SelectItem value="__none">— None —</SelectItem>
-                    {users.filter(u => u.role === 'manager').map(u => (
+                    {users.filter(u => u.role === 'manager' || u.role === 'hr_manager').map(u => (
                       <SelectItem key={u.id} value={u.id}>{u.name || u.email}</SelectItem>
                     ))}
                   </SelectContent>
@@ -373,21 +502,21 @@ export function EmployeeForm({
             </div>
 
             <div>
-              <Label htmlFor="department">Department (Work Station) *</Label>
+              <Label htmlFor="stationName">Work Station *</Label>
               <Select
-                value={watch("department")}
-                onValueChange={(value) => setValue("department", value, { shouldValidate: true })}
+                value={watchedStationName}
+                onValueChange={(value) => setValue("stationName", value, { shouldValidate: true })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Work Station" />
                 </SelectTrigger>
                 <SelectContent>
-                  {stations.map((s) => (
+                  {stationNames.map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {errors.department && <p className="text-destructive text-sm">{errors.department.message}</p>}
+              {errors.stationName && <p className="text-destructive text-sm">{errors.stationName.message}</p>}
             </div>
 
             <div>
@@ -397,7 +526,7 @@ export function EmployeeForm({
                   <SelectValue placeholder="Select employment type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {engagementTypes.map((t) => (
+                  {engagementOptions.map((t) => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
                   ))}
                 </SelectContent>
@@ -412,8 +541,22 @@ export function EmployeeForm({
                   <SelectValue placeholder="Select job group" />
                 </SelectTrigger>
                 <SelectContent>
-                  {jobGroups.map((g) => (
+                  {jobGroupOptions.map((g) => (
                     <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="workCounty">Work County</Label>
+              <Select value={watch("workCounty")} onValueChange={(value) => setValue("workCounty", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select county" />
+                </SelectTrigger>
+                <SelectContent>
+                  {counties.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -435,7 +578,7 @@ export function EmployeeForm({
 
             <div>
               <Label htmlFor="status">Status *</Label>
-              <Select value={watchedStatus} onValueChange={(value: 'active' | 'inactive' | 'terminated') => setValue("status", value)}>
+              <Select value={watchedStatus} onValueChange={(value: 'active' | 'inactive' | 'terminated' | 'retired') => setValue("status", value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -443,6 +586,7 @@ export function EmployeeForm({
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                   <SelectItem value="terminated">Terminated</SelectItem>
+                  <SelectItem value="retired">Retired</SelectItem>
                 </SelectContent>
               </Select>
               {errors.status && <p className="text-destructive text-sm">{errors.status.message}</p>}
@@ -464,7 +608,7 @@ export function EmployeeForm({
                   <SelectValue placeholder="Select skill level" />
                 </SelectTrigger>
                 <SelectContent>
-                  {skillLevels.map((s) => (
+                  {skillLevelOptions.map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>
@@ -474,44 +618,68 @@ export function EmployeeForm({
           </div>
         </div>
 
-        {/* Address Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-          <div>
-            <Label htmlFor="workCounty">Work County</Label>
-            <Select value={watch("workCounty")} onValueChange={(value) => setValue("workCounty", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select county" />
-              </SelectTrigger>
-              <SelectContent>
-                {counties.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Address Information section removed; fields relocated above */}
 
-          <div>
-            <Label htmlFor="homeCounty">Home County</Label>
-            <Select value={watch("homeCounty")} onValueChange={(value) => setValue("homeCounty", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select county" />
-              </SelectTrigger>
-              <SelectContent>
-                {counties.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+  {/* Next of Kin */}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg border p-4">
+          <div className="md:col-span-2">
+            <h3 className="text-lg font-semibold mb-2">Next of Kin</h3>
+            <p className="text-sm text-muted-foreground mb-3">Provide details for the person to contact in case of emergency.</p>
           </div>
-
           <div>
-            <Label htmlFor="postalAddress">Postal Address</Label>
-            <Input id="postalAddress" {...register("postalAddress")} />
+            <Label htmlFor="nextOfKinName">Full Name</Label>
+            <Input id="nextOfKinName" {...register('nextOfKinName')} />
           </div>
-
           <div>
-            <Label htmlFor="postalCode">Postal Code</Label>
-            <Input id="postalCode" {...register("postalCode")} />
+            <Label htmlFor="nextOfKinRelationship">Relationship</Label>
+            <Input id="nextOfKinRelationship" placeholder="e.g., Spouse, Parent, Sibling" {...register('nextOfKinRelationship')} />
+          </div>
+          <div>
+            <Label htmlFor="nextOfKinPhone">Phone</Label>
+            <Input id="nextOfKinPhone" placeholder="e.g., +2547XXXXXXXX or 07XXXXXXXX" {...register('nextOfKinPhone', {
+              validate: (v) => {
+                if (!v) return true
+                const s = String(v).replace(/\s+/g, '')
+                const e164 = /^\+[1-9]\d{6,14}$/
+                const keLocal = /^(?:\+?254|0)?(7\d{8}|1\d{8})$/
+                return (e164.test(s) || keLocal.test(s)) || 'Enter a valid phone (e.g., +2547XXXXXXXX or 07XXXXXXXX)'
+              }
+            })} />
+            {(errors as any).nextOfKinPhone && <p className="text-destructive text-sm">{(errors as any).nextOfKinPhone?.message}</p>}
+          </div>
+          <div>
+            <Label htmlFor="nextOfKinEmail">Email</Label>
+            <Input id="nextOfKinEmail" type="email" placeholder="name@example.com" {...register('nextOfKinEmail', {
+              validate: (v) => {
+                if (!v) return true
+                const email = /[^\s@]+@[^\s@]+\.[^\s@]+/
+                return email.test(v) || 'Enter a valid email address'
+              }
+            })} />
+            {(errors as any).nextOfKinEmail && <p className="text-destructive text-sm">{(errors as any).nextOfKinEmail?.message}</p>}
+          </div>
+        </div>
+
+  {/* Special Needs */}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg border p-4">
+          <div className="md:col-span-2">
+            <h3 className="text-lg font-semibold mb-2">Special Needs</h3>
+            <p className="text-sm text-muted-foreground mb-3">Indicate if the employee has any special needs for accommodation.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="hasSpecialNeeds" {...register('hasSpecialNeeds')} />
+            <Label htmlFor="hasSpecialNeeds">Employee has special needs</Label>
+          </div>
+          <div className="md:col-span-2">
+            <Label htmlFor="specialNeedsDescription">Details</Label>
+            <Textarea id="specialNeedsDescription" rows={3} placeholder="Specify the nature of special needs or required accommodations" {...register('specialNeedsDescription', {
+              validate: (v) => {
+                const has = watchedHasSpecialNeeds;
+                if (has && !v) return 'Please describe the special needs.'
+                return true
+              }
+            })} />
+            {(errors as any).specialNeedsDescription && (<p className="text-destructive text-sm">{(errors as any).specialNeedsDescription?.message}</p>)}
           </div>
         </div>
 

@@ -1,4 +1,5 @@
-import { mockPerformanceTemplates, mockPerformanceReviews } from '@/data/mockData';
+// seeds removed: use backend API or localStorage
+import api from '@/lib/api';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -107,10 +108,31 @@ export const PerformanceProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { user } = useAuth();
-  const [templates, setTemplates] = useState<PerformanceTemplate[]>(
-    mockPerformanceTemplates
-  );
-  const [reviews, setReviews] = useState<PerformanceReview[]>(mockPerformanceReviews);
+  const [templates, setTemplates] = useState<PerformanceTemplate[]>(() => {
+    try { const raw = localStorage.getItem(STORAGE_KEY_TEMPLATES); if (raw) return JSON.parse(raw) as PerformanceTemplate[]; } catch {}
+    return [];
+  });
+  const [reviews, setReviews] = useState<PerformanceReview[]>(() => {
+    try { const raw = localStorage.getItem(STORAGE_KEY_REVIEWS); if (raw) return JSON.parse(raw) as PerformanceReview[]; } catch {}
+    return [];
+  });
+
+  // Load templates and reviews from backend on mount
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const t = await api.get('/api/performance/templates');
+        const r = await api.get('/api/performance/reviews');
+        if (!mounted) return;
+        if (Array.isArray(t)) setTemplates(t as PerformanceTemplate[]);
+        if (Array.isArray(r)) setReviews(r as PerformanceReview[]);
+      } catch (err) {
+        // fall back to mock
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_TEMPLATES, JSON.stringify(templates));
@@ -124,28 +146,49 @@ export const PerformanceProvider: React.FC<{ children: React.ReactNode }> = ({
     template: Omit<PerformanceTemplate, 'id' | 'createdAt'>
   ) => {
     if (!user) return;
-    const newTemplate: PerformanceTemplate = {
-      ...template,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
-    setTemplates((prev) => [newTemplate, ...prev]);
+    (async () => {
+      try {
+        const payload = { ...template, createdBy: user.name, createdAt: new Date().toISOString() };
+        const created = await api.post('/api/performance/templates', payload);
+        setTemplates(prev => [created as PerformanceTemplate, ...prev]);
+      } catch (err) {
+        const newTemplate: PerformanceTemplate = {
+          ...template,
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+        };
+        setTemplates((prev) => [newTemplate, ...prev]);
+      }
+    })();
   };
 
   const createReview = (review: Omit<PerformanceReview, 'id' | 'createdAt'>) => {
     if (!user) return;
-    const newReview: PerformanceReview = {
-      ...review,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
-    setReviews((prev) => [newReview, ...prev]);
+    (async () => {
+      try {
+        const payload = { ...review, createdBy: user.name, createdAt: new Date().toISOString() };
+        const created = await api.post('/api/performance/reviews', payload);
+        setReviews(prev => [created as PerformanceReview, ...prev]);
+      } catch (err) {
+        const newReview: PerformanceReview = {
+          ...review,
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+        };
+        setReviews((prev) => [newReview, ...prev]);
+      }
+    })();
   };
 
   const updateReview = (id: string, updates: Partial<PerformanceReview>) => {
-    setReviews((prev) =>
-      prev.map((review) => (review.id === id ? { ...review, ...updates } : review))
-    );
+    (async () => {
+      try {
+        const updated = await api.put(`/api/performance/reviews/${id}`, updates);
+        setReviews(prev => prev.map(r => (r.id === id ? { ...r, ...(updated as Partial<PerformanceReview>) } : r)));
+      } catch (err) {
+        setReviews((prev) => prev.map((review) => (review.id === id ? { ...review, ...updates } : review)));
+      }
+    })();
   };
 
   const setEmployeeTargets = (

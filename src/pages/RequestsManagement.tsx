@@ -15,7 +15,7 @@ const RequestsManagementPage: React.FC = () => {
   const { user } = useAuth();
   const { listAllRequests, approveRequest, rejectRequest, getFileByEmployeeId } = useFileTracking();
   const { employees } = useEmployees();
-  const { stations } = useSystemCatalog();
+  const { stations, stationNames } = useSystemCatalog();
 
   const [search, setSearch] = useState('');
   const [approveModal, setApproveModal] = useState<{ open: boolean; requestId?: string; toLocation: string; comment: string }>({ open: false, toLocation: '', comment: '' });
@@ -68,7 +68,7 @@ const RequestsManagementPage: React.FC = () => {
     });
     return Array.from(set);
   }, [employees]);
-  const LOCATIONS = managerStations.length > 0 ? managerStations : (stations.length > 0 ? stations : ['Registry Office']);
+  const LOCATIONS = managerStations.length > 0 ? managerStations : (stationNames.length > 0 ? stationNames : ['Registry Office']);
 
   return (
     <div className="space-y-6">

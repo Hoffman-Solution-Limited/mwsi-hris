@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import CatalogEditDialog from "@/components/ui/CatalogEditDialog"
-import { mockEmployees } from "@/data/mockData"
 import { useSystemCatalog } from "@/contexts/SystemCatalogContext"
 import { useEmployees } from "@/contexts/EmployeesContext"
 
@@ -24,12 +23,12 @@ export const SkillsPage: React.FC = () => {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editingSkill, setEditingSkill] = useState<string | null>(null)
   const { skillLevels, addSkillLevel, editSkillLevel, deactivateSkillLevel, reactivateSkillLevel, removeSkillLevel } = useSystemCatalog()
-  const { renameSkillLevelAcrossEmployees } = useEmployees()
+  const { renameSkillLevelAcrossEmployees, employees } = useEmployees()
 
   // 🔹 Build list with counts from mock employees for display
   const allSkills: Skill[] = useMemo(() => {
     const counts: Record<string, number> = {}
-    mockEmployees.forEach((emp) => {
+    employees.forEach((emp) => {
       const level = emp.skillLevel || "Unassigned"
       counts[level] = (counts[level] || 0) + 1
     })
@@ -39,7 +38,7 @@ export const SkillsPage: React.FC = () => {
       employeeCount: counts[item.value] || 0,
       active: item.active,
     }))
-  }, [skillLevels])
+  }, [skillLevels, employees])
 
   // 🔹 Filter by search
   const filteredSkills = allSkills.filter((s) =>

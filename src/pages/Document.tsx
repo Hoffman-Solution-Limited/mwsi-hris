@@ -1,3 +1,5 @@
+import { useSystemCatalog } from '@/contexts/SystemCatalogContext';
+import { getWorkStation } from '@/lib/utils';
 import React, { useMemo, useState } from 'react';
 import { useFileTracking } from '@/contexts/FileTrackingContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
@@ -11,13 +13,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSystemCatalog } from '@/contexts/SystemCatalogContext';
 
 const DocumentTrackingPage: React.FC = () => {
   const { user } = useAuth();
   const { files, getFileByEmployeeId, moveFile, requestFile, listAllRequests, rejectRequest, approveRequest } = useFileTracking();
   const { employees } = useEmployees();
-  const { stations } = useSystemCatalog();
+  const { stations, stationNames, departmentNames } = useSystemCatalog();
   const [employeeFilter, setEmployeeFilter] = useState('');
   const [moveModal, setMoveModal] = useState<{ open: boolean; employeeId?: string; toLocation: string; assigneeId: string; assigneeName: string; remarks: string }>({ open: false, toLocation: '', assigneeId: '', assigneeName: '', remarks: '' });
   const [assigneeQuery, setAssigneeQuery] = useState('');
@@ -68,7 +69,8 @@ const DocumentTrackingPage: React.FC = () => {
     });
     return Array.from(set);
   }, [employees]);
-  const LOCATIONS = managerStations.length > 0 ? managerStations : (stations.length > 0 ? stations : ['Registry Office']);
+  // Prefer managerStations, else use station names (departments), else fallback
+  const LOCATIONS = managerStations.length > 0 ? managerStations : (stationNames.length > 0 ? stationNames : ['Registry Office']);
 
   const assigneeOptions = useMemo(() => {
     const base = employees.filter(e => /manager/i.test(e.position || '') || /hr/i.test(e.department || '') || /hr/i.test(e.position || ''));
@@ -98,7 +100,7 @@ const DocumentTrackingPage: React.FC = () => {
                 {filteredEmployees.map(emp => (
                   <div key={emp.id} className="p-2 border rounded hover:bg-muted cursor-pointer" onClick={() => setEmployeeFilter(emp.id)}>
                     <div className="font-medium">{emp.name}</div>
-                    <div className="text-xs text-muted-foreground">ID: {emp.id} • Employee No: {emp.employeeNumber || '—'} • {emp.department}</div>
+                    <div className="text-xs text-muted-foreground">ID: {emp.id} • Employee No: {emp.employeeNumber || '\u2014'} • {getWorkStation(emp)}</div>
                   </div>
                 ))}
                 {filteredEmployees.length === 0 && (

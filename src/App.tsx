@@ -19,6 +19,7 @@ import { SystemLogsProvider } from "@/contexts/SystemLogsContext";
 import { EmployeesProvider } from "@/contexts/EmployeesContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { FileTrackingProvider } from "@/contexts/FileTrackingContext";
+import { DisciplinaryProvider } from '@/contexts/DisciplinaryContext';
 import { LoginPage } from "@/components/auth/LoginPage";
 import { Layout } from "@/components/layout/Layout";
 import { Dashboard } from "@/pages/Dashboard";
@@ -90,11 +91,12 @@ const App = () => (
                   <RolesProvider>
                   <SystemCatalogProvider>
                     <EmployeesProvider>
+                    <DisciplinaryProvider>
                     <FileTrackingProvider>
                       <TooltipProvider>
                         <Toaster />
                         <Sonner />
-                        <BrowserRouter>
+                        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                           <Routes>
                           <Route path="/login" element={<LoginPage />} />
                           <Route path="/apply-leave" element={<ProtectedRoute><ApplyLeave /></ProtectedRoute>} />
@@ -147,6 +149,7 @@ const App = () => (
                         </BrowserRouter>
                       </TooltipProvider>
                     </FileTrackingProvider>
+                    </DisciplinaryProvider>
                     </EmployeesProvider>
                   </SystemCatalogProvider>
                   </RolesProvider>

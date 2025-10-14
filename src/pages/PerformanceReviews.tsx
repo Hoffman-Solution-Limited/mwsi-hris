@@ -12,11 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { mockEmployees } from '@/data/mockData';
 import { TemplateCriteriaList } from '@/components/performance/TemplateCriteriaList';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePerformance, PerformanceTemplate, PerformanceReview } from '@/contexts/PerformanceContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
+import { getWorkStation } from '@/lib/utils';
 
 export const PerformanceReviews: React.FC = () => {
   const navigate = useNavigate();
@@ -59,10 +59,10 @@ export const PerformanceReviews: React.FC = () => {
   const teamAppraisals = useMemo(() => {
     if (!user || user.role !== 'manager') return [];
     return reviews.filter(review => {
-      const employee = mockEmployees.find(emp => emp.id === review.employeeId);
-  return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
+      const employee = employees.find(emp => emp.id === review.employeeId);
+      return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
     });
-  }, [reviews, user]);
+  }, [reviews, user, employees]);
 
   // Use reviews for filtering instead of baseReviews
   const filteredReviews = reviews.filter(review => {
@@ -143,9 +143,9 @@ export const PerformanceReviews: React.FC = () => {
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [deadlineDate, setDeadlineDate] = useState('');
   // HR Assign: department selection to auto-select employees
-  const departments = useMemo(() => Array.from(new Set(employees.map(e => e.department))), [employees]);
+  const departments = useMemo(() => Array.from(new Set(employees.map(e => getWorkStation(e)))), [employees]);
   const [assignDepartment, setAssignDepartment] = useState<string>('all');
-  const employeesByDept = useMemo(() => assignDepartment === 'all' ? employees : employees.filter(e => e.department === assignDepartment), [employees, assignDepartment]);
+  const employeesByDept = useMemo(() => assignDepartment === 'all' ? employees : employees.filter(e => getWorkStation(e) === assignDepartment), [employees, assignDepartment]);
   // Filter templates by department for assignment; allow global (no department) templates when a department is chosen
   const filteredTemplates = useMemo(() => {
     if (assignDepartment === 'all') return templates;
@@ -175,7 +175,7 @@ export const PerformanceReviews: React.FC = () => {
     if (employeeIds.length === 0) return;
 
     employeeIds.forEach(empId => {
-      const employee = employees.find(emp => emp.id === empId) || mockEmployees.find(emp => emp.id === empId);
+      const employee = employees.find(emp => emp.id === empId);
       if (!employee) return;
       createReview({
         employeeId: empId,
@@ -457,7 +457,7 @@ const handleSubmitToManager = () => {
                           <SelectValue placeholder="Select employee" />
                         </SelectTrigger>
                         <SelectContent>
-                          {mockEmployees.map(emp => (
+                          {employees.map(emp => (
                             <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -754,7 +754,7 @@ const handleSubmitToManager = () => {
                       return da - db;
                     })
                     .map((review) => {
-                    const employee = mockEmployees.find(emp => emp.id.toString() === review.employeeId);
+                    const employee = employees.find(emp => emp.id.toString() === review.employeeId);
                     const template = templates.find(t => t.id === review.templateId);
                     const days = getDaysUntil(review.deadlineDate);
                     const dueBadgeClass = days === undefined
@@ -908,7 +908,7 @@ const handleSubmitToManager = () => {
               ) : (
                 teamAppraisals.filter(r => r.status === 'manager_review').map((review) => {
                   const template = templates.find(t => t.id === review.templateId);
-                  const employee = mockEmployees.find(emp => emp.id === review.employeeId);
+                  const employee = employees.find(emp => emp.id === review.employeeId);
                   return (
                     <Card key={review.id} className="border-l-4 border-l-yellow-500">
                       <CardHeader>
@@ -1499,7 +1499,7 @@ const handleSubmitToManager = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {reviews.filter(r => r.status === 'targets_set').map((review) => {
-                      const employee = mockEmployees.find(emp => emp.id === review.employeeId);
+                      const employee = employees.find(emp => emp.id === review.employeeId);
                       return (
                         <div key={review.id} className="p-4 border rounded-lg">
                           <div className="flex justify-between items-start">
@@ -1528,7 +1528,7 @@ const handleSubmitToManager = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {reviews.filter(r => r.status === 'manager_review').map((review) => {
-                      const employee = mockEmployees.find(emp => emp.id === review.employeeId);
+                      const employee = employees.find(emp => emp.id === review.employeeId);
                       return (
                         <div key={review.id} className="p-4 border rounded-lg">
                           <div className="flex justify-between items-start">

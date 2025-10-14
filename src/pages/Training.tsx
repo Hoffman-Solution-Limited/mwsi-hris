@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockTrainingRecords, mockEmployees } from '@/data/mockData';
+// Training page uses contexts (useTraining, useEmployees) — no mockData dependency
+import { useEmployees } from '@/contexts/EmployeesContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { mapRole } from '@/lib/roles';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -15,8 +16,8 @@ import { useTraining } from '@/contexts/TrainingContext';
 
 export const Training: React.FC = () => {
   const { user } = useAuth();
-  const { trainings, startTraining, completeTraining } = useTraining();
-  const { editTraining, closeTraining, archiveTraining } = useTraining();
+  const { trainings, startTraining, completeTraining, createTraining, editTraining, closeTraining, archiveTraining } = useTraining();
+  const [isAssigning, setIsAssigning] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [completeOpen, setCompleteOpen] = useState(false);
@@ -33,13 +34,13 @@ export const Training: React.FC = () => {
   const [editExpiryDate, setEditExpiryDate] = useState<string | undefined>(undefined);
   const [editType, setEditType] = useState<'mandatory' | 'development' | 'compliance'>('development');
 
-  // Source of truth for training records (context first, then mock)
-  const source = useMemo(() => (trainings.length ? trainings : mockTrainingRecords), [trainings]);
+  // Source of truth for training records (context)
+  const source = useMemo(() => trainings, [trainings]);
 
   // Records shown in the main records table (for employees/managers show only their records,
   // for HR and others show all records)
   const filteredRecords = useMemo(() => {
-    if (!user) return [] as typeof mockTrainingRecords;
+    if (!user) return [] as typeof trainings;
     const canonical = mapRole(user.role);
     if (canonical === 'employee' || canonical === 'manager') {
       return source.filter(tr => tr.employeeId === user.id);
@@ -50,7 +51,7 @@ export const Training: React.FC = () => {
 
   // Trainings that belong to the currently logged-in user (used for 'My Trainings')
   const myTrainings = useMemo(() => {
-    if (!user) return [] as typeof mockTrainingRecords;
+    if (!user) return [] as typeof trainings;
     return source.filter(tr => tr.employeeId === user.id);
   }, [user, source]);
 
@@ -60,19 +61,29 @@ export const Training: React.FC = () => {
   const closedTrainings = filteredRecords.filter(tr => tr.status === 'closed');
   const archivedTrainings = trainings.filter(tr => tr.archived);
 
-  // Function to handle employee assignment
-  const handleAssignTraining = () => {
+  // Function to handle employee assignment and persist training records
+  const handleAssignTraining = async () => {
     if (!selectedProgram || selectedEmployees.length === 0) return;
-    
-    selectedEmployees.forEach(employeeId => {
-      // In a real app, this would call an API to create training records
-      console.log(`Assigned training ${selectedProgram.title} to employee ${employeeId}`);
-    });
-    
-    // Reset state
-    setAssignDialogOpen(false);
-    setSelectedProgram(null);
-    setSelectedEmployees([]);
+    setIsAssigning(true);
+    try {
+      for (const employeeId of selectedEmployees) {
+        // TrainingContext#createTraining will try the API and fall back to local storage.
+        await createTraining({
+          employeeId,
+          title: selectedProgram.title,
+          type: selectedProgram.type,
+          provider: selectedProgram.provider,
+          status: 'not_started'
+        });
+      }
+    } catch (err) {
+      console.error('Error assigning trainings', err);
+    } finally {
+      setIsAssigning(false);
+      setAssignDialogOpen(false);
+      setSelectedProgram(null);
+      setSelectedEmployees([]);
+    }
   };
 
   // Admin actions: edit and close
@@ -102,10 +113,11 @@ export const Training: React.FC = () => {
     setSelectedTrainingId(null);
   };
 
+  const { employees } = useEmployees();
   const handleSelectAllEmployees = (checked: boolean) => {
     if (checked) {
-      const allEmployeeIds = mockEmployees
-        .filter(emp => !['hr_manager', 'hr_staff'].includes(emp.position.toLowerCase()))
+      const allEmployeeIds = (employees || [])
+        .filter(emp => !/hr_(manager|staff)/i.test(String(emp.position || '').toLowerCase()))
         .map(emp => emp.id);
       setSelectedEmployees(allEmployeeIds);
     } else {
@@ -113,71 +125,51 @@ export const Training: React.FC = () => {
     }
   };
 
-  // Mock training programs
-  const trainingPrograms = [
-    {
-      id: '1',
-      title: 'Cybersecurity Awareness Training',
-      type: 'mandatory',
-      duration: '2 hours',
-      provider: 'CyberSafe Institute',
-      enrolled: 15,
-      completed: 12,
-      expiryMonths: 12,
-      description: 'Essential cybersecurity practices and awareness training for all employees.'
-    },
-    {
-      id: '2',
-      title: 'Leadership Development Program',
-      type: 'development',
-      duration: '40 hours',
-      provider: 'Management Excellence Academy',
-      enrolled: 8,
-      completed: 3,
-      description: 'Comprehensive leadership skills development for managers and senior staff.'
-    },
-    {
-      id: '3',
-      title: 'React Advanced Patterns',
-      type: 'development',
-      duration: '16 hours',
-      provider: 'Tech Learning Hub',
-      enrolled: 5,
-      completed: 4,
-      description: 'Advanced React.js patterns and best practices for developers.'
-    },
-    {
-      id: '4',
-      title: 'Data Protection & GDPR Compliance',
-      type: 'compliance',
-      duration: '3 hours',
-      provider: 'Legal Compliance Corp',
-      enrolled: 20,
-      completed: 18,
-      expiryMonths: 24,
-      description: 'Understanding data protection regulations and compliance requirements.'
-    }
-  ];
+  // Derive available training programs from backend training records.
+  // Collapse records by title and use the first matching record as a template for program metadata.
+  const trainingPrograms = useMemo(() => {
+    const map = new Map<string, any>();
+    trainings.forEach(tr => {
+      const key = tr.title || 'Untitled';
+      if (!map.has(key)) {
+        map.set(key, {
+          id: key,
+          title: key,
+          type: tr.type || 'development',
+          duration: (tr as any).duration || '',
+          provider: tr.provider || '',
+          enrolled: 0,
+          completed: 0,
+          expiryMonths: (tr as any).expiryMonths,
+          description: (tr as any).description || ''
+        });
+      }
+      const prog = map.get(key);
+      prog.enrolled = (prog.enrolled || 0) + 1;
+      if (tr.status === 'completed') prog.completed = (prog.completed || 0) + 1;
+    });
+    return Array.from(map.values());
+  }, [trainings]);
 
   // Mock compliance dashboard
   const complianceData = [
     {
       requirement: 'Cybersecurity Training',
-      totalEmployees: mockEmployees.length,
+      totalEmployees: (employees || []).length,
       compliant: 12,
       expiringSoon: 2,
       overdue: 1
     },
     {
       requirement: 'Data Protection Training',
-      totalEmployees: mockEmployees.length,
+      totalEmployees: (employees || []).length,
       compliant: 18,
       expiringSoon: 0,
       overdue: 0
     },
     {
       requirement: 'Health & Safety Training',
-      totalEmployees: mockEmployees.length,
+      totalEmployees: (employees || []).length,
       compliant: 15,
       expiringSoon: 3,
       overdue: 2
@@ -312,7 +304,7 @@ export const Training: React.FC = () => {
               <CardContent>
                 <div className="space-y-4">
                   {filteredRecords.slice(0, 5).map((training) => {
-                    const employee = mockEmployees.find(emp => emp.id === training.employeeId);
+                    const employee = (employees || []).find(emp => emp.id === training.employeeId);
                     return (
                       <div key={training.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                         <div className="flex items-center gap-3">
@@ -488,8 +480,8 @@ export const Training: React.FC = () => {
             <CardContent>
               <div className="space-y-4">
                 {filteredRecords.map((training) => {
-                  const employee = mockEmployees.find(emp => emp.id === training.employeeId);
-                  return (
+                                  const employee = (employees || []).find(emp => emp.id === training.employeeId);
+                                  return (
                     <div key={training.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 p-2 rounded">
@@ -575,8 +567,8 @@ export const Training: React.FC = () => {
             <CardContent>
               <div className="space-y-4">
                 {myTrainings.map((training) => {
-                  const employee = mockEmployees.find(emp => emp.id === training.employeeId);
-                  return (
+                                  const employee = (employees || []).find(emp => emp.id === training.employeeId);
+                                  return (
                     <div key={training.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 p-2 rounded">
@@ -667,34 +659,34 @@ export const Training: React.FC = () => {
                   <h4 className="font-medium">Select Employees</h4>
                   <div className="flex items-center gap-2">
                     <Checkbox
-                      checked={selectedEmployees.length === mockEmployees.filter(emp => !['hr_manager', 'hr_staff'].includes(emp.position.toLowerCase())).length}
-                      onCheckedChange={handleSelectAllEmployees}
-                    />
-                    <label className="text-sm font-medium">Select All</label>
+                                          checked={selectedEmployees.length === (employees || []).filter(emp => !/hr_(manager|staff)/i.test(String(emp.position || '').toLowerCase())).length}
+                                          onCheckedChange={handleSelectAllEmployees}
+                                        />
+                                        <label className="text-sm font-medium">Select All</label>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto">
-                  {mockEmployees
-                    .filter(emp => !['hr_manager', 'hr_staff'].includes(emp.position.toLowerCase()))
-                    .map((employee) => (
-                    <div key={employee.id} className="flex items-center space-x-3 p-3 border rounded-lg">
-                      <Checkbox
-                        checked={selectedEmployees.includes(employee.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedEmployees(prev => [...prev, employee.id]);
-                          } else {
-                            setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
-                          }
-                        }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{employee.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{employee.position} • {employee.department}</p>
-                      </div>
-                    </div>
-                  ))}
+                  {(employees || [])
+                                      .filter(emp => !/hr_(manager|staff)/i.test(String(emp.position || '').toLowerCase()))
+                                      .map((employee) => (
+                                      <div key={employee.id} className="flex items-center space-x-3 p-3 border rounded-lg">
+                                        <Checkbox
+                                          checked={selectedEmployees.includes(employee.id)}
+                                          onCheckedChange={(checked) => {
+                                            if (checked) {
+                                              setSelectedEmployees(prev => [...prev, employee.id]);
+                                            } else {
+                                              setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
+                                            }
+                                          }}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-medium truncate">{employee.name}</p>
+                                          <p className="text-xs text-muted-foreground truncate">{employee.position} • {employee.stationName || employee.department}</p>
+                                        </div>
+                                      </div>
+                                    ))}
                 </div>
               </div>
               
@@ -715,9 +707,9 @@ export const Training: React.FC = () => {
             </Button>
             <Button 
               onClick={handleAssignTraining}
-              disabled={selectedEmployees.length === 0}
+              disabled={selectedEmployees.length === 0 || isAssigning}
             >
-              Assign Training to {selectedEmployees.length} Employee{selectedEmployees.length !== 1 ? 's' : ''}
+              {isAssigning ? 'Assigning...' : `Assign Training to ${selectedEmployees.length} Employee${selectedEmployees.length !== 1 ? 's' : ''}`}
             </Button>
           </DialogFooter>
         </DialogContent>
