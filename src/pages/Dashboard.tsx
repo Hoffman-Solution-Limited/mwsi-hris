@@ -489,7 +489,7 @@ export const Dashboard: React.FC = () => {
     const recentMovements = files
       .map(f => ({
         employeeId: f.employeeId,
-        last: f.movementHistory[(f.movementHistory?.length || 1) - 1]
+        last: f.movementHistory[(f.movementHistory?.length ? f.movementHistory.length - 1 : 0)]
       }))
       .filter(x => !!x.last)
       .sort((a, b) => new Date(b.last!.timestamp).getTime() - new Date(a.last!.timestamp).getTime())
