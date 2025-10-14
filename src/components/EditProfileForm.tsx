@@ -15,6 +15,8 @@ type ProfileFormData = {
   department: string
   gender?: 'male' | 'female' | 'other'
   employmentType?: string
+  jobGroup?: string
+  ethnicity?: string
   staffNumber?: string
   nationalId?: string
   kraPin?: string
@@ -41,7 +43,7 @@ export function EditProfileForm({ defaultValues, onSave }: {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<ProfileFormData>({
     defaultValues,
   })
-  const { designations, skillLevels, stations } = useSystemCatalog()
+  const { designations, skillLevels, stations, jobGroups, engagementTypes, ethnicities } = useSystemCatalog()
 
   // Kenyan counties list (47)
   const counties = [
@@ -60,6 +62,8 @@ export function EditProfileForm({ defaultValues, onSave }: {
 
   const watchedGender = watch("gender")
   const watchedEmploymentType = watch("employmentType")
+  const watchedJobGroup = watch("jobGroup")
+  const watchedEthnicity = watch("ethnicity")
   const watchedStatus = watch("status")
   const watchedCadre = watch("cadre")
 
@@ -162,6 +166,20 @@ export function EditProfileForm({ defaultValues, onSave }: {
             </div>
 
             <div>
+              <Label htmlFor="ethnicity">Ethnicity</Label>
+              <Select value={watchedEthnicity} onValueChange={(value) => setValue("ethnicity", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select ethnicity" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ethnicities.map((e) => (
+                    <SelectItem key={e} value={e}>{e}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
               <Label htmlFor="dateOfBirth">Date of Birth *</Label>
               <Input id="dateOfBirth" type="date" {...register("dateOfBirth", { required: "Date of birth is required" })} />
               {errors.dateOfBirth && <p className="text-destructive text-sm">{errors.dateOfBirth.message}</p>}
@@ -228,19 +246,33 @@ export function EditProfileForm({ defaultValues, onSave }: {
             </div>
 
             <div>
-              <Label htmlFor="employmentType">Employment Type</Label>
+              <Label htmlFor="employmentType">Engagement Type</Label>
               <Select value={watchedEmploymentType} onValueChange={(value) => setValue("employmentType", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select employment type" />
+                  <SelectValue placeholder="Select engagement type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Permanent">Permanent</SelectItem>
-                  <SelectItem value="Contract">Contract</SelectItem>
-                  <SelectItem value="Temporary">Temporary</SelectItem>
-                  <SelectItem value="Internship">Internship</SelectItem>
+                  {engagementTypes.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+
+            <div>
+              <Label htmlFor="jobGroup">Job Group</Label>
+              <Select value={watchedJobGroup} onValueChange={(value) => setValue("jobGroup", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select job group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {jobGroups.map((g) => (
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
 
             <div>
               <Label htmlFor="staffNumber">Staff Number</Label>

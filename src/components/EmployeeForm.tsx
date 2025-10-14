@@ -16,6 +16,9 @@ export type EmployeeFormData = {
   department: string
   gender?: 'male' | 'female' | 'other'
   employmentType?: string
+  jobGroup?: string
+  engagementType?: string
+  ethnicity?: string
   staffNumber?: string
   nationalId?: string
   kraPin?: string
@@ -44,7 +47,7 @@ export function EmployeeForm({
   onSave: (data: EmployeeFormData) => void
   mode?: "add" | "edit"
 }) {
-  const { designations, skillLevels, stations } = useSystemCatalog()
+  const { designations, skillLevels, stations, jobGroups, engagementTypes, ethnicities } = useSystemCatalog()
   const { findByEmail } = useUsers()
   const {
     register,
@@ -65,6 +68,9 @@ export function EmployeeForm({
 
   const watchedGender = watch("gender")
   const watchedEmploymentType = watch("employmentType")
+  const watchedJobGroup = watch("jobGroup")
+  const watchedEngagementType = watch("engagementType")
+  const watchedEthnicity = watch("ethnicity")
   const watchedStatus = watch("status")
   const watchedCadre = watch("cadre")
 
@@ -79,6 +85,9 @@ export function EmployeeForm({
     "Busia","Siaya","Kisumu","Homa Bay","Migori","Kisii","Nyamira",
     "Nairobi"
   ]
+
+  // Phone dial code selection - default to Kenya (+254) regardless of current phone value
+  const [phoneDial, setPhoneDial] = React.useState<string>("+254")
 
   const handleSave = (data: EmployeeFormData) => {
     // Required validations for system-selected fields
@@ -126,7 +135,67 @@ export function EmployeeForm({
 
             <div>
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" {...register("phone")} />
+              {/* Hidden input holds the composed E.164 value for validation and submission */}
+              <input
+                type="hidden"
+                id="phone"
+                {...register("phone", {
+                  validate: (v) => {
+                    if (!v) return true
+                    const e164 = /^\+[1-9]\d{6,14}$/
+                    return e164.test(v) || "Enter a valid phone in international format"
+                  },
+                })}
+              />
+              {(() => {
+                // Lightweight country list with dial codes and flags
+                const countries = [
+                  { code: 'KE', name: 'Kenya', dial: '+254', flag: '🇰🇪' },
+                  { code: 'UG', name: 'Uganda', dial: '+256', flag: '🇺🇬' },
+                  { code: 'TZ', name: 'Tanzania', dial: '+255', flag: '🇹🇿' },
+                  { code: 'RW', name: 'Rwanda', dial: '+250', flag: '🇷🇼' },
+                  { code: 'SS', name: 'South Sudan', dial: '+211', flag: '🇸🇸' },
+                  { code: 'ET', name: 'Ethiopia', dial: '+251', flag: '🇪🇹' },
+                  { code: 'SO', name: 'Somalia', dial: '+252', flag: '🇸🇴' },
+                  { code: 'BI', name: 'Burundi', dial: '+257', flag: '🇧🇮' },
+                  { code: 'US', name: 'United States', dial: '+1', flag: '🇺🇸' },
+                  { code: 'GB', name: 'United Kingdom', dial: '+44', flag: '🇬🇧' },
+                  { code: 'IN', name: 'India', dial: '+91', flag: '🇮🇳' },
+                ]
+                const raw = watch('phone') || ''
+                const digitsOnly = raw.replace(/\D/g, '')
+                const dialDigits = phoneDial.replace('+','')
+                const local = digitsOnly.startsWith(dialDigits) ? digitsOnly.slice(dialDigits.length) : digitsOnly
+                const setPhone = (dial: string, localDigits: string) => {
+                  const digits = (localDigits || '').replace(/\D/g, '')
+                  setPhoneDial(dial)
+                  setValue('phone', digits ? `${dial}${digits}` : dial, { shouldValidate: true })
+                }
+                return (
+                  <div className="flex gap-2">
+                    <Select value={phoneDial} onValueChange={(dial) => setPhone(dial, local)}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countries.map((c) => (
+                          <SelectItem key={c.code} value={c.dial}>
+                            {c.flag} {c.name} ({c.dial})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="7XXXXXXXX"
+                      value={local}
+                      onChange={(e) => setPhone(phoneDial, e.target.value)}
+                    />
+                  </div>
+                )
+              })()}
+              {errors.phone && <p className="text-destructive text-sm">{errors.phone.message as any}</p>}
             </div>
 
             <div>
@@ -142,6 +211,20 @@ export function EmployeeForm({
                 </SelectContent>
               </Select>
               {errors.gender && <p className="text-destructive text-sm">{errors.gender.message}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="ethnicity">Ethnicity</Label>
+              <Select value={watchedEthnicity} onValueChange={(value) => setValue("ethnicity", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select ethnicity" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ethnicities.map((e) => (
+                    <SelectItem key={e} value={e}>{e}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -221,14 +304,28 @@ export function EmployeeForm({
                   <SelectValue placeholder="Select employment type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Permanent">Permanent</SelectItem>
-                  <SelectItem value="Contract">Contract</SelectItem>
-                  <SelectItem value="Temporary">Temporary</SelectItem>
-                  <SelectItem value="Internship">Internship</SelectItem>
+                  {engagementTypes.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {errors.employmentType && <p className="text-destructive text-sm">{errors.employmentType.message}</p>}
             </div>
+
+            <div>
+              <Label htmlFor="jobGroup">Job Group</Label>
+              <Select value={watchedJobGroup} onValueChange={(value) => setValue("jobGroup", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select job group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {jobGroups.map((g) => (
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
 
             <div>
               <Label htmlFor="staffNumber">Staff Number</Label>
