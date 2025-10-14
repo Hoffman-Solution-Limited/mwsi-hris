@@ -114,19 +114,11 @@ ON CONFLICT DO NOTHING;
 
 -- Performance reviews (core fields)
 -- Use JSONB columns for structured fields to match frontend shapes
-INSERT INTO performance_reviews (id, employee_id, employee_name, employee_number, template_id, review_period, status, employee_self_comments, manager_comments, hr_comments, overall_score, score, goals, feedback, employee_targets, manager_scores, employee_scores, next_review_date, created_by, created_at)
+INSERT INTO performance_reviews (id, employee_id, employee_name, employee_number, template_id, review_period, employee_self_comments, employee_ack_status, employee_ack_comments, employee_ack_date, status, overall_score, score, manager_comments, hr_comments, goals, feedback, employee_targets, manager_scores, employee_scores, next_review_date, created_by, created_at)
 VALUES
-('PR100','10','David Manager','2019031010','template-1','Q2 2025','completed','Strong quarter with successful execution of all operational goals and team engagement initiatives.','Excellent leadership and team management.','Consistently exceeds expectations.',4.7,4.7,ARRAY['Deliver Q2 operational OKRs','Monthly townhalls','Implement 2 process improvements'],'Excellent performance this quarter. Strong technical skills and great team collaboration.',
-	'[{"criteriaId":"c1","target":"Deliver Q2 operational OKRs","description":"Execute quarterly plan"},{"criteriaId":"c2","target":"Monthly townhalls","description":"Improve transparency"},{"criteriaId":"c3","target":"Implement 2 process improvements","description":"Lean practices"}]'::jsonb,
-	'[{"criteriaId":"c1","score":5,"comments":"Exceeded plan delivery"},{"criteriaId":"c2","score":4,"comments":"Clear communication cadence"},{"criteriaId":"c3","score":4,"comments":"Strong improvements"}]'::jsonb,
-	'[{"criteriaId":"c1","score":5,"comments":"Successfully delivered all Q2 OKRs ahead of schedule"},{"criteriaId":"c2","score":4,"comments":"Conducted monthly townhalls with high attendance and engagement"},{"criteriaId":"c3","score":4,"comments":"Implemented 2 major process improvements that increased efficiency"}]'::jsonb,
-	'2025-12-01','HR System','2025-06-30'),
-('PR101','10','David Manager','2019031010','template-1','Q3 2025','draft',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-03-01','HR System','2025-09-01'),
-('1','3','Michael Davis','20221234569','template-1','Q1 2024','completed','Excellent performance this quarter. Strong technical skills and great team collaboration.','Outstanding technical delivery and team leadership.','Approved. Excellent performance across all criteria.',4.5,4.5,ARRAY['Complete React migration project','Mentor junior developers','Improve code review process'],'Excellent performance this quarter. Strong technical skills and great team collaboration.',
-	'[{"criteriaId":"c1","target":"Complete React migration project","description":"Focus on migration tasks."},{"criteriaId":"c2","target":"Mentor junior developers","description":"Weekly mentorship sessions."},{"criteriaId":"c3","target":"Improve code review process","description":"Document and share best practices."}]'::jsonb,
-	'[{"criteriaId":"c1","score":5,"comments":"Migration completed successfully"},{"criteriaId":"c2","score":4,"comments":"Active mentorship observed"},{"criteriaId":"c3","score":4,"comments":"Better review coverage"}]'::jsonb,
-	'[{"criteriaId":"c1","score":5,"comments":"Successfully completed React migration with zero production issues"},{"criteriaId":"c2","score":4,"comments":"Conducted weekly mentorship sessions with 2 junior developers"},{"criteriaId":"c3","score":4,"comments":"Created comprehensive code review guidelines and improved team practices"}]'::jsonb,
-	'2024-06-30','Sarah Johnson','2025-09-01')
+('PR100','10','David Manager','2019031010','template-1','Q2 2025','Strong quarter with successful execution of all operational goals and team engagement initiatives.',NULL,NULL,NULL,'completed',4.7,4.7,'Excellent leadership and team management.','Consistently exceeds expectations.',ARRAY['Deliver Q2 operational OKRs','Monthly townhalls','Implement 2 process improvements'],'Excellent performance this quarter. Strong technical skills and great team collaboration.','[{"criteriaId":"c1","target":"Deliver Q2 operational OKRs","description":"Execute quarterly plan"},{"criteriaId":"c2","target":"Monthly townhalls","description":"Improve transparency"},{"criteriaId":"c3","target":"Implement 2 process improvements","description":"Lean practices"}]'::jsonb,'[{"criteriaId":"c1","score":5,"comments":"Exceeded plan delivery"},{"criteriaId":"c2","score":4,"comments":"Clear communication cadence"},{"criteriaId":"c3","score":4,"comments":"Strong improvements"}]'::jsonb,'[{"criteriaId":"c1","score":5,"comments":"Successfully delivered all Q2 OKRs ahead of schedule"},{"criteriaId":"c2","score":4,"comments":"Conducted monthly townhalls with high attendance and engagement"},{"criteriaId":"c3","score":4,"comments":"Implemented 2 major process improvements that increased efficiency"}]'::jsonb,'2025-12-01','HR System','2025-06-30'),
+('PR101','10','David Manager','2019031010','template-1','Q3 2025',NULL,NULL,NULL,NULL,'draft',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-03-01','HR System','2025-09-01'),
+('PR001','3','Michael Davis','20221234569','template-1','Q1 2024','Excellent performance this quarter. Strong technical skills and great team collaboration.',NULL,NULL,NULL,'completed',4.5,4.5,'Outstanding technical delivery and team leadership.','Approved. Excellent performance across all criteria.',ARRAY['Complete React migration project','Mentor junior developers','Improve code review process'],'Excellent performance this quarter. Strong technical skills and great team collaboration.','[{"criteriaId":"c1","target":"Complete React migration project","description":"Focus on migration tasks."},{"criteriaId":"c2","target":"Mentor junior developers","description":"Weekly mentorship sessions."},{"criteriaId":"c3","target":"Improve code review process","description":"Document and share best practices."}]'::jsonb,'[{"criteriaId":"c1","score":5,"comments":"Migration completed successfully"},{"criteriaId":"c2","score":4,"comments":"Active mentorship observed"},{"criteriaId":"c3","score":4,"comments":"Better review coverage"}]'::jsonb,'[{"criteriaId":"c1","score":5,"comments":"Successfully completed React migration with zero production issues"},{"criteriaId":"c2","score":4,"comments":"Conducted weekly mentorship sessions with 2 junior developers"},{"criteriaId":"c3","score":4,"comments":"Created comprehensive code review guidelines and improved team practices"}]'::jsonb,'2024-06-30','Sarah Johnson','2025-09-01')
 ON CONFLICT DO NOTHING;
 
 -- Employee targets (examples)
@@ -233,62 +225,33 @@ ON CONFLICT DO NOTHING;
 -- Users (application users) - map some mockEmployees into users table
 INSERT INTO users (id, employee_id, email, name, role, password, status)
 VALUES
-('admin-001','admin-001','admin@mwsi.com','Main Admin','admin','demo123','active'),
+('admin-001',NULL,'admin@mwsi.com','Main Admin','admin','demo123','active'),
 ('2','2','sarah.johnson@mwsi.com','Sarah Johnson','hr_manager','demo123','active'),
 ('10','10','david.manager@mwsi.com','David Manager','manager','demo123','active'),
 ('4','4','emily.chen@mwsi.com','Emily Chen','registry_manager','demo123','active'),
 ('testing-user',NULL,'testing@mwsi.com','Testing User','testing','demo123','active')
 ON CONFLICT DO NOTHING;
 -- Default roles (seed for admin-managed roles)
-+INSERT INTO roles (id, name, locked) VALUES
-+  ('admin','Admin', TRUE),
-+  ('hr_manager','HR', FALSE),
-+  ('hr_staff','HR Staff', FALSE),
-+  ('manager','Manager', FALSE),
-+  ('employee','Employee', FALSE),
-+  ('registry_manager','Registry', FALSE),
-+  ('testing','Testing', FALSE)
-+ON CONFLICT DO NOTHING;
-+
-+
-+-- Default role permissions matching front-end DEFAULT_ROLE_PERMISSIONS
-+-- admin: all permissions (seeded by inserting all keys)
-+INSERT INTO role_permissions (role_id, permission_key)
-+SELECT 'admin', key FROM (VALUES
-+  ('employee.view'),('employee.edit'),('employee.create'),('employee.delete'),('page.employee-files'),('page.admin.requests'),('page.registry.requests'),('page.admin.users'),('page.admin.roles'),('page.admin.settings'),('page.admin.data'),('page.admin.performance-templates'),('page.admin.department-goals'),('page.admin.training-management'),('page.admin.system-logs')
-+) AS perms(key)
-+ON CONFLICT DO NOTHING;
-+
-+-- hr_manager permissions
-+INSERT INTO role_permissions (role_id, permission_key) VALUES
-+  ('hr_manager','employee.view'),('hr_manager','employee.edit'),('hr_manager','employee.create'),('hr_manager','page.employee-files')
-+ON CONFLICT DO NOTHING;
-+
-+-- hr_staff permissions
-+INSERT INTO role_permissions (role_id, permission_key) VALUES
-+  ('hr_staff','employee.view'),('hr_staff','employee.edit'),('hr_staff','page.employee-files')
-+ON CONFLICT DO NOTHING;
-+
-+-- manager permissions
-+INSERT INTO role_permissions (role_id, permission_key) VALUES
-+  ('manager','employee.view'),('manager','page.employee-files')
-+ON CONFLICT DO NOTHING;
-+
-+-- employee permissions
-+INSERT INTO role_permissions (role_id, permission_key) VALUES
-+  ('employee','employee.view')
-+ON CONFLICT DO NOTHING;
-+
-+-- registry_manager permissions
-+INSERT INTO role_permissions (role_id, permission_key) VALUES
-+  ('registry_manager','employee.view'),('registry_manager','page.employee-files'),('registry_manager','page.registry.requests')
-+ON CONFLICT DO NOTHING;
-+
-+-- testing role: no permissions by default
-+INSERT INTO role_permissions (role_id, permission_key) VALUES
-+  ('testing','') ON CONFLICT DO NOTHING;
-+
-*** End Patch
+INSERT INTO roles (id, name, locked) VALUES
+	('admin','Admin', TRUE),
+	('hr_manager','HR', FALSE),
+	('hr_staff','HR Staff', FALSE),
+	('manager','Manager', FALSE),
+	('employee','Employee', FALSE),
+	('registry_manager','Registry', FALSE),
+	('testing','Testing', FALSE)
+ON CONFLICT DO NOTHING;
+
+-- Default role permissions matching front-end DEFAULT_ROLE_PERMISSIONS
+INSERT INTO role_permissions (role_id, permission_key) VALUES
+	('admin','employee.view'),('admin','employee.edit'),('admin','employee.create'),('admin','employee.delete'),('admin','page.employee-files'),('admin','page.admin.requests'),('admin','page.registry.requests'),('admin','page.admin.users'),('admin','page.admin.roles'),('admin','page.admin.settings'),('admin','page.admin.data'),('admin','page.admin.performance-templates'),('admin','page.admin.department-goals'),('admin','page.admin.training-management'),('admin','page.admin.system-logs'),
+	('hr_manager','employee.view'),('hr_manager','employee.edit'),('hr_manager','employee.create'),('hr_manager','page.employee-files'),
+	('hr_staff','employee.view'),('hr_staff','employee.edit'),('hr_staff','page.employee-files'),
+	('manager','employee.view'),('manager','page.employee-files'),
+	('employee','employee.view'),
+	('registry_manager','employee.view'),('registry_manager','page.employee-files'),('registry_manager','page.registry.requests'),
+	('testing','')
+ON CONFLICT DO NOTHING;
 
 -- Notifications sample data
 INSERT INTO notifications (id, user_id, title, message, link, type, read, created_at)
