@@ -269,7 +269,7 @@ export default function AdminUserManagement() {
           <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl">
             <DialogHeader>
               <DialogTitle>Import Users from CSV</DialogTitle>
-              <DialogDescription>Upload a CSV with columns: name,email,role. Roles: Admin,HR,Registry,Manager,Employee.</DialogDescription>
+              <DialogDescription>Upload a CSV with columns: name,email,role. Roles: Admin,HR,Registry Manager,Registry Staff,Manager,Employee.</DialogDescription>
             </DialogHeader>
               <div className="space-y-4">
                 <div className="flex gap-2">

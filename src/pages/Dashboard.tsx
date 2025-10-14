@@ -40,7 +40,7 @@ export const Dashboard: React.FC = () => {
   // Calculate metrics based on user role
   const canonical = mapRole(user?.role);
   const isEmployee = canonical === 'employee';
-  const isManager = canonical === 'manager';
+  const isManager = canonical === 'manager' || (user?.role === 'registry_manager');
   const isHr = canonical === 'hr';
   const isAdmin = canonical === 'admin';
 

@@ -57,7 +57,7 @@ export const PerformanceReviews: React.FC = () => {
   }, [reviews, user]);
 
   const teamAppraisals = useMemo(() => {
-    if (!user || user.role !== 'manager') return [];
+    if (!user || (user.role !== 'manager' && user.role !== 'registry_manager')) return [];
     return reviews.filter(review => {
       const employee = employees.find(emp => emp.id === review.employeeId);
       return (employee?.managerId && String(employee.managerId) === String(user.id)) || (employee?.manager && user?.name && String(employee.manager).toLowerCase() === String(user.name).toLowerCase());
@@ -307,7 +307,7 @@ const handleSubmitToManager = () => {
           <p className="text-muted-foreground">
             {user?.role === 'employee' 
               ? 'View your performance history and set targets'
-              : user?.role === 'manager'
+              : (user?.role === 'manager' || user?.role === 'registry_manager')
               ? `Manage reviews for your team`
               : 'Manage employee performance evaluations and templates'
             }
@@ -315,7 +315,7 @@ const handleSubmitToManager = () => {
         </div>
         <div className="flex gap-2">
           {user?.role !== 'employee' &&
-          user?.role !== 'manager' && user?.role !== 'hr_manager' && (
+          user?.role !== 'manager' && user?.role !== 'registry_manager' && user?.role !== 'hr_manager' && (
             <>
               <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
                 <DialogTrigger asChild>
@@ -570,7 +570,7 @@ const handleSubmitToManager = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        {user?.role === 'manager' ? (
+        {(user?.role === 'manager' || user?.role === 'registry_manager') ? (
           <TabsList className="grid w-full grid-cols-4 gap-2">
             <TabsTrigger
               value="active"

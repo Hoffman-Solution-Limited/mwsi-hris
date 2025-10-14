@@ -223,6 +223,7 @@ export const FileTrackingProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const canAdmin = (role?: UserRole) => role === 'admin';
   const canRequest = (role?: UserRole) => role === 'hr_manager' || role === 'manager';
+  const canRegistryApprove = (role?: UserRole) => role === 'registry_manager' || role === 'registry_staff';
 
   const moveFile: FileTrackingContextType['moveFile'] = (employeeId, { toLocation, toAssigneeUserId, toAssigneeName, remarks }) => {
     if (!user) return;
@@ -316,7 +317,7 @@ export const FileTrackingProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const approveRequest: FileTrackingContextType['approveRequest'] = (requestId, { toLocation, comment }) => {
-    if (!user || !canAdmin(user.role)) return;
+    if (!user || !canRegistryApprove(user.role)) return;
     const req = requests.find(r => r.id === requestId);
     if (!req) return;
     // Move file to requester
@@ -355,7 +356,7 @@ export const FileTrackingProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const rejectRequest: FileTrackingContextType['rejectRequest'] = (requestId, reason) => {
-    if (!user || !canAdmin(user.role)) return;
+    if (!user || !canRegistryApprove(user.role)) return;
     const req = requests.find(r => r.id === requestId);
     setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'rejected', remarks: reason || r.remarks } : r));
     // Notify requester

@@ -21,7 +21,7 @@ const RequestsManagementPage: React.FC = () => {
   const [approveModal, setApproveModal] = useState<{ open: boolean; requestId?: string; toLocation: string; comment: string }>({ open: false, toLocation: '', comment: '' });
   const [rejectModal, setRejectModal] = useState<{ open: boolean; requestId?: string; reason: string }>({ open: false, reason: '' });
 
-  if (!user || (user.role !== 'admin' && user.role !== 'registry_manager')) {
+  if (!user || (user.role !== 'registry_manager' && user.role !== 'registry_staff')) {
     return (
       <div className="text-sm text-muted-foreground p-6">You do not have permission to access this page.</div>
     );
@@ -128,7 +128,7 @@ const RequestsManagementPage: React.FC = () => {
                     </div>
                   );
                 })}
-                            </div>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -199,7 +199,7 @@ const RequestsManagementPage: React.FC = () => {
                   <Input className="mt-1" value={approveModal.toLocation || ''} readOnly />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Admin Comment (optional)</label>
+                  <label className="text-sm font-medium">Registry Comment (optional)</label>
                   <Textarea className="mt-1" rows={3} value={approveModal.comment} onChange={e => setApproveModal(prev => ({ ...prev, comment: e.target.value }))} />
                 </div>
               </div>

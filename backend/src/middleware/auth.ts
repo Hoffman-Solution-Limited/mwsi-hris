@@ -38,7 +38,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 export function requireRole(allowed: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const role = (req.user?.role || '').toLowerCase();
-    if (!allowed.includes(role)) return res.status(403).json({ error: 'forbidden' });
+    // Expand shorthand roles: 'hr' covers hr_manager and hr_staff
+    const expandedAllowed = new Set<string>([
+      ...allowed,
+      ...(allowed.includes('hr') ? ['hr_manager','hr_staff'] : []),
+      ...(allowed.includes('registry') ? ['registry_manager','registry_staff'] : []),
+    ]);
+    if (!expandedAllowed.has(role)) return res.status(403).json({ error: 'forbidden' });
     return next();
   };
 }

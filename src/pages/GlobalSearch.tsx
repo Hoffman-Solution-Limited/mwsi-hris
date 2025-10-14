@@ -37,8 +37,8 @@ export const GlobalSearch: React.FC = () => {
       };
     }
 
-    // Manager sees self + direct reports (by matching employee.manager === manager.name)
-  if (mapRole(user.role) === 'manager') {
+    // Manager (and Registry Manager) see self + direct reports
+  if (mapRole(user.role) === 'manager' || (user.role || '').toLowerCase() === 'registry_manager') {
   const teamEmployees = employees.filter(e => (e.managerId && String(e.managerId) === String(user.id)) || (e.manager && user?.name && String(e.manager).toLowerCase() === String(user.name).toLowerCase()) || e.id === user.id || e.email === user.email || e.name === user.name);
   const teamNames = new Set(teamEmployees.map(e => e.name).concat([user.name]));
   const teamIds = new Set(teamEmployees.map(e => e.id).concat([user.id]));

@@ -238,7 +238,8 @@ INSERT INTO roles (id, name, locked) VALUES
 	('hr_staff','HR Staff', FALSE),
 	('manager','Manager', FALSE),
 	('employee','Employee', FALSE),
-	('registry_manager','Registry', FALSE),
+	('registry_manager','Registry Manager', FALSE),
+	('registry_staff','Registry Staff', FALSE),
 	('testing','Testing', FALSE)
 ON CONFLICT DO NOTHING;
 
@@ -250,6 +251,7 @@ INSERT INTO role_permissions (role_id, permission_key) VALUES
 	('manager','employee.view'),('manager','page.employee-files'),
 	('employee','employee.view'),
 	('registry_manager','employee.view'),('registry_manager','page.employee-files'),('registry_manager','page.registry.requests'),
+	('registry_staff','employee.view'),('registry_staff','page.employee-files'),('registry_staff','page.registry.requests'),
 	('testing','')
 ON CONFLICT DO NOTHING;
 

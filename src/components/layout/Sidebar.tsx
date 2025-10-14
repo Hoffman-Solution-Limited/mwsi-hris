@@ -36,20 +36,20 @@ const navGroups: NavGroup[] = [
       { path: '/', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
       { path: '/search', label: 'Global Search', icon: <Search className="w-5 h-5" /> },
       { path: '/profile', label: 'My Profile', icon: <User className="w-5 h-5" />, roles: ['employee', 'manager', 'hr_manager', 'registry_manager'] },
-      { path: '/my-files', label: 'My Files', icon: <FileText className="w-5 h-5" />, roles: ['employee', 'manager', 'hr_manager', 'registry_manager'] },
-      { path: '/manager-apply-leave', label: 'Apply for Leave', icon: <Calendar className='w-5 h-5' />, roles: ['manager', 'employee', 'hr_manager', 'registry_manager'] },
+  { path: '/my-files', label: 'My Files', icon: <FileText className="w-5 h-5" />, roles: ['employee', 'manager', 'hr_manager', 'registry_manager', 'registry_staff'] },
+  { path: '/manager-apply-leave', label: 'Apply for Leave', icon: <Calendar className='w-5 h-5' />, roles: ['manager', 'employee', 'hr_manager', 'registry_manager', 'registry_staff'] },
     ]
   },
   {
     title: "HR Management",
     items: [
-      { path: '/employees', label: 'Employee Directory', icon: <Users className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'manager'] },
+  { path: '/employees', label: 'Employee Directory', icon: <Users className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'manager', 'registry_manager'] },
       { path: '/managers', label: 'Managers', icon: <UserCheck2 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
-      { path: '/leave', label: 'Leave Management', icon: <Calendar className='w-5 h-5' />, roles: ['hr_manager', 'hr_staff', 'manager'] },
+  { path: '/leave', label: 'Leave Management', icon: <Calendar className='w-5 h-5' />, roles: ['hr_manager', 'hr_staff', 'manager', 'registry_manager'] },
       { path: '/recruitment', label: 'Recruitment', icon: <UserPlus className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/disciplinary', label: 'Disciplinary Cases', icon: <AlertTriangle className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
-      { path: '/training', label: 'Training & CPD', icon: <GraduationCap className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'employee', 'registry_manager', 'manager'] },
-      { path: '/performance', label: 'Performance Reviews', icon: <TrendingUp className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'manager', 'employee', 'registry_manager'] },
+  { path: '/training', label: 'Training & CPD', icon: <GraduationCap className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'employee', 'registry_manager', 'registry_staff', 'manager'] },
+  { path: '/performance', label: 'Performance Reviews', icon: <TrendingUp className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff', 'manager', 'employee', 'registry_manager', 'registry_staff'] },
       { path: '/hr-performance-filled', label: 'Filled Performance Reviews', icon: <BarChart3 className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/designation', label: 'Designations', icon: <Briefcase className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
       { path: '/Skills', label: 'Skills', icon: <List className="w-5 h-5" />, roles: ['hr_manager', 'hr_staff'] },
@@ -60,9 +60,9 @@ const navGroups: NavGroup[] = [
   {
     title: "Document",
     items: [
-      { path: '/employee-files', label: 'Employee File Tracking', icon: <FileText className="w-5 h-5" />, roles: ['registry_manager'] },
-      { path: '/registry/requests', label: 'Registry Requests', icon: <Activity className="w-5 h-5" />, roles: ['registry_manager'] },
-      { path: '/registry/documents', label: 'Document Types', icon: <List className="w-5 h-5" />, roles: ['registry_manager'] },
+  { path: '/employee-files', label: 'Employee File Tracking', icon: <FileText className="w-5 h-5" />, roles: ['registry_manager', 'registry_staff'] },
+  { path: '/registry/requests', label: 'Registry Requests', icon: <Activity className="w-5 h-5" />, roles: ['registry_manager', 'registry_staff'] },
+  { path: '/registry/documents', label: 'Document Types', icon: <List className="w-5 h-5" />, roles: ['registry_manager', 'registry_staff'] },
     ]
   },
   {

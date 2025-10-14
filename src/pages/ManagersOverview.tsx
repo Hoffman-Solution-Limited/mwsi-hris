@@ -104,7 +104,7 @@ const ManagersOverview: React.FC = () => {
 
   // Build managers list from users with role Manager OR employees whose position contains 'manager'
   const managers = useMemo(() => {
-    const mgrUsers = users.filter(u => mapRole(u.role) === 'manager')
+  const mgrUsers = users.filter(u => mapRole(u.role) === 'manager' || (u.role || '').toLowerCase() === 'registry_manager')
 
     // Also include managers detected from employee records (position contains 'manager') that might not have a user
     const mgrFromEmployees = employees

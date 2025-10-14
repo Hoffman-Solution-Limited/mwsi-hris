@@ -82,6 +82,12 @@ export const DEFAULT_ROLE_PERMISSIONS: RolePermissions = {
     'page.employee-files',
     'page.registry.requests',
   ],
+  registry_staff: [
+    'employee.view',
+    'page.employee-files',
+    'page.registry.requests',
+  ],
+  testing: [],
 };
 
 interface PermissionsContextType {

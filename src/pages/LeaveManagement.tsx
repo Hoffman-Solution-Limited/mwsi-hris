@@ -31,7 +31,7 @@ export const LeaveManagement: React.FC = () => {
   const { toast } = useToast();
 
   const isHrRole = ['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '');
-  const isManager = user?.role === 'manager';
+  const isManager = user?.role === 'manager' || user?.role === 'registry_manager';
 
   // My queue only toggle (only for managers)
   const [myQueueOnly, setMyQueueOnly] = useState<boolean>(!!isManager);
@@ -50,7 +50,7 @@ export const LeaveManagement: React.FC = () => {
   useEffect(() => {
     if (!user) return;
     if (statusFilter !== 'all') return;
-    if (user.role === 'manager') {
+    if (user.role === 'manager' || user.role === 'registry_manager') {
       setStatusFilter('pending_manager');
     } else if (isHrRole) {
       setStatusFilter('pending_hr');
@@ -61,12 +61,12 @@ export const LeaveManagement: React.FC = () => {
     if (user?.role === 'employee') {
       return leaveRequests.filter(leave => leave.employeeId === user.id);
     }
-    if (user?.role === 'manager') {
+    if (user?.role === 'manager' || user?.role === 'registry_manager') {
   const directReportIds = employees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase())).map(emp => emp.id);
       return leaveRequests.filter(leave => directReportIds.includes(leave.employeeId));
     }
     return leaveRequests;
-  }, [user, leaveRequests]);
+  }, [user, leaveRequests, employees]);
 
   const myApprovedLeaves = user?.role === 'employee' 
     ? leaveRequests.filter(leave => leave.employeeId === user.id && leave.status === 'approved')
@@ -80,7 +80,7 @@ export const LeaveManagement: React.FC = () => {
   const rejectedRequests = leaveRequests.filter(req => req.status === 'rejected');
 
   const leaveBalances = useMemo(() => {
-    if (user?.role === 'manager') {
+    if (user?.role === 'manager' || user?.role === 'registry_manager') {
   const directReports = employees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase()));
       return directReports.map(emp => ({
         employeeId: emp.id,
@@ -125,7 +125,7 @@ export const LeaveManagement: React.FC = () => {
         pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'emergency').reduce((sum, req) => sum + req.days, 0)
       }
     }));
-  }, [user, leaveRequests]);
+  }, [user, leaveRequests, employees]);
 
   // Apply optional HR "my queue only" department filter
   const hrScopedLeaves = useMemo(() => {
@@ -528,7 +528,7 @@ export const LeaveManagement: React.FC = () => {
                               </Button>
                             </>
                           )}
-                          {request.status === 'pending_manager' && user?.role === 'manager' && (
+                          {request.status === 'pending_manager' && (user?.role === 'manager' || user?.role === 'registry_manager') && (
                             <div className="flex gap-1">
                               <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => {
                                 approveManagerRequest(request.id);
