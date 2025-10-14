@@ -33,19 +33,26 @@ export const Training: React.FC = () => {
   const [editExpiryDate, setEditExpiryDate] = useState<string | undefined>(undefined);
   const [editType, setEditType] = useState<'mandatory' | 'development' | 'compliance'>('development');
 
+  // Source of truth for training records (context first, then mock)
+  const source = useMemo(() => (trainings.length ? trainings : mockTrainingRecords), [trainings]);
+
+  // Records shown in the main records table (for employees/managers show only their records,
+  // for HR and others show all records)
   const filteredRecords = useMemo(() => {
     if (!user) return [] as typeof mockTrainingRecords;
-    const source = trainings.length ? trainings : mockTrainingRecords;
     const canonical = mapRole(user.role);
     if (canonical === 'employee' || canonical === 'manager') {
       return source.filter(tr => tr.employeeId === user.id);
     }
-    // HR sees all records but doesn't get assigned trainings themselves
-    if (canonical === 'hr') {
-      return source.filter(tr => tr.employeeId !== user.id);
-    }
+    // HR and admins see all records by default
     return source;
-  }, [user, trainings]);
+  }, [user, source]);
+
+  // Trainings that belong to the currently logged-in user (used for 'My Trainings')
+  const myTrainings = useMemo(() => {
+    if (!user) return [] as typeof mockTrainingRecords;
+    return source.filter(tr => tr.employeeId === user.id);
+  }, [user, source]);
 
   const completedTrainings = filteredRecords.filter(tr => tr.status === 'completed');
   const inProgressTrainings = filteredRecords.filter(tr => tr.status === 'in_progress');
@@ -249,29 +256,35 @@ export const Training: React.FC = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
             {mapRole(user?.role) === 'hr' ? (
-              <>
-                <TabsTrigger
-                  value="overview"
-                  className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-                >
-                  Overview
-                </TabsTrigger>
-                <TabsTrigger
-                  value="assignments"
-                  className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-                >
-                  Training Assignments
-                </TabsTrigger>
-                <TabsTrigger
-                  value="history"
-                  className="bg-gray-200 text-gray-800 data-[state=active]:bg-slate-700 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
-                >
-                  History
-                </TabsTrigger>
-              </>
-            ) : (
+                  <>
+                    <TabsTrigger
+                      value="overview"
+                      className="bg-blue-600 text-white data-[state=active]:bg-blue-800 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+                    >
+                      Overview
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="assignments"
+                      className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+                    >
+                      Training Assignments
+                    </TabsTrigger>
+                                        <TabsTrigger
+                      value="my-trainings"
+                      className="bg-gray-200 text-gray-800 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+                    >
+                      My Trainings
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="history"
+                      className="bg-gray-200 text-gray-800 data-[state=active]:bg-slate-700 data-[state=active]:text-white rounded-lg py-2 text-lg font-semibold shadow"
+                    >
+                      History
+                    </TabsTrigger>
+                  </>
+                ) : (
               <>
                 <TabsTrigger
                   value="overview"
@@ -290,7 +303,7 @@ export const Training: React.FC = () => {
           </TabsList>
 
         {/* Overview */}
-        <TabsContent value="overview">
+  <TabsContent value="overview">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
@@ -466,7 +479,8 @@ export const Training: React.FC = () => {
             </Card>
           </TabsContent>
         )}
-        <TabsContent value="records">
+  {/* Employee/Manager Records tab (reused by non-HR users) */}
+  <TabsContent value="records">
           <Card>
             <CardHeader>
               <CardTitle>{(user?.role === 'employee' || user?.role === 'manager') ? 'My Training Records' : 'Individual Training Records'}</CardTitle>
@@ -515,6 +529,75 @@ export const Training: React.FC = () => {
                           </div>
                         )}
                         {(user?.role === 'employee' || user?.role === 'manager') && training.status !== 'completed' && (
+                          <div className="flex justify-end gap-2 mt-2">
+                            {training.status === 'not_started' && (
+                              <Button size="sm" variant="outline" onClick={() => startTraining(training.id)}>Start Training</Button>
+                            )}
+                            {(training.status === 'in_progress' || training.status === 'not_started') && (
+                              <Dialog open={completeOpen && selectedTrainingId === training.id} onOpenChange={(o) => { setCompleteOpen(o); if (!o) { setSelectedTrainingId(null); setCertificateFile(null); } }}>
+                                <DialogTrigger asChild>
+                                  <Button size="sm" onClick={() => { setCompleteOpen(true); setSelectedTrainingId(training.id); }}>
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Complete & Upload Certificate
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Upload Completion Certificate</DialogTitle>
+                                    <DialogDescription>Attach your certificate to mark training as complete.</DialogDescription>
+                                  </DialogHeader>
+                                  <div className="space-y-2">
+                                    <Input type="file" onChange={(e)=> setCertificateFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)} />
+                                  </div>
+                                  <DialogFooter>
+                                    <Button onClick={() => { completeTraining(training.id, certificateFile); setCompleteOpen(false); setSelectedTrainingId(null); setCertificateFile(null); }}>Submit</Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* HR: My Trainings tab - shows trainings assigned to the logged-in HR user so they can complete them using the same flow */}
+        <TabsContent value="my-trainings">
+          <Card>
+            <CardHeader>
+              <CardTitle>My Training Records</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {myTrainings.map((training) => {
+                  const employee = mockEmployees.find(emp => emp.id === training.employeeId);
+                  return (
+                    <div key={training.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-primary/10 p-2 rounded">
+                          <GraduationCap className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium">{training.title}</h4>
+                          <p className="text-xs text-muted-foreground">Provider: {training.provider}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge className={`status-${training.status === 'completed' ? 'approved' : training.status === 'in_progress' ? 'pending' : 'draft'}`}>
+                          {training.status.replace('_', ' ')}
+                        </Badge>
+                        {training.completionDate && (
+                          <p className="text-xs text-muted-foreground mt-1">Completed: {new Date(training.completionDate).toLocaleDateString()}</p>
+                        )}
+                        {training.expiryDate && (
+                          <p className="text-xs text-muted-foreground">Expires: {new Date(training.expiryDate).toLocaleDateString()}</p>
+                        )}
+                        {(user?.role === 'employee' || user?.role === 'manager' || ['hr_manager', 'hr_staff'].includes(user?.role || '')) && training.status !== 'completed' && (
                           <div className="flex justify-end gap-2 mt-2">
                             {training.status === 'not_started' && (
                               <Button size="sm" variant="outline" onClick={() => startTraining(training.id)}>Start Training</Button>
