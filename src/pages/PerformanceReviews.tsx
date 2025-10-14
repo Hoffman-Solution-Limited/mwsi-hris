@@ -456,7 +456,7 @@ const handleSubmitToManager = () => {
                           <SelectValue placeholder="Select employee" />
                         </SelectTrigger>
                         <SelectContent>
-                          {mockEmployees.map(emp => (
+                          {employees.map(emp => (
                             <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -753,7 +753,7 @@ const handleSubmitToManager = () => {
                       return da - db;
                     })
                     .map((review) => {
-                    const employee = mockEmployees.find(emp => emp.id.toString() === review.employeeId);
+                    const employee = employees.find(emp => emp.id.toString() === review.employeeId);
                     const template = templates.find(t => t.id === review.templateId);
                     const days = getDaysUntil(review.deadlineDate);
                     const dueBadgeClass = days === undefined
@@ -907,7 +907,7 @@ const handleSubmitToManager = () => {
               ) : (
                 teamAppraisals.filter(r => r.status === 'manager_review').map((review) => {
                   const template = templates.find(t => t.id === review.templateId);
-                  const employee = mockEmployees.find(emp => emp.id === review.employeeId);
+                  const employee = employees.find(emp => emp.id === review.employeeId);
                   return (
                     <Card key={review.id} className="border-l-4 border-l-yellow-500">
                       <CardHeader>
@@ -1498,7 +1498,7 @@ const handleSubmitToManager = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {reviews.filter(r => r.status === 'targets_set').map((review) => {
-                      const employee = mockEmployees.find(emp => emp.id === review.employeeId);
+                      const employee = employees.find(emp => emp.id === review.employeeId);
                       return (
                         <div key={review.id} className="p-4 border rounded-lg">
                           <div className="flex justify-between items-start">
@@ -1527,7 +1527,7 @@ const handleSubmitToManager = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {reviews.filter(r => r.status === 'manager_review').map((review) => {
-                      const employee = mockEmployees.find(emp => emp.id === review.employeeId);
+                      const employee = employees.find(emp => emp.id === review.employeeId);
                       return (
                         <div key={review.id} className="p-4 border rounded-lg">
                           <div className="flex justify-between items-start">

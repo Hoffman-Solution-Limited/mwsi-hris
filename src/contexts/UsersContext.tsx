@@ -85,11 +85,11 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const created = await api.post('/api/users', payload);
         setUsers(prev => [...prev, { ...(created as AppUser), status: created.status || 'active' }]);
       } catch (err) {
-        const newUser: AppUser = {
+        const newUser = {
           id: crypto.randomUUID(),
           status: 'active',
           ...u,
-        };
+        } as AppUser;
         setUsers(prev => [...prev, newUser]);
       }
     })();

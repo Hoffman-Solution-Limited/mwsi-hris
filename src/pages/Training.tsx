@@ -40,7 +40,7 @@ export const Training: React.FC = () => {
   // Records shown in the main records table (for employees/managers show only their records,
   // for HR and others show all records)
   const filteredRecords = useMemo(() => {
-    if (!user) return [] as typeof mockTrainingRecords;
+    if (!user) return [] as typeof trainings;
     const canonical = mapRole(user.role);
     if (canonical === 'employee' || canonical === 'manager') {
       return source.filter(tr => tr.employeeId === user.id);
@@ -51,7 +51,7 @@ export const Training: React.FC = () => {
 
   // Trainings that belong to the currently logged-in user (used for 'My Trainings')
   const myTrainings = useMemo(() => {
-    if (!user) return [] as typeof mockTrainingRecords;
+    if (!user) return [] as typeof trainings;
     return source.filter(tr => tr.employeeId === user.id);
   }, [user, source]);
 
@@ -490,8 +490,8 @@ export const Training: React.FC = () => {
             <CardContent>
               <div className="space-y-4">
                 {filteredRecords.map((training) => {
-                  const employee = mockEmployees.find(emp => emp.id === training.employeeId);
-                  return (
+                                  const employee = (employees || []).find(emp => emp.id === training.employeeId);
+                                  return (
                     <div key={training.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 p-2 rounded">
@@ -577,8 +577,8 @@ export const Training: React.FC = () => {
             <CardContent>
               <div className="space-y-4">
                 {myTrainings.map((training) => {
-                  const employee = mockEmployees.find(emp => emp.id === training.employeeId);
-                  return (
+                                  const employee = (employees || []).find(emp => emp.id === training.employeeId);
+                                  return (
                     <div key={training.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 p-2 rounded">
@@ -669,34 +669,34 @@ export const Training: React.FC = () => {
                   <h4 className="font-medium">Select Employees</h4>
                   <div className="flex items-center gap-2">
                     <Checkbox
-                      checked={selectedEmployees.length === mockEmployees.filter(emp => !['hr_manager', 'hr_staff'].includes(emp.position.toLowerCase())).length}
-                      onCheckedChange={handleSelectAllEmployees}
-                    />
-                    <label className="text-sm font-medium">Select All</label>
+                                          checked={selectedEmployees.length === (employees || []).filter(emp => !/hr_(manager|staff)/i.test(String(emp.position || '').toLowerCase())).length}
+                                          onCheckedChange={handleSelectAllEmployees}
+                                        />
+                                        <label className="text-sm font-medium">Select All</label>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto">
-                  {mockEmployees
-                    .filter(emp => !['hr_manager', 'hr_staff'].includes(emp.position.toLowerCase()))
-                    .map((employee) => (
-                    <div key={employee.id} className="flex items-center space-x-3 p-3 border rounded-lg">
-                      <Checkbox
-                        checked={selectedEmployees.includes(employee.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedEmployees(prev => [...prev, employee.id]);
-                          } else {
-                            setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
-                          }
-                        }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{employee.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{employee.position} • {employee.department}</p>
-                      </div>
-                    </div>
-                  ))}
+                  {(employees || [])
+                                      .filter(emp => !/hr_(manager|staff)/i.test(String(emp.position || '').toLowerCase()))
+                                      .map((employee) => (
+                                      <div key={employee.id} className="flex items-center space-x-3 p-3 border rounded-lg">
+                                        <Checkbox
+                                          checked={selectedEmployees.includes(employee.id)}
+                                          onCheckedChange={(checked) => {
+                                            if (checked) {
+                                              setSelectedEmployees(prev => [...prev, employee.id]);
+                                            } else {
+                                              setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
+                                            }
+                                          }}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-medium truncate">{employee.name}</p>
+                                          <p className="text-xs text-muted-foreground truncate">{employee.position} • {employee.department}</p>
+                                        </div>
+                                      </div>
+                                    ))}
                 </div>
               </div>
               
