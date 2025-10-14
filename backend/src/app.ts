@@ -16,8 +16,28 @@ import systemLogsRouter from './routes/systemLogs';
 
 const app = express();
 
+// Build allowed origins from env and sensible defaults
+const defaultOrigins = new Set<string>(['http://localhost:8080']);
+const configuredOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+configuredOrigins.forEach(o => defaultOrigins.add(o));
+
 const corsOptions: cors.CorsOptions = {
-  origin: ['http://localhost:8080'],
+  origin: (origin, callback) => {
+    // Allow non-browser requests (no origin)
+    if (!origin) return callback(null, true);
+    // Always allow explicitly configured origins or localhost default
+    if (defaultOrigins.has(origin)) return callback(null, true);
+    // Allow any *.vercel.app deployment by default
+    try {
+      const url = new URL(origin);
+      if (url.hostname.endsWith('.vercel.app')) return callback(null, true);
+    } catch {}
+    return callback(new Error('Not allowed by CORS'));
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
