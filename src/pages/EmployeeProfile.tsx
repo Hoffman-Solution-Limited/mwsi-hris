@@ -188,6 +188,8 @@ export const EmployeeProfile: React.FC = () => {
   // Check if current user can access this profile
   // Managers can view/edit their own profile and direct reports
   const canonical = mapRole(user?.role);
+  const isManager = canonical === 'manager';
+  const showPersonalInfo = !isManager || isMyProfile;
   const canAccessProfile = isMyProfile ||
     canonical === 'admin' || canonical === 'hr' ||
     (canonical === 'manager' && (user?.id === targetEmployeeId || (employee && ((employee.managerId && employee.managerId === user.id) || employee.manager === user?.name))));
@@ -318,21 +320,24 @@ export const EmployeeProfile: React.FC = () => {
                     <Badge variant="outline" className="capitalize">{employee.cadre}</Badge>
                   )}
                 </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-muted-foreground" />
-                    <span>{employee.email}</span>
-                  </div>
-                  {employee.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-muted-foreground" />
-                      <span>{employee.phone}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span>Joined {new Date(employee.hireDate).toLocaleDateString()}</span>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <span>{employee.email}</span>
+                      </div>
+                      {employee.phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          <span>{employee.phone}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span>Joined {new Date(employee.hireDate).toLocaleDateString()}</span>
+                      </div>
+                    </>
+                
                   {employee.manager && (
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-muted-foreground" />
@@ -362,10 +367,12 @@ export const EmployeeProfile: React.FC = () => {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4 gap-4">
+         {showPersonalInfo && (
           <TabsTrigger value="personal" className="flex items-center gap-2">
             <User className="w-4 h-4" />
             Personal
           </TabsTrigger>
+          )}
           <TabsTrigger value="performance" className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
             Performance
@@ -428,12 +435,28 @@ export const EmployeeProfile: React.FC = () => {
                       {employee.name}
                     </div>
                   </div>
-                                 <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Emergency Contact</label>
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm font-medium">
-                      {employee.emergencyContact || 'Not specified'}
-                    </div>
-                  </div>
+                  {showPersonalInfo && (
+                    <>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1 block">Emergency Contact</label>
+                        <div className="bg-muted px-3 py-2 rounded-md text-sm font-medium">
+                          {employee.emergencyContact || 'Not specified'}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1 block">ID Number</label>
+                        <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono">
+                          {employee.nationalId || '***********'}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1 block">KRA PIN</label>
+                        <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono">
+                          {employee.kraPin || 'A001234567X'}
+                        </div>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">Employment Type</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm">

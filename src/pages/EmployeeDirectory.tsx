@@ -42,6 +42,7 @@ export const EmployeeDirectory: React.FC = () => {
 
   // Scope employees by role (manager sees only direct reports; others see all)
   const canonical = mapRole(user?.role)
+  const isManager = canonical === 'manager';
   const baseEmployees = canonical === 'manager'
     ? user ? employees.filter(e => e.managerId === user.id) : []
     : employees;
@@ -319,14 +320,14 @@ export const EmployeeDirectory: React.FC = () => {
                   >
                     {employee.status}
                   </Badge>
-                  <div className="w-full text-xs text-muted-foreground space-y-1">
+                  {!isManager && (<div className="w-full text-xs text-muted-foreground space-y-1">
                     <p>📧 {employee.email}</p>
                     {employee.phone && <p>📞 {employee.phone}</p>}
                     <p>
                       📅 Joined{" "}
                       {new Date(employee.hireDate).toLocaleDateString()}
                     </p>
-                  </div>
+                  </div>)}
                 </div>
               </CardContent>
             </Card>
@@ -347,8 +348,8 @@ export const EmployeeDirectory: React.FC = () => {
                     <th>Department</th>
                     <th>Cadre</th>
                     <th>Status</th>
-                    <th>Hire Date</th>
-                    <th>Contact</th>
+                    {!isManager && (<><th>Hire Date</th>
+                    <th>Contact</th></>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -401,7 +402,7 @@ export const EmployeeDirectory: React.FC = () => {
                           {employee.status}
                         </Badge>
                       </td>
-                      <td>{new Date(employee.hireDate).toLocaleDateString()}</td>
+                      {!isManager && (<><td>{new Date(employee.hireDate).toLocaleDateString()}</td>
                       <td>
                         <div className="text-sm">
                           <p>{employee.email}</p>
@@ -411,7 +412,7 @@ export const EmployeeDirectory: React.FC = () => {
                             </p>
                           )}
                         </div>
-                      </td>
+                      </td></>)}
                     </tr>
                   ))}
                 </tbody>
