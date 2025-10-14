@@ -62,21 +62,12 @@ export const EmployeeProfile: React.FC = () => {
         employee = fallback as any;
       }
     }
-  // Last-resort fallback disabled for UAT: rely on backend for employee data.
-  // If backend is unreachable, the UI will show "No data — connect to backend" instead of using seeded mocks.
-  const mockEmployees: any[] = [];
-        if (!employee && targetEmployeeId) {
-          const seedFallback = mockEmployees.find(m => String(m.id) === String(targetEmployeeId) || String(m.email) === String(targetEmployeeId));
-          if (seedFallback) {
-            employee = seedFallback as any;
-          }
-        }
+    // Rely on backend for employee data. No seeded mock fallback in UAT.
 
     // If we found an EmployeesContext record but it lacks manager info, try to enrich it
     if (employee && !(employee.managerId || employee.manager) && targetEmployeeId) {
       const enrichFromUsers = users.find(u => String(u.id) === String(targetEmployeeId) || String(u.email) === String(targetEmployeeId));
-      const enrichFromSeed = mockEmployees.find(m => String(m.id) === String(targetEmployeeId) || String(m.email) === String(targetEmployeeId));
-      const enrich = enrichFromUsers || enrichFromSeed;
+  const enrich = enrichFromUsers;
       if (enrich) {
         // merge missing fields (do not persist back to context/localStorage here)
         employee = { ...employee, ...(enrich.manager ? { manager: enrich.manager } : {}), ...(enrich.managerId ? { managerId: enrich.managerId } : {}) } as any;

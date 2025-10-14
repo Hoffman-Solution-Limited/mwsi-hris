@@ -8,7 +8,7 @@ type TrainingContextType = {
   createTraining: (payload: Partial<TrainingRecord>) => Promise<TrainingRecord | null>;
   startTraining: (id: string) => void;
   completeTraining: (id: string, file?: File | null) => void;
-  editTraining: (id: string, changes: Partial<TrainingRecord>) => void;
+  editTraining: (id: string, changes: Partial<TrainingRecord>) => Promise<TrainingRecord | null>;
   closeTraining: (id: string) => void;
   archiveTraining: (id: string) => void;
   getCertificateUrl: (id: string) => string | undefined;
@@ -99,15 +99,15 @@ export const TrainingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const editTraining = (id: string, changes: Partial<TrainingRecord>) => {
-    (async () => {
-      try {
-        const updated = await api.put(`/api/trainings/${id}`, changes);
-        setTrainings(prev => prev.map(tr => tr.id === id ? (updated as TrainingRecord) : tr));
-      } catch (err) {
-        setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, ...changes } : tr));
-      }
-    })();
+  const editTraining = async (id: string, changes: Partial<TrainingRecord>) => {
+    try {
+      const updated = await api.put(`/api/trainings/${id}`, changes);
+      setTrainings(prev => prev.map(tr => tr.id === id ? (updated as TrainingRecord) : tr));
+      return updated as TrainingRecord;
+    } catch (err) {
+      setTrainings(prev => prev.map(tr => tr.id === id ? { ...tr, ...changes } : tr));
+      return null;
+    }
   };
 
   const closeTraining = (id: string) => {

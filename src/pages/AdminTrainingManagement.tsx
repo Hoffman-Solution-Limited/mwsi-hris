@@ -33,7 +33,10 @@ export default function AdminTrainingManagement() {
   const { addLog } = useSystemLogs();
   
   const { trainings: programs, createTraining } = useTraining();
+  const { editTraining } = useTraining();
   const [isCreateProgramOpen, setIsCreateProgramOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingProgram, setEditingProgram] = useState<any | null>(null);
 
   const [newProgram, setNewProgram] = useState<Omit<TrainingProgram, 'id' | 'createdAt'>>({
     name: '',
@@ -47,13 +50,20 @@ export default function AdminTrainingManagement() {
   const handleCreateProgram = () => {
     if (newProgram.name && newProgram.description && newProgram.provider) {
       // create on server (or fallback to local if API unavailable)
-      createTraining({
+      const payload = {
         employeeId: '0',
         title: newProgram.name,
-        type: 'development' as any,
-        status: newProgram.status as any,
+        type: (newProgram.category === 'mandatory' ? 'mandatory' : newProgram.category === 'compliance' ? 'compliance' : 'development') as 'mandatory' | 'development' | 'compliance',
+        status: newProgram.status as 'active' | 'inactive',
         provider: newProgram.provider,
-      }).then((program) => {
+        description: newProgram.description,
+        duration: newProgram.duration,
+        max_participants: newProgram.maxParticipants,
+        prerequisites: newProgram.prerequisites,
+        category: newProgram.category as any
+      } as Partial<any>;
+
+      createTraining(payload).then((program) => {
         // log uses program id when available
         addLog({
           action: 'Created training program',
@@ -75,6 +85,55 @@ export default function AdminTrainingManagement() {
       });
       setIsCreateProgramOpen(false);
     }
+  };
+
+  const openEdit = (program: any) => {
+    setEditingProgram({
+      id: program.id,
+      title: (program.title || program.name) || '',
+      description: program.description || program.details || '',
+      provider: program.provider || '',
+      duration: program.duration || 1,
+      maxParticipants: program.max_participants || program.maxParticipants || undefined,
+      prerequisites: program.prerequisites || '',
+      category: program.category || 'skill_development',
+      status: program.status || 'active'
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingProgram) return;
+    // call editTraining to persist changes
+  const editPayload = {
+    title: editingProgram.title,
+    provider: editingProgram.provider,
+    description: editingProgram.description,
+    duration: editingProgram.duration,
+    max_participants: editingProgram.maxParticipants,
+    prerequisites: editingProgram.prerequisites,
+    category: editingProgram.category,
+    status: editingProgram.status
+  } as Partial<any>;
+
+  editTraining(editingProgram.id || '', editPayload)
+    .then(() => {
+      addLog({
+        action: 'Edited training program',
+        actionType: 'update',
+        details: `Edited program: ${editingProgram.title}`,
+        entityType: 'training_program',
+        entityId: editingProgram.id,
+        status: 'success'
+      });
+
+      setIsEditOpen(false);
+      setEditingProgram(null);
+    })
+    .catch((err) => {
+      console.error('Failed to save training edit', err);
+    });
+
   };
 
   const getCategoryColor = (category: string) => {
@@ -228,6 +287,34 @@ export default function AdminTrainingManagement() {
             </div>
           </DialogContent>
         </Dialog>
+          {/* Edit Program Dialog */}
+          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Edit Training Program</DialogTitle>
+              </DialogHeader>
+              {editingProgram && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-name">Program Name</Label>
+                    <Input id="edit-name" value={editingProgram.title} onChange={(e) => setEditingProgram((p:any) => ({ ...p, title: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-provider">Provider</Label>
+                    <Input id="edit-provider" value={editingProgram.provider} onChange={(e) => setEditingProgram((p:any) => ({ ...p, provider: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-desc">Description</Label>
+                    <Textarea id="edit-desc" value={editingProgram.description} onChange={(e) => setEditingProgram((p:any) => ({ ...p, description: e.target.value }))} />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => { setIsEditOpen(false); setEditingProgram(null); }}>Cancel</Button>
+                    <Button onClick={handleSaveEdit}>Save</Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
       </div>
 
       <div className="grid gap-6">
@@ -251,7 +338,9 @@ export default function AdminTrainingManagement() {
                       {(program as any).description || (program as any).details || ''}
                     </p>
                   </div>
-                  {/* Assignment actions removed for Admin */}
+                  <div className="ml-4 flex items-center gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => openEdit(program)}>Edit</Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

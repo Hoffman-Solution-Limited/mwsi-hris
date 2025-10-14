@@ -17,8 +17,24 @@ router.post('/', async (req: Request, res: Response) => {
   const data = req.body;
   const id = data.id || uuidv4();
   try {
-    const q = `INSERT INTO training_records(id, employee_id, title, type, status, completion_date, expiry_date, provider, archived, created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`;
-    const vals = [id, data.employeeId || null, data.title || null, data.type || null, data.status || null, data.completionDate || null, data.expiryDate || null, data.provider || null, data.archived || false, data.created_at || new Date().toISOString()];
+    const q = `INSERT INTO training_records(id, employee_id, title, type, status, completion_date, expiry_date, provider, archived, description, duration, max_participants, prerequisites, category, created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`;
+    const vals = [
+      id,
+      data.employeeId || null,
+      data.title || null,
+      data.type || null,
+      data.status || null,
+      data.completionDate || null,
+      data.expiryDate || null,
+      data.provider || null,
+      data.archived || false,
+      data.description || null,
+      data.duration || null,
+      data.maxParticipants || data.max_participants || null,
+      data.prerequisites || null,
+      data.category || null,
+      data.created_at || new Date().toISOString()
+    ];
     const result = await pool.query(q, vals);
     res.status(201).json(result.rows[0]);
   } catch (err) {

@@ -85,7 +85,12 @@ export interface TrainingRecord {
   employeeId: string;
   title: string;
   type: 'mandatory' | 'development' | 'compliance';
-  status: 'completed' | 'in_progress' | 'not_started' | 'closed';
+  status: 'completed' | 'in_progress' | 'not_started' | 'closed' | 'active' | 'inactive';
+  description?: string;
+  duration?: number; // in hours
+  max_participants?: number;
+  prerequisites?: string;
+  category?: 'mandatory' | 'skill_development' | 'compliance' | 'leadership';
   completionDate?: string;
   expiryDate?: string;
   provider?: string;

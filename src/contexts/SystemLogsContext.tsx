@@ -43,23 +43,57 @@ export const SystemLogsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return [];
   });
 
+  // Load logs from backend on mount (UAT)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/system_logs');
+        if (!mounted) return;
+        const rows = await res.json();
+        if (Array.isArray(rows)) setLogs(rows as SystemLog[]);
+      } catch (err) {
+        // keep local logs (empty or from localStorage)
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
   }, [logs]);
 
   const addLog = (log: Omit<SystemLog, 'id' | 'timestamp' | 'userId' | 'userName' | 'userRole'>) => {
     if (!user) return;
-    
-    const newLog: SystemLog = {
-      ...log,
-      id: crypto.randomUUID(),
-      userId: user.id,
-      userName: user.name,
-      userRole: user.role,
-      timestamp: new Date().toISOString()
-    };
+    (async () => {
+      const payload = {
+        ...log,
+        userId: user.id,
+        userName: user.name,
+        userRole: user.role
+      } as any;
+      try {
+        const res = await fetch('/api/system_logs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (res.ok) {
+          const created = await res.json();
+          setLogs(prev => [created as SystemLog, ...prev]);
+          return;
+        }
+      } catch (err) {
+        // fall through to local
+      }
 
-    setLogs(prev => [newLog, ...prev]);
+      // fallback to local-only log when backend unavailable
+      const newLog: SystemLog = {
+        ...log,
+        id: crypto.randomUUID(),
+        userId: user.id,
+        userName: user.name,
+        userRole: user.role,
+        timestamp: new Date().toISOString()
+      };
+      setLogs(prev => [newLog, ...prev]);
+    })();
   };
 
   const clearLogs = () => {

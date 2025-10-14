@@ -11,6 +11,7 @@ import positionsRouter from './routes/positions';
 import leavesRouter from './routes/leaves';
 import trainingsRouter from './routes/trainings';
 import disciplinaryRouter from './routes/disciplinary';
+import systemLogsRouter from './routes/systemLogs';
 
 const app = express();
 app.use(express.json());
@@ -70,5 +71,6 @@ app.use('/api/positions', positionsRouter);
 app.use('/api/leaves', leavesRouter);
 app.use('/api/trainings', trainingsRouter);
 app.use('/api/disciplinary', disciplinaryRouter);
+app.use('/api/system_logs', systemLogsRouter);
 
 export default app;
