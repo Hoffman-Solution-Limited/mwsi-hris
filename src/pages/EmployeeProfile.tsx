@@ -146,6 +146,7 @@ export const EmployeeProfile: React.FC = () => {
                     {employee.status}
                   </Badge>
                   <Badge variant="outline">ID: {employee.id}</Badge>
+                  <Badge variant="outline">Employee No: {(employee as any).employeeNumber || '—'}</Badge>
                   {employee.cadre && (
                     <Badge variant="outline" className="capitalize">{employee.cadre}</Badge>
                   )}
@@ -199,7 +200,6 @@ export const EmployeeProfile: React.FC = () => {
                         employmentType: employee.employmentType,
                         jobGroup: (employee as any).jobGroup,
                         ethnicity: (employee as any).ethnicity,
-                        staffNumber: employee.staffNumber,
                         nationalId: employee.nationalId,
                         kraPin: employee.kraPin,
                         children: employee.children,
@@ -230,7 +230,6 @@ export const EmployeeProfile: React.FC = () => {
           engagementType: data.employmentType,
           jobGroup: (data as any).jobGroup,
           ethnicity: (data as any).ethnicity,
-          staffNumber: data.staffNumber,
           nationalId: data.nationalId,
           kraPin: data.kraPin,
           children: data.children,
@@ -264,18 +263,11 @@ export const EmployeeProfile: React.FC = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-4 gap-4">
           <TabsTrigger value="personal" className="flex items-center gap-2">
             <User className="w-4 h-4" />
             Personal
           </TabsTrigger>
-        {(isMyProfile 
-          || ["admin", "hr_manager", "hr_staff"].includes(user?.role || "")) && (
-            <TabsTrigger value="documents" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Documents
-            </TabsTrigger>
-        )}
           <TabsTrigger value="performance" className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
             Performance
@@ -287,10 +279,6 @@ export const EmployeeProfile: React.FC = () => {
           <TabsTrigger value="leave" className="flex items-center gap-2">
             <Calendar className="w-4 h-4" />
             Leave
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="w-4 h-4" />
-            Notifications
           </TabsTrigger>
         </TabsList>
 
@@ -375,11 +363,11 @@ export const EmployeeProfile: React.FC = () => {
                       {(employee as any).jobGroup || '—'}
                     </div>
                   </div>
-                  
+
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-1 block">Staff No *</label>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Employee Number</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono">
-                      {employee.staffNumber || `${new Date().getFullYear()}${employee.id.padStart(6, '0')}`}
+                      {(employee as any).employeeNumber || '—'}
                     </div>
                   </div>
                   
