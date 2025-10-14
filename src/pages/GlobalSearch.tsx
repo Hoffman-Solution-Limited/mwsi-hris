@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { mockEmployees, mockLeaveRequests } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import { mapRole } from '@/lib/roles';
 import { useNavigate } from 'react-router-dom';
 
 export const GlobalSearch: React.FC = () => {
@@ -23,7 +24,7 @@ export const GlobalSearch: React.FC = () => {
       return { scopedEmployees: [] as typeof mockEmployees, scopedLeaveRequests: [] as typeof mockLeaveRequests };
     }
 
-    const isHR = user.role === 'hr_manager' || user.role === 'hr_staff' || user.role === 'admin';
+  const isHR = mapRole(user.role) === 'hr' || mapRole(user.role) === 'admin';
 
     // HR/Admin see all
     if (isHR) {
@@ -34,7 +35,7 @@ export const GlobalSearch: React.FC = () => {
     }
 
     // Manager sees self + direct reports (by matching employee.manager === manager.name)
-    if (user.role === 'manager') {
+  if (mapRole(user.role) === 'manager') {
       const teamEmployees = mockEmployees.filter(e => e.manager === user.name || e.id === user.id || e.email === user.email || e.name === user.name);
       const teamNames = new Set(teamEmployees.map(e => e.name).concat([user.name]));
       const teamIds = new Set(teamEmployees.map(e => e.id).concat([user.id]));

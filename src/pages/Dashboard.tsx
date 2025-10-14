@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { mapRole } from '@/lib/roles';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useLeave } from '@/contexts/LeaveContext';
 import { useToast } from '@/hooks/use-toast';
@@ -41,10 +42,11 @@ export const Dashboard: React.FC = () => {
   const { toast } = useToast();
 
   // Calculate metrics based on user role
-  const isEmployee = user?.role === 'employee';
-  const isManager = user?.role === 'manager';
-  const isHr = ['hr_manager', 'hr_staff'].includes(user?.role || '');
-  const isAdmin = user?.role === 'admin';
+  const canonical = mapRole(user?.role);
+  const isEmployee = canonical === 'employee';
+  const isManager = canonical === 'manager';
+  const isHr = canonical === 'hr';
+  const isAdmin = canonical === 'admin';
 
   if (isAdmin) {
     // Admin-specific metrics

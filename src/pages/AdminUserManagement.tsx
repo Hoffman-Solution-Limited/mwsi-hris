@@ -17,7 +17,7 @@ import { useEmployees } from '@/contexts/EmployeesContext'
 
 export default function AdminUserManagement() {
   const navigate = useNavigate()
-  const { users, addUser, toggleStatus, updateUser } = useUsers()
+  const { users, addUser, toggleStatus, updateUser, changePassword } = useUsers()
   const { employees } = useEmployees()
 
   const [search, setSearch] = useState('')
@@ -186,50 +186,88 @@ export default function AdminUserManagement() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
             <h2 className="text-xl font-semibold mb-4">Edit User</h2>
-            <label className="block mb-2">
-              Name:
-              <input
-                type="text"
-                value={editingUser.name}
-                onChange={e => setEditingUser({ ...editingUser, name: e.target.value })}
-                className="border px-3 py-2 rounded w-full mt-1"
-              />
-            </label>
-            <label className="block mb-2">
-              Email:
-              <input
-                type="email"
-                value={editingUser.email}
-                onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
-                className="border px-3 py-2 rounded w-full mt-1"
-              />
-            </label>
-            <label className="block mb-4">
-              Role:
-              <select
-                value={editingUser.role}
-                onChange={e => setEditingUser({ ...editingUser, role: e.target.value as any })}
-                className="border px-3 py-2 rounded w-full mt-1"
-              >
-                <option value="Admin">Admin</option>
-                <option value="HR">HR</option>
-                <option value="Employee">Employee</option>
-              </select>
-            </label>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setEditingUser(null)}
-                className="px-4 py-2 bg-gray-300 rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => { if (editingUser) { updateUser(editingUser.id, { name: editingUser.name, email: editingUser.email, role: editingUser.role }); handleSave(); } }}
-                className="px-4 py-2 bg-blue-600 text-white rounded"
-              >
-                Save
-              </button>
-            </div>
+            {editingUser.role === 'Admin' ? (
+              // For Admins we only allow password changes (pure admin without profile)
+              <div>
+                <p className="mb-2">This is a pure Admin account. You can only change the password here.</p>
+                <label className="block mb-2">
+                  New Password:
+                  <input
+                    type="password"
+                    value={editingUser.password || ''}
+                    onChange={e => setEditingUser({ ...editingUser, password: e.target.value })}
+                    className="border px-3 py-2 rounded w-full mt-1"
+                  />
+                </label>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setEditingUser(null)}
+                    className="px-4 py-2 bg-gray-300 rounded"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (editingUser) {
+                        changePassword(editingUser.id, editingUser.password || null)
+                        setEditingUser(null)
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded"
+                  >
+                    Change Password
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // Non-admin: allow editing profile fields
+              <>
+                <label className="block mb-2">
+                  Name:
+                  <input
+                    type="text"
+                    value={editingUser.name}
+                    onChange={e => setEditingUser({ ...editingUser, name: e.target.value })}
+                    className="border px-3 py-2 rounded w-full mt-1"
+                  />
+                </label>
+                <label className="block mb-2">
+                  Email:
+                  <input
+                    type="email"
+                    value={editingUser.email}
+                    onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
+                    className="border px-3 py-2 rounded w-full mt-1"
+                  />
+                </label>
+                <label className="block mb-4">
+                  Role:
+                  <select
+                    value={editingUser.role}
+                    onChange={e => setEditingUser({ ...editingUser, role: e.target.value as any })}
+                    className="border px-3 py-2 rounded w-full mt-1"
+                  >
+                    <option value="Admin">Admin</option>
+                    <option value="HR">HR</option>
+                    <option value="Employee">Employee</option>
+                  </select>
+                </label>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setEditingUser(null)}
+                    className="px-4 py-2 bg-gray-300 rounded"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => { if (editingUser) { updateUser(editingUser.id, { name: editingUser.name, email: editingUser.email, role: editingUser.role }); handleSave(); } }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded"
+                  >
+                    Save
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
