@@ -90,7 +90,8 @@ const groupTitleMap: Record<string, Record<string, string>> = {
     hr_manager: "HR Workspace",
     hr_staff: "HR Workspace",
     admin: "System Overview",
-    registry_manager: "My Workspace"
+    registry_manager: "My Workspace",
+    registry_staff: "My Workspace"
   },
   "HR Management": {
     employee: "Employee Services",
@@ -98,7 +99,8 @@ const groupTitleMap: Record<string, Record<string, string>> = {
     hr_manager: "HR Management",
     hr_staff: "HR Management",
     admin: "HR Oversight",
-    registry_manager: "Employee Services"
+    registry_manager: "Employee Services",
+    registry_staff: "Employee Services"
   },
   "Reports & Admin": {
     employee: "My Reports",
@@ -106,14 +108,16 @@ const groupTitleMap: Record<string, Record<string, string>> = {
     hr_manager: "Reports",
     hr_staff: "Reports",
     admin: "System Administration",
-    registry_manager: "My Reports"
+    registry_manager: "My Reports",
+    registry_staff: "My Reports"
   },
   "Document":{
     admin: "File Management",
     manager: "File Management",
     hr_manager: "File Management",
     hr_staff: "File Management",
-    registry_manager: "File Management"
+    registry_manager: "File Management",
+    registry_staff: "File Management"
   }
 };
 
