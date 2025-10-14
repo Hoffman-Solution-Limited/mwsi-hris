@@ -57,7 +57,7 @@ const navGroups: NavGroup[] = [
       { path: '/admin/department-goals', label: 'Department Goals', icon: <Target className="w-5 h-5" />, roles: ['admin'] },
       { path: '/admin/training-management', label: 'Training Management', icon: <GraduationCap className="w-5 h-5" />, roles: ['admin'] },
       { path: '/employee-files', label: 'Employee File Tracking', icon: <FileText className="w-5 h-5" />, roles: ['admin', 'hr_manager', 'hr_staff', 'manager'] },
-      { path: '/admin/requests', label: 'Requests Management', icon: <Activity className="w-5 h-5" />, roles: ['admin'] },
+      { path: '/admin/requests', label: 'File Requests Management', icon: <Activity className="w-5 h-5" />, roles: ['admin'] },
 
 
     ]
