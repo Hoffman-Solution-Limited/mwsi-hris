@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Edit, 
@@ -28,13 +28,23 @@ import {
   mockPerformanceReviews,
   mockLeaveRequests 
 } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const EmployeeProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('personal');
 
-  const employee = mockEmployees.find(emp => emp.id === id);
+  // If on /profile route, show current user's profile
+  const isMyProfile = location.pathname === '/profile';
+  const targetEmployeeId = isMyProfile ? user?.id : id;
+  const employee = mockEmployees.find(emp => emp.id === targetEmployeeId);
+
+  // Check if current user can access this profile
+  const canAccessProfile = isMyProfile || 
+    ['admin', 'hr_manager', 'hr_staff', 'manager'].includes(user?.role || '');
   const employeeDocuments = mockDocuments.filter(doc => 
     doc.uploadedBy === employee?.name || Math.random() > 0.5
   );
@@ -48,14 +58,28 @@ export const EmployeeProfile: React.FC = () => {
     leave.employeeId === id
   );
 
+  if (!canAccessProfile) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground mb-4">You don't have permission to view this profile.</p>
+          <Button onClick={() => navigate('/')}>
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (!employee) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Employee Not Found</h2>
           <p className="text-muted-foreground mb-4">The requested employee profile could not be found.</p>
-          <Button onClick={() => navigate('/employees')}>
-            Back to Directory
+          <Button onClick={() => navigate(isMyProfile ? '/' : '/employees')}>
+            {isMyProfile ? 'Back to Dashboard' : 'Back to Directory'}
           </Button>
         </div>
       </div>
@@ -66,9 +90,9 @@ export const EmployeeProfile: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" size="sm" onClick={() => navigate('/employees')}>
+        <Button variant="outline" size="sm" onClick={() => navigate(isMyProfile ? '/' : '/employees')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Directory
+          {isMyProfile ? 'Back to Dashboard' : 'Back to Directory'}
         </Button>
       </div>
 
@@ -117,16 +141,18 @@ export const EmployeeProfile: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
-              </Button>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-            </div>
+            {(isMyProfile || ['admin', 'hr_manager', 'hr_staff'].includes(user?.role || '')) && (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
