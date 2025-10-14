@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { useEmployees } from '@/contexts/EmployeesContext'
 import { useUsers } from '@/contexts/UsersContext'
 import { mapRole } from '@/lib/roles'
+import { getWorkStation } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -63,7 +64,7 @@ const TreeItem: React.FC<{
             </Avatar>
             <div>
               <div className="font-medium">{node.name}</div>
-              <div className="text-xs text-muted-foreground">{node.position || node.department || ''}</div>
+              <div className="text-xs text-muted-foreground">{node.position || getWorkStation(node) || ''}</div>
             </div>
           </button>
         </div>
@@ -271,7 +272,7 @@ const ManagersOverview: React.FC = () => {
                   </Avatar>
                   <div className="flex-1">
                     <div className="text-xl font-semibold">{dialogEmployee.name}</div>
-                    <div className="text-sm text-muted-foreground">{dialogEmployee.position || '—'} • {dialogEmployee.department || '—'}</div>
+                    <div className="text-sm text-muted-foreground">{dialogEmployee.position || '—'} • {getWorkStation(dialogEmployee) || '—'}</div>
                     <div className="mt-2 text-sm"><strong>Email:</strong> {dialogEmployee.email || '—'}</div>
                     {dialogEmployee.phone && <div className="text-sm"><strong>Phone:</strong> {dialogEmployee.phone}</div>}
                     {dialogEmployee.hireDate && <div className="text-sm"><strong>Hired:</strong> {dialogEmployee.hireDate}</div>}

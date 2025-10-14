@@ -21,6 +21,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { mapRole } from '@/lib/roles';
+import { getWorkStation } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useLeave } from '@/contexts/LeaveContext';
 import { useToast } from '@/hooks/use-toast';
@@ -49,7 +50,8 @@ export const Dashboard: React.FC = () => {
     const totalUsers = employees.length;
     const activeUsers = employees.filter(emp => emp.status === 'active').length;
     const inactiveUsers = employees.filter(emp => emp.status !== 'active').length;
-    const departments = [...new Set(employees.map(emp => emp.department))];
+  // Use workstation (stationName) when available, fall back to department
+  const departments = [...new Set(employees.map(emp => getWorkStation(emp)))];
 
     return (
       <div className="space-y-6">
@@ -86,7 +88,7 @@ export const Dashboard: React.FC = () => {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {departments.map((dept) => {
-                const count = employees.filter(emp => emp.department === dept).length;
+                const count = employees.filter(emp => getWorkStation(emp) === dept).length;
                 return (
                   <div key={dept} className="p-3 border rounded-lg flex justify-between">
                     <span>{dept}</span>

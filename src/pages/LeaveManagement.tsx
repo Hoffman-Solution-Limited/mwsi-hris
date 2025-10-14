@@ -86,6 +86,7 @@ export const LeaveManagement: React.FC = () => {
         employeeId: emp.id,
         employeeName: emp.name,
         department: emp.department,
+        station: emp.stationName,
         annual: {
           allocated: 25,
           used: Math.floor(Math.random() * 15) + 5,
@@ -107,6 +108,7 @@ export const LeaveManagement: React.FC = () => {
       employeeId: emp.id,
       employeeName: emp.name,
       department: emp.department,
+      station: emp.stationName,
       annual: {
         allocated: 25,
         used: Math.floor(Math.random() * 15) + 5,

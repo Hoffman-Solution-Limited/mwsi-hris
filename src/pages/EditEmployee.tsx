@@ -7,11 +7,11 @@ import { useEmployees } from "@/contexts/EmployeesContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 const EditEmployeePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { employees, updateEmployee } = useEmployees();
+  const { employees, updateEmployee, loading } = useEmployees();
   const { users } = useUsers();
   const { user } = useAuth();
   const { can } = usePermissions();
@@ -19,6 +19,21 @@ const EditEmployeePage: React.FC = () => {
 
   const employee = employees.find((e) => e.id === id);
   const canEdit = can(user?.role, 'employee.edit');
+
+  // Basic name splitting, assuming "First Middle Last"
+  const nameParts = employee?.name?.split(' ') || [];
+  const firstName = nameParts[0] || '';
+  const surname = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+  const middleName = nameParts.slice(1, -1).join(' ');
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <span className="ml-4">Loading employee data...</span>
+      </div>
+    );
+  }
 
   if (!employee) {
     return (
@@ -30,7 +45,13 @@ const EditEmployeePage: React.FC = () => {
           </Button>
         </div>
         <Card>
-          <CardContent className="p-6">Employee not found.</CardContent>
+          <CardHeader>
+            <CardTitle>Error</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <p>Employee not found.</p>
+            <p className="text-sm text-muted-foreground mt-2">The employee with ID "{id}" could not be found. They may have been deleted, or the link may be incorrect.</p>
+          </CardContent>
         </Card>
       </div>
     );
@@ -57,11 +78,15 @@ const EditEmployeePage: React.FC = () => {
           ) : (
             <EmployeeForm
               defaultValues={{
+                ...employee,
+                firstName: employee.firstName || firstName,
+                middleName: employee.middleName || middleName,
+                surname: employee.surname || surname,
                 name: employee.name,
                 email: employee.email,
                 phone: employee.phone,
                 position: employee.position,
-                department: employee.department,
+                stationName: employee.stationName || employee.department,
                 gender: employee.gender,
                 cadre: employee.cadre as any,
                 employmentType: employee.employmentType,
@@ -74,7 +99,6 @@ const EditEmployeePage: React.FC = () => {
                 homeCounty: employee.homeCounty,
                 postalAddress: employee.postalAddress,
                 postalCode: employee.postalCode,
-                stationName: employee.stationName,
                 skillLevel: employee.skillLevel,
                 company: employee.company,
                 dateOfBirth: employee.dateOfBirth,
@@ -115,6 +139,7 @@ const EditEmployeePage: React.FC = () => {
                   }
                 }
                 updateEmployee(employee.id, {
+                  ...data,
                   name: data.name,
                   email: data.email,
                   phone: data.phone,

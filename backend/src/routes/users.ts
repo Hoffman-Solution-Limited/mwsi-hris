@@ -19,8 +19,30 @@ router.post('/', async (req: Request, res: Response) => {
   const id = data.id || uuidv4();
   const password = data.password ? await bcrypt.hash(data.password, 10) : null;
   try {
+    // If caller provided employeeNumber, try to resolve employee_id
+    let employeeId = data.employee_id || null;
+    if (!employeeId && data.employeeNumber) {
+      const r = await pool.query('SELECT id FROM employees WHERE employee_number = $1 LIMIT 1', [data.employeeNumber]);
+      if (r && r.rowCount && r.rowCount > 0 && r.rows && r.rows[0]) employeeId = r.rows[0].id;
+    }
+    // If still not resolved, try matching email to employee
+    if (!employeeId && data.email) {
+      const r2 = await pool.query('SELECT id FROM employees WHERE lower(email) = lower($1) LIMIT 1', [data.email]);
+      if (r2 && r2.rowCount && r2.rowCount > 0 && r2.rows && r2.rows[0]) employeeId = r2.rows[0].id;
+    }
+
+    // Assemble name from parts if provided
+    let name = data.name || null;
+    if (!name) {
+      const parts: string[] = [];
+      if (data.firstName) parts.push(String(data.firstName).trim());
+      if (data.middleName) parts.push(String(data.middleName).trim());
+      if (data.lastName) parts.push(String(data.lastName).trim());
+      if (parts.length > 0) name = parts.join(' ');
+    }
+
     const q = `INSERT INTO users(id, employee_id, email, name, role, password, status) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id, email, name, role`;
-    const vals = [id, data.employee_id || null, data.email || null, data.name || null, data.role || 'employee', password, data.status || 'active'];
+    const vals = [id, employeeId || null, data.email || null, name || null, data.role || 'employee', password, data.status || 'active'];
     const result = await pool.query(q, vals);
     res.status(201).json(result.rows[0]);
   } catch (err) {

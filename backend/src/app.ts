@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { pool, testConnection } from './db';
 import { signToken } from './middleware/auth';
 import bcrypt from 'bcryptjs';
+import cors from 'cors';
 import employeesRouter from './routes/employees';
 import usersRouter from './routes/users';
 import rolesRouter from './routes/roles';
@@ -14,6 +15,16 @@ import disciplinaryRouter from './routes/disciplinary';
 import systemLogsRouter from './routes/systemLogs';
 
 const app = express();
+
+const corsOptions: cors.CorsOptions = {
+  origin: ['http://localhost:8080'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 app.get('/health', async (_req: Request, res: Response) => {

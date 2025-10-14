@@ -1,14 +1,16 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Employee } from '@/types/models';
 import api from '@/lib/api';
+import { toast } from '@/hooks/use-toast';
 
 export type EmployeeRecord = Employee;
 
 type EmployeesContextType = {
   employees: EmployeeRecord[];
-  addEmployee: (data: Omit<EmployeeRecord, 'id' | 'avatar' | 'status' | 'hireDate'> & Partial<Pick<EmployeeRecord, 'status' | 'hireDate'>>) => void;
-  updateEmployee: (id: string, updates: Partial<EmployeeRecord>) => void;
-  removeEmployee: (id: string) => void;
+  loading: boolean;
+  addEmployee: (data: Omit<EmployeeRecord, 'id' | 'avatar' | 'status' | 'hireDate'> & Partial<Pick<EmployeeRecord, 'status' | 'hireDate'>>) => Promise<EmployeeRecord | void>;
+  updateEmployee: (id: string, updates: Partial<EmployeeRecord>) => Promise<void>;
+  removeEmployee: (id: string) => Promise<void>;
   renameStationAcrossEmployees?: (oldName: string, newName: string) => void;
   renameDesignationAcrossEmployees?: (oldName: string, newName: string) => void;
   renameSkillLevelAcrossEmployees?: (oldName: string, newName: string) => void;
@@ -29,6 +31,7 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch {}
     return [];
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(employees)); } catch {}
@@ -39,6 +42,7 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     let mounted = true;
     (async () => {
       try {
+        setLoading(true);
         const rows = await api.get('/api/employees');
         if (!mounted) return;
         if (Array.isArray(rows) && rows.length > 0) {
@@ -47,6 +51,10 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       } catch (err) {
         // keep local mock data if backend not reachable
         // console.debug('employees load failed, using local', String(err));
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     })();
     return () => { mounted = false; };
@@ -56,52 +64,49 @@ export const EmployeesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // No mock-based backfills here; rely on backend or explicit HR edits for missing employeeNumbers
 
-  const addEmployee: EmployeesContextType['addEmployee'] = (data) => {
-    (async () => {
-      try {
-        const payload = { ...data } as any;
-        const created = await api.post('/api/employees', payload);
-        setEmployees(prev => [created as EmployeeRecord, ...prev]);
-      } catch (err) {
-        // fallback to local when API fails
-        const id = crypto.randomUUID();
-        const avatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent((data as any).name || 'EMP')}`;
-        const hireDate = (data as any).hireDate || new Date().toISOString().slice(0,10);
-        const status = (data as any).status || 'active';
-        const employeeNumber = (data as any).employeeNumber ? String((data as any).employeeNumber) : undefined;
-        const rec: EmployeeRecord = { id, avatar, hireDate, status, ...(employeeNumber ? { employeeNumber } : {}), ...data } as EmployeeRecord;
-        setEmployees(prev => [rec, ...prev]);
-      }
-    })();
+  const addEmployee: EmployeesContextType['addEmployee'] = async (data) => {
+    try {
+      const payload = { ...data } as any;
+      const created = await api.post('/api/employees', payload);
+      setEmployees(prev => [created as EmployeeRecord, ...prev]);
+      return created as EmployeeRecord;
+    } catch (err) {
+      // Log and notify when API fails, then fallback to local when API fails
+      try { console.error('addEmployee api error', err); } catch {}
+      try { toast({ title: 'Employee save failed', description: String(err) }); } catch {}
+      const id = crypto.randomUUID();
+      const avatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent((data as any).name || 'EMP')}`;
+      const hireDate = (data as any).hireDate || new Date().toISOString().slice(0,10);
+      const status = (data as any).status || 'active';
+      const employeeNumber = (data as any).employeeNumber ? String((data as any).employeeNumber) : undefined;
+      const rec: EmployeeRecord = { id, avatar, hireDate, status, ...(employeeNumber ? { employeeNumber } : {}), ...data } as EmployeeRecord;
+      setEmployees(prev => [rec, ...prev]);
+    }
   };
 
-  const updateEmployee: EmployeesContextType['updateEmployee'] = (id, updates) => {
-    (async () => {
-      try {
-        const updated = await api.put(`/api/employees/${id}`, updates);
-        setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...(updated as EmployeeRecord) } as EmployeeRecord : e)));
-      } catch (err) {
-        setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...updates } as EmployeeRecord : e)));
-      }
-    })();
+  const updateEmployee: EmployeesContextType['updateEmployee'] = async (id, updates) => {
+    try {
+      const updated = await api.put(`/api/employees/${id}`, updates);
+      setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...(updated as EmployeeRecord) } as EmployeeRecord : e)));
+    } catch (err) {
+      setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...updates } as EmployeeRecord : e)));
+    }
   };
 
-  const removeEmployee: EmployeesContextType['removeEmployee'] = (id) => {
-    (async () => {
-      try {
-        await api.del(`/api/employees/${id}`);
-        setEmployees(prev => prev.filter(e => e.id !== id));
-      } catch (err) {
-        // fallback: remove locally
-        setEmployees(prev => prev.filter(e => e.id !== id));
-      }
-    })();
+  const removeEmployee: EmployeesContextType['removeEmployee'] = async (id) => {
+    try {
+      await api.del(`/api/employees/${id}`);
+      setEmployees(prev => prev.filter(e => e.id !== id));
+    } catch (err) {
+      // fallback: remove locally
+      setEmployees(prev => prev.filter(e => e.id !== id));
+    }
   };
 
-  const value = useMemo(() => ({ employees, addEmployee, updateEmployee, removeEmployee }), [employees]);
+  const value = useMemo(() => ({ employees, loading, addEmployee, updateEmployee, removeEmployee }), [employees, loading, addEmployee, updateEmployee, removeEmployee]);
 
   // attach helper to rename stations across employees
-  const renameStationAcrossEmployees = (oldName: string, newName: string) => {
+  const renameStationAcrossEmployees = (oldName: string, newName:string) => {
     const o = oldName?.trim();
     const n = newName?.trim();
     if (!o || !n) return;

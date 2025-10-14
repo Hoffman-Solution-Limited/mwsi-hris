@@ -146,7 +146,7 @@ export const GlobalSearch: React.FC = () => {
                           <div className="flex-1">
                             <h4 className="font-medium">{employee.name}</h4>
                             <p className="text-sm text-muted-foreground">
-                              {employee.position} • {employee.department}
+                              {employee.position} • {employee.stationName || employee.department}
                             </p>
                             <p className="text-xs text-muted-foreground">{employee.email}</p>
                           </div>

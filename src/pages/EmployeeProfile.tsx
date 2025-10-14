@@ -34,6 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 // Removed Select import used only by document upload UI
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { mapRole } from '@/lib/roles';
+import { getWorkStation } from '@/lib/utils';
 
 export const EmployeeProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -337,7 +338,7 @@ export const EmployeeProfile: React.FC = () => {
               <div className="text-center md:text-left">
                 <h1 className="text-3xl font-bold mb-2">{employee.name}</h1>
                 <p className="text-xl text-muted-foreground mb-1">{employee.position}</p>
-                <p className="text-muted-foreground mb-4">{employee.department}</p>
+                <p className="text-muted-foreground mb-4">{getWorkStation(employee)}</p>
                 <div className="flex flex-wrap gap-2 justify-center md:justify-start mb-4">
                   <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
                     {employee.status}
@@ -425,7 +426,7 @@ export const EmployeeProfile: React.FC = () => {
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">Series *</label>
                     <div className="bg-muted px-3 py-2 rounded-md text-sm">
-                      HR-{employee.department?.substring(0, 4)?.toUpperCase()}-
+                      HR-{(employee.stationName || employee.department || '').toString().substring(0, 4).toUpperCase()}-
                     </div>
                   </div>
                   

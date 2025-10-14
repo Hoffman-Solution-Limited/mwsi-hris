@@ -7,13 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useSystemCatalog } from "@/contexts/SystemCatalogContext"
 import { useUsers } from "@/contexts/UsersContext"
+import { useToast } from '@/hooks/use-toast'
 
 export type EmployeeFormData = {
-  name: string
+  firstName: string
+  middleName?: string
+  surname: string
+  name?: string // This will be constructed from the parts
   email: string
   phone?: string
   position: string
-  department: string
+  // department removed; use stationName (work station) instead
   gender?: 'male' | 'female' | 'other'
   employmentType?: string
   jobGroup?: string
@@ -82,6 +86,8 @@ export function EmployeeForm({
   const watchedEthnicity = watch("ethnicity")
   const watchedStatus = watch("status")
   const watchedCadre = watch("cadre")
+  const watchedStationName = watch("stationName")
+  const { toast } = useToast();
 
   // Kenyan counties list (47)
   const counties = [
@@ -125,9 +131,32 @@ export function EmployeeForm({
       const managerUser = users.find(u => u.id === data.managerId || u.email === data.managerId)
       if (managerUser && managerUser.name) (data as any).manager = managerUser.name
     }
-    onSave(data)
+    // Construct full name
+    const fullName = [data.firstName, data.middleName, data.surname].filter(Boolean).join(' ')
+    onSave({ ...data, name: fullName })
     if (mode === "add") reset() // only reset on add
   }
+
+  // When validation errors change, scroll to first error and show a toast summary
+  React.useEffect(() => {
+    const errKeys = Object.keys(errors || {});
+    if (errKeys.length === 0) return;
+    // find first field element and scroll into view
+    const first = errKeys[0];
+    const el = document.querySelector(`#${first}`) as HTMLElement | null;
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.focus?.();
+    }
+
+    // build a compact message
+    const msgs = errKeys.map(k => {
+      const m = (errors as any)[k]?.message;
+      return m ? `${k}: ${m}` : k;
+    }).slice(0,5).join('\n');
+
+    toast({ title: 'Fix form errors', description: msgs });
+  }, [errors]);
 
   // Initialize managerQuery from defaultValues (managerId or manager name)
   React.useEffect(() => {
@@ -151,9 +180,26 @@ export function EmployeeForm({
             <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
             
             <div>
-              <Label htmlFor="name">Full Name *</Label>
-              <Input id="name" {...register("name", { required: "Name is required" })} />
-              {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
+              <Label htmlFor="employeeNumber">Employee Number *</Label>
+              <Input id="employeeNumber" {...register("employeeNumber", { required: "Employee Number is required" })} />
+              {errors.employeeNumber && <p className="text-destructive text-sm">{errors.employeeNumber.message}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <Label htmlFor="firstName">First Name *</Label>
+                <Input id="firstName" {...register("firstName", { required: "First name is required" })} />
+                {errors.firstName && <p className="text-destructive text-sm">{errors.firstName.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor="middleName">Middle Name</Label>
+                <Input id="middleName" {...register("middleName")} />
+              </div>
+              <div>
+                <Label htmlFor="surname">Surname *</Label>
+                <Input id="surname" {...register("surname", { required: "Surname is required" })} />
+                {errors.surname && <p className="text-destructive text-sm">{errors.surname.message}</p>}
+              </div>
             </div>
 
             <div>
@@ -263,10 +309,6 @@ export function EmployeeForm({
             </div>
 
             <div>
-              <Label htmlFor="employeeNumber">Employee Number *</Label>
-              <Input id="employeeNumber" {...register("employeeNumber", { required: "Employee Number is required" })} />
-            </div>
-            <div>
               <Label htmlFor="nationalId">National ID</Label>
               <Input id="nationalId" {...register("nationalId")} />
             </div>
@@ -375,10 +417,10 @@ export function EmployeeForm({
             </div>
 
             <div>
-              <Label htmlFor="department">Department (Work Station) *</Label>
+              <Label htmlFor="stationName">Work Station *</Label>
               <Select
-                value={watch("department")}
-                onValueChange={(value) => setValue("department", value, { shouldValidate: true })}
+                value={watchedStationName}
+                onValueChange={(value) => setValue("stationName", value, { shouldValidate: true })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Work Station" />
@@ -389,7 +431,7 @@ export function EmployeeForm({
                   ))}
                 </SelectContent>
               </Select>
-              {errors.department && <p className="text-destructive text-sm">{errors.department.message}</p>}
+              {errors.stationName && <p className="text-destructive text-sm">{errors.stationName.message}</p>}
             </div>
 
             <div>

@@ -1,3 +1,5 @@
+import { useSystemCatalog } from '@/contexts/SystemCatalogContext';
+import { getWorkStation } from '@/lib/utils';
 import React, { useMemo, useState } from 'react';
 import { useFileTracking } from '@/contexts/FileTrackingContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
@@ -11,7 +13,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSystemCatalog } from '@/contexts/SystemCatalogContext';
 
 const DocumentTrackingPage: React.FC = () => {
   const { user } = useAuth();
@@ -99,7 +100,7 @@ const DocumentTrackingPage: React.FC = () => {
                 {filteredEmployees.map(emp => (
                   <div key={emp.id} className="p-2 border rounded hover:bg-muted cursor-pointer" onClick={() => setEmployeeFilter(emp.id)}>
                     <div className="font-medium">{emp.name}</div>
-                    <div className="text-xs text-muted-foreground">ID: {emp.id} • Employee No: {emp.employeeNumber || '—'} • {emp.department}</div>
+                    <div className="text-xs text-muted-foreground">ID: {emp.id} • Employee No: {emp.employeeNumber || '\u2014'} • {getWorkStation(emp)}</div>
                   </div>
                 ))}
                 {filteredEmployees.length === 0 && (

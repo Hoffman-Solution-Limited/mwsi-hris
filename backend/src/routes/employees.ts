@@ -10,7 +10,8 @@ const toCamel = (s: string) => s.replace(/_([a-z])/g, (_m, p1) => p1.toUpperCase
 // whitelist of allowed employee DB columns (snake_case)
 const allowedColumns = new Set([
   'id','employee_number','name','email','position','department','manager','manager_id','hire_date','status','avatar','phone','date_of_birth',
-  'emergency_contact','salary','gender','cadre','employment_type','engagement_type','job_group','ethnicity','national_id','kra_pin','children','work_county','home_county','postal_address','postal_code','station_name','skill_level','company','documents','skills'
+  'emergency_contact','salary','gender','cadre','employment_type','engagement_type','job_group','ethnicity','national_id','kra_pin','children','work_county','home_county','postal_address','postal_code','station_name','skill_level','company','documents','skills',
+  'first_name', 'middle_name', 'surname'
 ]);
 
 function rowToCamel(row: any) {
@@ -20,6 +21,16 @@ function rowToCamel(row: any) {
   }
   return out;
 }
+
+// GET /api/employees
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query('SELECT * FROM employees ORDER BY name ASC');
+    res.json(result.rows.map(rowToCamel));
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
 
 // GET /api/employees/:id
 router.get('/:id', async (req: Request, res: Response) => {
@@ -38,6 +49,11 @@ router.post('/', async (req: Request, res: Response) => {
   const data = req.body || {};
   const id = data.id || uuidv4();
   try {
+    // Construct full name from parts if they exist
+    if (data.firstName || data.surname) {
+      data.name = [data.firstName, data.middleName, data.surname].filter(Boolean).join(' ');
+    }
+
     // map incoming camelCase keys to snake_case and whitelist
     const entries: Array<[string, any]> = [];
     // ensure id first

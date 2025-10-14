@@ -16,6 +16,7 @@ import { TemplateCriteriaList } from '@/components/performance/TemplateCriteriaL
 import { useAuth } from '@/contexts/AuthContext';
 import { usePerformance, PerformanceTemplate, PerformanceReview } from '@/contexts/PerformanceContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
+import { getWorkStation } from '@/lib/utils';
 
 export const PerformanceReviews: React.FC = () => {
   const navigate = useNavigate();
@@ -142,9 +143,9 @@ export const PerformanceReviews: React.FC = () => {
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [deadlineDate, setDeadlineDate] = useState('');
   // HR Assign: department selection to auto-select employees
-  const departments = useMemo(() => Array.from(new Set(employees.map(e => e.department))), [employees]);
+  const departments = useMemo(() => Array.from(new Set(employees.map(e => getWorkStation(e)))), [employees]);
   const [assignDepartment, setAssignDepartment] = useState<string>('all');
-  const employeesByDept = useMemo(() => assignDepartment === 'all' ? employees : employees.filter(e => e.department === assignDepartment), [employees, assignDepartment]);
+  const employeesByDept = useMemo(() => assignDepartment === 'all' ? employees : employees.filter(e => getWorkStation(e) === assignDepartment), [employees, assignDepartment]);
   // Filter templates by department for assignment; allow global (no department) templates when a department is chosen
   const filteredTemplates = useMemo(() => {
     if (assignDepartment === 'all') return templates;

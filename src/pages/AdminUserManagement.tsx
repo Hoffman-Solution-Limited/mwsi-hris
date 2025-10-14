@@ -19,6 +19,17 @@ import { useToast } from '@/hooks/use-toast'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const initialUserFormValues = {
+  firstName: '',
+  middleName: '',
+  lastName: '',
+  employeeNumber: '',
+  name: '',
+  email: '',
+  role: 'employee',
+  sendInvite: true,
+}
+
 export default function AdminUserManagement() {
   const navigate = useNavigate()
   const { users, addUser, toggleStatus, updateUser, changePassword } = useUsers()
@@ -48,6 +59,40 @@ export default function AdminUserManagement() {
   const [currentPage, setCurrentPage] = useState(1)
   const [addOpen, setAddOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [userFormValues, setUserFormValues] = useState(initialUserFormValues)
+  const [confirmationOpen, setConfirmationOpen] = useState(false)
+  const [createdUserData, setCreatedUserData] = useState<any>(null)
+
+  const handleEmployeeLookup = (employeeNumber: string) => {
+    if (!employeeNumber) return
+    const employee = employees.find(e => e.employeeNumber?.toString() === employeeNumber)
+    if (employee) {
+      toast({
+        title: "Employee Found",
+        description: `Populating form with details for ${employee.name}.`,
+      })
+      setUserFormValues(prev => ({
+        ...prev,
+        firstName: employee.firstName || '',
+        middleName: employee.middleName || '',
+        lastName: employee.lastName || '',
+        email: employee.email || '',
+        name: employee.name || '',
+      }))
+    } else {
+      toast({
+        title: "Employee Not Found",
+        description: `No employee found with number ${employeeNumber}. You can still create a user manually.`,
+        variant: "destructive",
+      })
+      // Reset if not found, but keep the entered number
+      setUserFormValues(prev => ({
+        ...initialUserFormValues,
+        employeeNumber: prev.employeeNumber,
+      }))
+    }
+  }
+
   const [importRows, setImportRows] = useState<Array<{ id: number; cols: string[]; name?: string; email?: string; role?: string; error?: string }>>([])
   const [headers, setHeaders] = useState<string[]>([])
   const usersPerPage = 5
@@ -123,7 +168,7 @@ export default function AdminUserManagement() {
 
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700">
+            <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => setUserFormValues(initialUserFormValues)}>
               <Plus className="w-4 h-4 mr-2" />
               Add New User
             </Button>
@@ -138,25 +183,42 @@ export default function AdminUserManagement() {
               </DialogDescription>
             </DialogHeader>
             <UserForm
-              defaultValues={{
-                name: '',
-                email: '',
-                role: 'employee',
-              }}
+              defaultValues={userFormValues}
+              onEmployeeNumberBlur={handleEmployeeLookup}
               onSave={data => {
-                const userData = { 
-                  ...data, 
-                  name: data.name || data.email, // Use email as name if not provided
-                  position: 'N/A', 
-                  department: 'N/A', 
-                  hireDate: new Date().toISOString() 
-                };
-                handleAddEmployee(userData)
-                // TODO: integrate with backend to send invitation email using temp password
+                // assemble full name
+                const name = data.name || [data.firstName, data.middleName, data.lastName].filter(Boolean).join(' ')
+
+                // try lookup by employeeNumber first (if provided), otherwise by email
+                let matched = null
+                if (data.employeeNumber) {
+                  matched = employees.find(e => (e.employeeNumber || '').toString().toLowerCase() === (data.employeeNumber || '').toString().toLowerCase())
+                }
+                if (!matched) {
+                  matched = employees.find(e => (e.email || '').toLowerCase() === (data.email || '').toLowerCase())
+                }
+                if (!matched) {
+                  alert('This email or employee number does not match any employee record. Please ask HR to create the employee record first.')
+                  return
+                }
+
+                const userData: any = {
+                  email: data.email,
+                  name: name || data.email,
+                  role: data.role,
+                  employee_id: matched.id,
+                  position: matched.position || 'N/A',
+                  department: matched.stationName || matched.department || 'N/A',
+                  hireDate: matched.hireDate || new Date().toISOString(),
+                }
+                addUser(userData)
+                // handle invite
                 if (data.sendInvite) {
                   console.log('Send invite enabled. Temp password:', data.tempPassword)
                 }
                 setAddOpen(false)
+                setCreatedUserData(userData)
+                setConfirmationOpen(true)
               }}
               onCancel={() => setAddOpen(false)}
             />
@@ -302,6 +364,7 @@ export default function AdminUserManagement() {
                             <td className="p-2 text-xs text-muted-foreground">{r.error || 'OK'}</td>
                           </tr>
                         ))}
+
                       </tbody>
                     </table>
                   </div>
@@ -411,6 +474,28 @@ export default function AdminUserManagement() {
           </button>
         ))}
       </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>User Created Successfully</DialogTitle>
+          </DialogHeader>
+          {createdUserData && (
+            <div className="space-y-2 py-4">
+              <p>An account has been created for <strong>{createdUserData.name}</strong>.</p>
+              <div><strong>Email:</strong> {createdUserData.email}</div>
+              <div><strong>Role:</strong> {createdUserData.role}</div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button onClick={() => {
+              setConfirmationOpen(false)
+              setCreatedUserData(null)
+            }}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit User Dialog (reuses UserForm to match Add UI) */}
       <Dialog open={!!editingUser} onOpenChange={(open) => { if (!open) setEditingUser(null) }}>

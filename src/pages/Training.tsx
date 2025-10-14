@@ -683,7 +683,7 @@ export const Training: React.FC = () => {
                                         />
                                         <div className="flex-1 min-w-0">
                                           <p className="text-sm font-medium truncate">{employee.name}</p>
-                                          <p className="text-xs text-muted-foreground truncate">{employee.position} • {employee.department}</p>
+                                          <p className="text-xs text-muted-foreground truncate">{employee.position} • {employee.stationName || employee.department}</p>
                                         </div>
                                       </div>
                                     ))}

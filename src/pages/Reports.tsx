@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useEmployees } from '@/contexts/EmployeesContext';
+import { getWorkStation } from '@/lib/utils';
 import { useLeave } from '@/contexts/LeaveContext';
 import { usePerformance } from '@/contexts/PerformanceContext';
 import { useTraining } from '@/contexts/TrainingContext';
@@ -27,7 +28,8 @@ export const Reports: React.FC = () => {
     const active = employees.filter(e => e.status === 'active').length;
     const inactive = total - active;
     const byDept = employees.reduce<Record<string, number>>((acc, e) => {
-      acc[e.department] = (acc[e.department] || 0) + 1;
+      const key = getWorkStation(e);
+      acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {});
     const byGender = employees.reduce<Record<string, number>>((acc, e) => {

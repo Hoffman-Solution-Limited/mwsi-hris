@@ -27,6 +27,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { EmployeeForm } from "@/components/EmployeeForm"
+import { getWorkStation } from '@/lib/utils'
 
 export const EmployeeDirectory: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("")
@@ -49,19 +50,21 @@ export const EmployeeDirectory: React.FC = () => {
     ? user ? employees.filter(e => String(e.managerId || '') === String(user.id || '')) : []
     : employees;
 
-  // Unique departments based on scoped employees
+  // Unique departments based on scoped employees (keep for legacy filters)
   const departments = [...new Set(baseEmployees.map((emp) => emp.department))]
 
   // Filter employees within scoped set
   const filteredEmployees = baseEmployees.filter((employee) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.department.toLowerCase().includes(searchQuery.toLowerCase())
+      employee.name.toLowerCase().includes(q) ||
+      employee.email.toLowerCase().includes(q) ||
+      employee.position.toLowerCase().includes(q) ||
+      (employee.department || '').toLowerCase().includes(q) ||
+      (employee.stationName || '').toLowerCase().includes(q)
 
     const matchesDepartment =
-      departmentFilter === "all" || employee.department === departmentFilter
+      departmentFilter === "all" || employee.department === departmentFilter || employee.stationName === departmentFilter
     const matchesStatus =
       statusFilter === "all" || employee.status === statusFilter
 
@@ -237,10 +240,10 @@ export const EmployeeDirectory: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="all">All Departments</SelectItem>
                     {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
-                      </SelectItem>
-                    ))}
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               )}
@@ -315,7 +318,7 @@ export const EmployeeDirectory: React.FC = () => {
                     {employee.position}
                   </p>
                   <p className="text-xs text-muted-foreground mb-3">
-                    {employee.department}
+                    {getWorkStation(employee)}
                   </p>
                   {employee.cadre && (
                     <Badge variant="outline" className="mb-3 capitalize">{employee.cadre}</Badge>
@@ -397,7 +400,7 @@ export const EmployeeDirectory: React.FC = () => {
                           </p>
                         )}
                       </td>
-                      <td>{employee.department}</td>
+                      <td>{getWorkStation(employee)}</td>
                       <td className="capitalize">{employee.cadre || '-'}</td>
                       <td>
                         <Badge
