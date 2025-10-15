@@ -35,16 +35,22 @@ Acceptance: Fresh DB can be provisioned with one command; down/up cycles are det
 
 ### 3) Domain Modules (CRUD + Business Rules)
 Ensure each router has complete CRUD and key business rules. Current routers:
-- Users
-- Employees
-- Roles
-- Positions
-- Leaves
-- Trainings
-- Disciplinary
-- Performance
-- Department Goals
-- System Logs
+- Users -- Done
+- Employees -- Done
+- Roles -- Done
+- Positions/Recruitment -- Done
+- Document/File creation -- Done
+- Leaves --In Progress
+- Trainings -- To Do
+- Disciplinary -- To Do
+- Performance -- To Do
+- Department Goals -- To Do
+- System Logs -- To Do
+- Dashboard -- To Do
+- Reports -- To Do
+- File Movement tracking -- To Do
+- File request management -- To Do
+- My File page -- To Do
 
 Tasks (repeatable per module):
 - [ ] Define validated DTOs with Zod

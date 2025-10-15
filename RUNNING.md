@@ -80,3 +80,22 @@ Troubleshooting
 - Re-seeding data:
 	- Use docker-compose down -v then up to re-apply init SQL files.
 
+Sharing your current DB data with teammates
+- This repo supports a compressed snapshot at `database/snapshots/99-dev-snapshot.sql.gz` that is applied on a fresh volume.
+- To refresh the snapshot from your running DB (you):
+	1) Ensure `db` container is running (docker-compose up -d db)
+	2) Export data from the container and copy into the repo (PowerShell):
+
+			- docker exec mwsi-hris-db-1 sh -lc "pg_dump -U devuser -d mwsi_hris_dev --data-only --inserts --no-owner --no-privileges | gzip > /tmp/99-dev-snapshot.sql.gz"
+			- docker cp mwsi-hris-db-1:/tmp/99-dev-snapshot.sql.gz database/snapshots/99-dev-snapshot.sql.gz
+			- git add database/snapshots/99-dev-snapshot.sql.gz; git commit -m "chore(db): snapshot current dev data"; git push
+
+- For teammates to get the new data, after pulling:
+	- git pull
+	- docker-compose down -v
+	- docker-compose up --build
+
+Notes
+- The snapshot is applied only on a new volume (after `down -v`).
+- The service/container name shown above (`mwsi-hris-db-1`) comes from docker-compose; if your local name differs, adjust the commands (check with `docker-compose ps`).
+

@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ChevronsUpDown, Check } from "lucide-react";
 import { useSystemCatalog } from "@/contexts/SystemCatalogContext";
+import api from "@/lib/api";
 
 const Recruitment: React.FC = () => {
   const [activeTab, setActiveTab] = useState("positions");
@@ -27,14 +28,35 @@ const Recruitment: React.FC = () => {
     } catch {}
     return [];
   });
+  // helpers to map API <-> UI job shapes
+  const fromApi = (row: any) => ({
+    ...row,
+    grossSalary: row.grossSalary ?? row.gross_salary,
+    employmentType: row.employmentType ?? row.employment_type,
+    postedDate: (row.postedDate ?? row.posted_date)?.slice(0, 10),
+    closingDate: (row.closingDate ?? row.closing_date)?.slice(0, 10),
+  });
+  const toApi = (row: any) => ({
+    title: row.title,
+    designation: row.designation,
+    stations: row.stations,
+    gross_salary: row.grossSalary ?? row.gross_salary,
+    employment_type: row.employmentType ?? row.employment_type,
+    status: row.status,
+    description: row.description,
+    posted_date: row.postedDate ?? row.posted_date,
+    closing_date: row.closingDate ?? row.closing_date,
+    applicants: row.applicants ?? 0,
+  });
+
   // load positions from backend on mount
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const rows = await fetch('http://localhost:5000/api/positions').then(r => r.json());
+        const rows = await api.get('/api/positions');
         if (!mounted) return;
-        if (Array.isArray(rows) && rows.length > 0) setPositions(rows as any[]);
+        if (Array.isArray(rows) && rows.length > 0) setPositions((rows as any[]).map(fromApi));
       } catch (err) {
         // keep local positions
       }
@@ -164,11 +186,11 @@ const Recruitment: React.FC = () => {
     (async () => {
       try {
         if (editingJob) {
-          const updated = await fetch(`http://localhost:5000/api/positions/${editingJob.id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(job) }).then(r => r.json());
-          setPositions(prev => prev.map(p => (p.id === editingJob.id ? updated : p)));
+          const updated = await api.put(`/api/positions/${editingJob.id}`, toApi(job));
+          setPositions(prev => prev.map(p => (p.id === editingJob.id ? fromApi(updated) : p)));
         } else {
-          const created = await fetch('http://localhost:5000/api/positions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(job) }).then(r => r.json());
-          setPositions(prev => [created, ...prev]);
+          const created = await api.post('/api/positions', toApi(job));
+          setPositions(prev => [fromApi(created), ...prev]);
         }
       } catch (err) {
         // fallback to local
@@ -460,6 +482,18 @@ const Recruitment: React.FC = () => {
                       <Button size="sm" variant="destructive" onClick={() => { setJobToClose(job); setCloseJobDialogOpen(true); }}>
                         Close
                       </Button>
+                      <Button size="sm" variant="ghost" onClick={async () => {
+                        if (!confirm('Delete this position?')) return;
+                        try {
+                          await api.del(`/api/positions/${job.id}`);
+                          setPositions(prev => prev.filter(p => p.id !== job.id));
+                        } catch (e) {
+                          // local fallback
+                          setPositions(prev => prev.filter(p => p.id !== job.id));
+                        }
+                      }}>
+                        Delete
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -659,9 +693,14 @@ const Recruitment: React.FC = () => {
               <p>Are you sure you want to close the job posting for <span className="font-semibold">{jobToClose?.title}</span>? This action cannot be undone.</p>
               <DialogFooter className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setCloseJobDialogOpen(false)}>Cancel</Button>
-                <Button variant="destructive" onClick={() => {
+                <Button variant="destructive" onClick={async () => {
                   if (jobToClose) {
-                    setPositions(prev => prev.map(p => p.id === jobToClose.id ? { ...p, status: 'closed' } : p));
+                    try {
+                      await api.put(`/api/positions/${jobToClose.id}`, { status: 'closed' });
+                      setPositions(prev => prev.map(p => p.id === jobToClose.id ? { ...p, status: 'closed' } : p));
+                    } catch (e) {
+                      setPositions(prev => prev.map(p => p.id === jobToClose.id ? { ...p, status: 'closed' } : p));
+                    }
                   }
                   setCloseJobDialogOpen(false);
                   setJobToClose(null);
@@ -737,8 +776,7 @@ const Recruitment: React.FC = () => {
                 dateOfBirth: "",
                 hireDate: new Date().toISOString().slice(0,10),
                 salary: typeof prefillCandidate.grossSalary !== 'undefined' ? prefillCandidate.grossSalary : undefined,
-                status: 'active',
-                role: 'employee'
+                status: 'active'
               }}
               onSave={handleCreateEmployeeSave}
             />
