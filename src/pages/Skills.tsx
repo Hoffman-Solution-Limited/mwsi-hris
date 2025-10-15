@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import CatalogEditDialog from "@/components/ui/CatalogEditDialog"
-import { useSystemCatalog } from "@/contexts/SystemCatalogContext"
-import { useEmployees } from "@/contexts/EmployeesContext"
+import { useSystemCatalog } from "@/contexts/SystemCatalogContext";
+import { useEmployees } from "@/contexts/EmployeesContext";
 
 // --- Types ---
 type Skill = {
@@ -22,7 +22,7 @@ export const SkillsPage: React.FC = () => {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editingSkill, setEditingSkill] = useState<string | null>(null)
-  const { skillLevels, addSkillLevel, editSkillLevel, deactivateSkillLevel, reactivateSkillLevel, removeSkillLevel } = useSystemCatalog()
+  const { skillLevels, addSkillLevel, editSkillLevel, removeSkillLevel } = useSystemCatalog()
   const { renameSkillLevelAcrossEmployees, employees } = useEmployees()
 
   // 🔹 Build list with counts from mock employees for display
@@ -63,11 +63,6 @@ export const SkillsPage: React.FC = () => {
     // handled in shared dialog via onSave
   }
 
-  const handleToggleActive = (name: string, active: boolean) => {
-    if (active) reactivateSkillLevel(name)
-    else deactivateSkillLevel(name)
-  }
-
   const handleDeleteSkill = (name: string, count: number) => {
     if (count > 0) {
       alert('Cannot delete a skill level that has employees assigned. Deactivate instead.')
@@ -89,8 +84,10 @@ export const SkillsPage: React.FC = () => {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-
-          {/* Add Skill Dialog (shared) */}
+          <Button size="sm" onClick={() => setIsAddOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Skill Level
+          </Button>
           <CatalogEditDialog
             open={isAddOpen}
             onOpenChange={setIsAddOpen}
@@ -98,7 +95,7 @@ export const SkillsPage: React.FC = () => {
             addLabel="Add Skill Level"
             items={skillLevels}
             initialValue={""}
-            onAdd={(v) => { addSkillLevel(v) }}
+            onAdd={(v) => { addSkillLevel(v); setIsAddOpen(false); }}
           />
         </div>
       </div>
@@ -138,6 +135,7 @@ export const SkillsPage: React.FC = () => {
                 {filteredSkills.map((s) => (
                   <tr key={s.id}>
                     <td>{s.name}</td>
+                      <Button size="sm" variant="ghost" onClick={() => openEditDialog(s.name)}>Edit</Button>
                     <td>{s.employeeCount}</td>
                     <td>
                       <Badge variant={s.active ? (s.employeeCount > 0 ? "default" : "secondary") : "outline"}>
@@ -146,7 +144,6 @@ export const SkillsPage: React.FC = () => {
                     </td>
                     <td className="flex items-center gap-2">
                       <Button size="sm" variant="ghost" onClick={() => openEditDialog(s.name)}>Edit</Button>
-                      <Button size="sm" variant="ghost" onClick={() => handleToggleActive(s.name, !s.active)}>{s.active ? 'Deactivate' : 'Reactivate'}</Button>
                       <Button size="sm" variant="destructive" onClick={() => handleDeleteSkill(s.name, s.employeeCount)}>Delete</Button>
                     </td>
                   </tr>
@@ -174,10 +171,6 @@ export const SkillsPage: React.FC = () => {
         onDelete={(v) => {
           const s = allSkills.find(x => x.name === v)
           handleDeleteSkill(v, s?.employeeCount || 0)
-        }}
-        onToggleActive={(v, next) => {
-          if (next) reactivateSkillLevel(v)
-          else deactivateSkillLevel(v)
         }}
       />
     </div>

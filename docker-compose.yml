@@ -16,6 +16,10 @@ services:
       - ./database/generated/12-employees-status-retired.sql:/docker-entrypoint-initdb.d/12-employees-status-retired.sql:ro
       - ./database/generated/13-employees-kin-special-needs.sql:/docker-entrypoint-initdb.d/13-employees-kin-special-needs.sql:ro
       - ./database/generated/14-employees-home-subcounty.sql:/docker-entrypoint-initdb.d/14-employees-home-subcounty.sql:ro
+      - ./database/init/99-apply-snapshots.sh:/docker-entrypoint-initdb.d/99-apply-snapshots.sh:ro
+      - ./database/snapshots:/docker-entrypoint-initdb.d/snapshots:ro
+    # Apply dev snapshot after schema/seeds on fresh volumes
+      - ./database/snapshots/99-dev-snapshot.sql.gz:/docker-entrypoint-initdb.d/99-dev-snapshot.sql.gz:ro
 
   backend:
     build:

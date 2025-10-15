@@ -75,8 +75,13 @@ const WorkStationsPage: React.FC = () => {
   const handleToggleActive = (name: string) => {
     const st = stations.find((s: StationItem) => s.name === name);
     if (!st) return;
+    const count = employees.filter(e => (e.stationName || 'Unassigned') === name).length;
+    if (st.active && count > 0) {
+      alert('You cannot deactivate a station that has employees assigned.');
+      return;
+    }
     if (st.active) {
-      if (!window.confirm(`Deactivate station "${name}"? Employees assigned will remain assigned.`)) return;
+      if (!window.confirm(`Deactivate station "${name}"?`)) return;
       deactivateStation(name);
     } else {
       reactivateStation(name);
@@ -160,12 +165,25 @@ const WorkStationsPage: React.FC = () => {
                     </td>
                     <td className="flex items-center gap-2">
                       <Button size="sm" variant="outline" onClick={() => openEditDialog(s.name)}>Edit</Button>
-                      <Button size="sm" variant="outline" onClick={() => handleToggleActive(s.name)}>{s.active ? 'Deactivate' : 'Reactivate'}</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={s.active && s.employeeCount > 0}
+                        title={s.active && s.employeeCount > 0 ? 'Cannot deactivate: has employees' : (s.active ? 'Deactivate' : 'Reactivate')}
+                        onClick={() => handleToggleActive(s.name)}
+                      >
+                        {s.active ? 'Deactivate' : 'Reactivate'}
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         disabled={s.employeeCount > 0}
-                        onClick={() => removeStation(s.name)}
+                        onClick={() => {
+                          if (s.employeeCount > 0) return;
+                          if (window.confirm(`Delete station "${s.name}"? This cannot be undone.`)) {
+                            removeStation(s.name);
+                          }
+                        }}
                         title={s.employeeCount > 0 ? 'Cannot delete: has employees' : 'Delete station'}
                       >
                         Delete

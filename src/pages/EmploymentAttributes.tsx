@@ -15,11 +15,12 @@ const Section: React.FC<{
   onAdd: (name: string) => void;
   onEdit?: (oldName: string, newName: string) => void;
   onToggleActive?: (name: string) => void;
+  onDelete?: (name: string) => void;
   placeholder: string;
   normalize?: (v: string) => string;
   counts?: Counts;
   defaultCollapsed?: boolean;
-}> = ({ title, items, onAdd, onEdit, onToggleActive, placeholder, normalize, counts, defaultCollapsed }) => {
+}> = ({ title, items, onAdd, onEdit, onToggleActive, onDelete, placeholder, normalize, counts, defaultCollapsed }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [newItem, setNewItem] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -147,7 +148,38 @@ const Section: React.FC<{
                       </td>
                       <td className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => openEdit(i.value)}>Edit</Button>
-                        <Button size="sm" variant="outline" onClick={() => onToggleActive && onToggleActive(i.value)}>{i.active ? 'Deactivate' : 'Reactivate'}</Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={i.active && (c?.total ?? 0) > 0}
+                          title={i.active && (c?.total ?? 0) > 0 ? 'Cannot deactivate: in use by employees' : (i.active ? 'Deactivate' : 'Reactivate')}
+                          onClick={() => {
+                            if (!onToggleActive) return;
+                            if (i.active && (c?.total ?? 0) > 0) {
+                              alert('You cannot deactivate an item that is assigned to employees.');
+                              return;
+                            }
+                            onToggleActive(i.value);
+                          }}
+                        >
+                          {i.active ? 'Deactivate' : 'Reactivate'}
+                        </Button>
+                        {onDelete && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={(c?.total ?? 0) > 0}
+                            title={(c?.total ?? 0) > 0 ? 'Cannot delete: in use by employees' : `Delete ${title.slice(0, -1)}`}
+                            onClick={() => {
+                              if ((c?.total ?? 0) > 0) return;
+                              if (window.confirm(`Delete ${title.slice(0, -1)} "${i.value}"? This cannot be undone.`)) {
+                                onDelete(i.value);
+                              }
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -201,6 +233,9 @@ const EmploymentAttributesPage: React.FC = () => {
     editEthnicity,
     deactivateEthnicity,
     reactivateEthnicity,
+    removeJobGroup,
+    removeEngagementType,
+    removeEthnicity,
   } = useSystemCatalog();
   const { employees, renameJobGroupAcrossEmployees, renameEngagementTypeAcrossEmployees, renameEthnicityAcrossEmployees } = useEmployees();
 
@@ -273,6 +308,9 @@ const EmploymentAttributesPage: React.FC = () => {
           if (!it) return;
           if (it.active) deactivateEngagementType(name); else reactivateEngagementType(name);
         }}
+        onDelete={(name) => {
+          removeEngagementType(name);
+        }}
         placeholder="e.g., Permanent, Extended Service, Local Contract"
         counts={engagementCounts}
         defaultCollapsed={false}
@@ -290,6 +328,9 @@ const EmploymentAttributesPage: React.FC = () => {
           const it = jobGroups.find(x => x.value === name);
           if (!it) return;
           if (it.active) deactivateJobGroup(name); else reactivateJobGroup(name);
+        }}
+        onDelete={(name) => {
+          removeJobGroup(name);
         }}
         placeholder="Enter job group (e.g., A, B, C...)"
         normalize={(v) => v.toUpperCase()}
@@ -309,6 +350,9 @@ const EmploymentAttributesPage: React.FC = () => {
           const it = ethnicities.find(x => x.value === name);
           if (!it) return;
           if (it.active) deactivateEthnicity(name); else reactivateEthnicity(name);
+        }}
+        onDelete={(name) => {
+          removeEthnicity(name);
         }}
         placeholder="Enter ethnicity"
         counts={ethnicityCounts}
