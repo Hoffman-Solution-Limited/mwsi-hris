@@ -39,6 +39,7 @@ Ensure each router has complete CRUD and key business rules. Current routers:
 - Employees -- Done
 - Roles -- Done
 - Positions/Recruitment -- Done
+- Document/File creation -- Done
 - Leaves --In Progress
 - Trainings -- To Do
 - Disciplinary -- To Do
@@ -47,7 +48,9 @@ Ensure each router has complete CRUD and key business rules. Current routers:
 - System Logs -- To Do
 - Dashboard -- To Do
 - Reports -- To Do
-- Document -- To Do
+- File Movement tracking -- To Do
+- File request management -- To Do
+- My File page -- To Do
 
 Tasks (repeatable per module):
 - [ ] Define validated DTOs with Zod
