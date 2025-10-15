@@ -10,32 +10,93 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar, Clock, TrendingUp } from 'lucide-react';
+import { useApplyLeaveMutation, useGetAllLeavesQuery, useGetAllLeaveTypesQuery } from '@/features/leave/leaveApi';
+import { yupResolver } from "@hookform/resolvers/yup"
+import * as yup from "yup"
+import { useToast } from '@/hooks/use-toast';
+import { Controller, useForm } from "react-hook-form"
+
+export type FormValues = {
+  type: number;    
+  startDate: string;  
+  endDate: string; 
+  days: number;
+  reason: string;
+}
 
 const ManagerApplyLeave: React.FC = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const { leaveRequests, addLeaveRequest } = useLeave();
   const [form, setForm] = useState({ type: 'annual', startDate: '', endDate: '', days: 1, reason: '' });
   const [applyOpen, setApplyOpen] = useState(false);
+  const [applyLeave] = useApplyLeaveMutation();
+  const { data, isLoading } = useGetAllLeaveTypesQuery();
+  const { data:leaves, isLoading: leavesLoading } = useGetAllLeavesQuery();
 
+  console.log("leave data>>",data);
   // Only manager's own leave requests
   const myLeaves = useMemo(() => leaveRequests.filter(l => l.employeeId === user?.id), [leaveRequests, user]);
   const myApprovedLeaves = myLeaves.filter(l => l.status === 'approved');
   const usedLeaveDays = myApprovedLeaves.reduce((sum, leave) => sum + leave.days, 0);
   const leaveBalance = 25 - usedLeaveDays;
 
-  const submitLeave = () => {
+   const schema = yup.object().shape({
+    type: yup.number().required("Leave type is required"),
+    startDate: yup.string().required("Start date is required"),
+    endDate: yup.string().required("End date is required"),
+    days: yup.number().min(1, "At least 1 day is required").required("Days are required"),
+    reason: yup.string().required("Reason is required"),
+  })
+
+const { register, handleSubmit, reset, control, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  resolver: yupResolver(schema)
+});
+
+    // console.log("user>", user);
+
+  const handleSubmitLeave = async(formData: FormValues) => {
+    console.log("Reached here");
+    
     if (!user) return;
-    if (!form.startDate || !form.endDate || !form.reason) return;
-    addLeaveRequest({
-      employeeId: user.id,
-      type: form.type as any,
-      startDate: form.startDate,
-      endDate: form.endDate,
-      days: Number(form.days) || 1,
-      reason: form.reason
-    });
-    setApplyOpen(false);
-    setForm({ type: 'annual', startDate: '', endDate: '', days: 1, reason: '' });
+    try {
+      const payload = {
+        employee_id: user.id,
+        employee_name: user.name,
+        leave_type_id: formData.type,
+        start_date: formData.startDate,
+        end_date: formData.endDate,
+        days: formData.days,
+        reason: formData.reason,
+      };
+
+      console.log("payload", payload);
+      
+      const response = await applyLeave(payload);
+
+      if (response?.error) {
+        toast({
+          title: "Error",
+          description: response.error.data?.message || "Invalid information",
+          variant: "destructive",
+        });
+        reset();
+      } else {
+        toast({
+          title: "Leave Application Submitted",
+          description: "Your leave application has been submitted successfully.",
+        });
+        reset();
+        setApplyOpen(false);
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "An error occurred while submitting leave application",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -47,11 +108,18 @@ const ManagerApplyLeave: React.FC = () => {
         </div>
         <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
           <DialogTrigger asChild>
+            
             <Button>
               <Calendar className="w-4 h-4 mr-2" />
               Apply for Leave
             </Button>
           </DialogTrigger>
+          <form onSubmit={handleSubmit(
+    handleSubmitLeave, // call your actual submit function
+    (validationErrors) => {
+      console.error("Validation errors:", validationErrors);
+    }
+  )}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Apply for Leave</DialogTitle>
@@ -59,40 +127,69 @@ const ManagerApplyLeave: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <label className="text-sm font-medium">Leave Type</label>
-                <Select value={form.type} onValueChange={v => setForm(s => ({ ...s, type: v }))}>
+                {/* <Select {...register("type")} value={form.type} onValueChange={v => setForm(s => ({ ...s, type: v }))}>
                   <SelectTrigger className="w-full mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="annual">Annual</SelectItem>
-                    <SelectItem value="sick">Sick</SelectItem>
-                    <SelectItem value="emergency">Emergency</SelectItem>
-                    <SelectItem value="maternity">Maternity</SelectItem>
-                    <SelectItem value="study">Study</SelectItem>
+                    {isLoading && <SelectItem value="loading">Loading...</SelectItem>}
+                    {data && data.map(leaveType => (
+                      <SelectItem key={leaveType.id} value={leaveType.id}>
+                        {leaveType.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
-                </Select>
+                </Select> */}
+                <Controller
+  name="type"
+  control={control}
+  render={({ field }) => (
+    <Select
+      value={String(field.value)} 
+      onValueChange={v => field.onChange(Number(v))}
+    >
+      <SelectTrigger className="w-full mt-1">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {isLoading && <SelectItem value="0">Loading...</SelectItem>}
+        {data && data.map(leaveType => (
+          <SelectItem key={leaveType.id} value={String(leaveType.id)}>
+            {leaveType.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )}
+/>
+                {errors.type && <p className="text-red-500 text-sm">{errors.type.message}</p>}
               </div>
               <div>
-                <label className="text-sm font-medium">Start Date</label>
-                <Input type="date" className="mt-1" value={form.startDate} onChange={e => setForm(s => ({ ...s, startDate: e.target.value }))} />
+                <label className="text-sm font-medium" >Start Date</label>
+                <Input type="date" className="mt-1" {...register("startDate")} />
+                 {errors.startDate && <p className="text-red-500 text-sm">{errors.startDate.message}</p>}
               </div>
               <div>
                 <label className="text-sm font-medium">End Date</label>
-                <Input type="date" className="mt-1" value={form.endDate} onChange={e => setForm(s => ({ ...s, endDate: e.target.value }))} />
+                <Input type="date" className="mt-1" {...register("endDate")} />
+                 {errors.endDate && <p className="text-red-500 text-sm">{errors.endDate.message}</p>}
               </div>
               <div>
                 <label className="text-sm font-medium">Total Days</label>
-                <Input type="number" min={1} className="mt-1" value={form.days} onChange={e => setForm(s => ({ ...s, days: Number(e.target.value) }))} />
+                <Input type="number" min={1} className="mt-1" {...register("days")} />
+                 {errors.days && <p className="text-red-500 text-sm">{errors.days.message}</p>}
               </div>
               <div className="md:col-span-2">
                 <label className="text-sm font-medium">Reason</label>
-                <Textarea className="mt-1" rows={3} value={form.reason} onChange={e => setForm(s => ({ ...s, reason: e.target.value }))} />
+                <Textarea className="mt-1" rows={3} {...register("reason")} />
+                 {errors.reason && <p className="text-red-500 text-sm">{errors.reason.message}</p>}
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={submitLeave} disabled={!form.startDate || !form.endDate || !form.reason}>Submit</Button>
+              <Button type='submit' >Submit</Button>
             </DialogFooter>
           </DialogContent>
+          </form>
         </Dialog>
       </div>
 
@@ -213,10 +310,10 @@ const ManagerApplyLeave: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {myLeaves.length === 0 && (
+            {leaves && leaves.length === 0 && (
               <p className="text-sm text-muted-foreground">No leave requests yet.</p>
             )}
-            {myLeaves.map((request) => (
+            {leaves &&leaves.map((request) => (
               <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
                   <div className="flex items-center gap-2 mb-1">

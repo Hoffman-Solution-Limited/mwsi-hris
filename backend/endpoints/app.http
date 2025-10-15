@@ -1,0 +1,104 @@
+### health check
+GET http://localhost:5000/health
+
+### //get all users
+GET http://localhost:5000/api/users
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g
+
+### //get one user
+GET http://localhost:5000/api/users/4
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNDE0YmIwNzMxMjMwYWFiNmE5YzYiLCJleHAiOjE3NDQ1MjMyMTl9.JCvSFW79BFk3xOS2sbTp1Qrp4b5wHgjLtVMhsJJk-tA
+
+### //create user
+POST http://localhost:5000/api/users/create
+Content-Type: application/json
+
+{
+    "firstName": "Test2",
+    "lastName": "Employee2",
+    "email": "testEmployee2@gmail.com",
+    "roleId":4,
+    "phone": ,
+    "password": "123456@Ik"
+}
+
+### //get all employees
+GET http://localhost:5000/api/employees
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g
+
+### //create employee
+POST http://localhost:5000/api/employees
+Content-Type: application/json
+
+{
+  "employee_number": "EMP-2025-001",
+  "name": "John Mwangi",
+  "email": "john.mwangi@mwsi.com",
+  "position": "Software Engineer",
+  "department": "Engineering",
+  "manager": "Alice Njeri",
+  "manager_id": 2,
+  "hire_date": "2023-03-15",
+  "avatar": "https://example.com/avatars/john_mwangi.png",
+  "phone": "+254712345678",
+  "emergency_contact": "Jane Mwangi: +254798765432",
+  "salary": 120000,
+  "gender": "Male",
+  "cadre": "Senior",
+  "employment_type": "Full-Time",
+  "engagement_type": "Permanent",
+  "job_group": "IT",
+  "ethnicity": "Kikuyu",
+  "national_id": "12345678",
+  "kra_pin": "A123456789B",
+  "children": 2,
+  "work_county": "Nairobi",
+  "home_county": "Kiambu",
+  "postal_address": "P.O. Box 12345",
+  "postal_code": "00100",
+  "station_name": "Nairobi HQ",
+  "skill_level": "Expert",
+  "company": "TechCorp Ltd",
+  "date_of_birth": "1990-07-12"
+}
+
+
+### //get all leave_types
+GET http://localhost:5000/api/leave_types
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g
+
+### //get one leave type
+GET http://localhost:5000/api/leave_types/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g
+
+### //create leave_types
+POST http://localhost:5000/api/leave_types
+Content-Type: application/json
+
+{
+    "name": "Annual Leave",
+    "description": "Yearly vacation",
+    "maxDaysPerYear": 25
+}
+### //get all leave
+GET http://localhost:5000/api/leaves
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g
+
+### //get one leave
+GET http://localhost:5000/api/leaves/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g
+
+### //create leave
+POST http://localhost:5000/api/leaves
+Content-Type: application/json
+
+{
+    "employee_id": "612972f4-d2be-495d-82c7-4bfae3496907",
+    "employee_name": "John Mwangi",
+    "leave_type_id": 1,
+    "start_date":"2025-11-01",
+    "end_date": "2025-11-05",
+    "days": 4,
+    "reason": "Vacation"
+}
+### //create leave

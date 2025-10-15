@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const connectionString = process.env.DATABASE_URL || 'postgres://devuser:devpass@db:5432/mwsi_hris_dev';
+console.log("connectionString>>>>>",connectionString);
+
 export const pool = new Pool({ connectionString });
 
 export async function testConnection() {

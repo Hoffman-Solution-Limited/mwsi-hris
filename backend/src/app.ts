@@ -10,6 +10,7 @@ import performanceRouter from './routes/performance';
 import departmentGoalsRouter from './routes/departmentGoals';
 import positionsRouter from './routes/positions';
 import leavesRouter from './routes/leaves';
+import leaveTypesRouter from './routes/leaveTypes';
 import trainingsRouter from './routes/trainings';
 import disciplinaryRouter from './routes/disciplinary';
 import systemLogsRouter from './routes/systemLogs';
@@ -17,7 +18,7 @@ import systemLogsRouter from './routes/systemLogs';
 const app = express();
 
 // Build allowed origins from env and sensible defaults
-const defaultOrigins = new Set<string>(['http://localhost:8080']);
+const defaultOrigins = new Set<string>(['http://localhost:8080','http://localhost:8081']);
 const configuredOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
   .map(s => s.trim())
@@ -94,5 +95,6 @@ app.use('/api/leaves', leavesRouter);
 app.use('/api/trainings', trainingsRouter);
 app.use('/api/disciplinary', disciplinaryRouter);
 app.use('/api/system_logs', systemLogsRouter);
+app.use('/api/leave_types', leaveTypesRouter);
 
 export default app;
