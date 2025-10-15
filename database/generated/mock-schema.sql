@@ -283,6 +283,7 @@ CREATE INDEX idx_positions_department ON positions(department);
 CREATE INDEX idx_training_records_employee_id ON training_records(employee_id);
 CREATE INDEX idx_leave_requests_employee_id ON leave_requests(employee_id);
 CREATE INDEX idx_performance_reviews_employee_id ON performance_reviews(employee_id);
+CREATE INDEX idx_users_email ON users(email);
 
 -- Trigger to update updated_at on employees
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -311,9 +312,6 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Helpful index for users email lookups
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
 -- Roles table (allow dynamic roles and metadata)
 CREATE TABLE IF NOT EXISTS roles (
