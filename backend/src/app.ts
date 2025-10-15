@@ -14,6 +14,11 @@ import trainingsRouter from './routes/trainings';
 import disciplinaryRouter from './routes/disciplinary';
 import systemLogsRouter from './routes/systemLogs';
 import skillsRouter from './routes/skills';
+import designationsRouter from './routes/designations';
+import stationsRouter from './routes/stations';
+import jobGroupsRouter from './routes/jobGroups';
+import engagementTypesRouter from './routes/engagementTypes';
+import ethnicitiesRouter from './routes/ethnicities';
 
 const app = express();
 
@@ -96,5 +101,10 @@ app.use('/api/trainings', trainingsRouter);
 app.use('/api/disciplinary', disciplinaryRouter);
 app.use('/api/system_logs', systemLogsRouter);
 app.use('/api/skills', skillsRouter);
+app.use('/api/designations', designationsRouter);
+app.use('/api/stations', stationsRouter);
+app.use('/api/job-groups', jobGroupsRouter);
+app.use('/api/engagement-types', engagementTypesRouter);
+app.use('/api/ethnicities', ethnicitiesRouter);
 
 export default app;

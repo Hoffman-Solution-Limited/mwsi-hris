@@ -31,7 +31,7 @@ export const DesignationPage: React.FC = () => {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editingValue, setEditingValue] = useState("")
-  const { designations, addDesignation, editDesignation } = useSystemCatalog()
+  const { designations, addDesignation, editDesignation, removeDesignation } = useSystemCatalog()
   const { renameDesignationAcrossEmployees, employees } = useEmployees()
 
   // 🔹 Build list with counts from mock employees for display
@@ -54,9 +54,9 @@ export const DesignationPage: React.FC = () => {
   )
 
   // 🔹 Add new designation (starts with 0 employees)
-  const handleAddDesignation = () => {
+  const handleAddDesignation = async () => {
     if (!newDesignation.trim()) return
-    addDesignation(newDesignation.trim())
+    await addDesignation(newDesignation.trim())
     setNewDesignation("")
     setIsAddOpen(false)
   }
@@ -67,18 +67,27 @@ export const DesignationPage: React.FC = () => {
     setIsEditOpen(true)
   }
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingKey) return
     const next = editingValue.trim()
     if (!next || next === editingKey) {
       setIsEditOpen(false)
       return
     }
-    editDesignation(editingKey, next)
+    await editDesignation(editingKey, next)
     try { renameDesignationAcrossEmployees?.(editingKey, next) } catch {}
     setIsEditOpen(false)
     setEditingKey(null)
     setEditingValue("")
+  }
+
+  const handleDelete = async (value: string, employeeCount: number) => {
+    if (employeeCount > 0) {
+      alert('Cannot delete a designation that has employees assigned.')
+      return
+    }
+    if (!window.confirm(`Delete ${value}? This cannot be undone.`)) return
+    await removeDesignation(value)
   }
 
   return (
@@ -175,6 +184,7 @@ export const DesignationPage: React.FC = () => {
                     </td>
                     <td className="flex gap-2">
                       <Button size="sm" variant="ghost" onClick={() => openEdit(d.name)}>Edit</Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleDelete(d.name, d.employeeCount)}>Delete</Button>
                     </td>
                   </tr>
                 ))}
