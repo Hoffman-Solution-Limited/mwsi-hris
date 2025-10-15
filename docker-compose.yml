@@ -18,8 +18,7 @@ services:
       - ./database/generated/14-employees-home-subcounty.sql:/docker-entrypoint-initdb.d/14-employees-home-subcounty.sql:ro
       - ./database/init/99-apply-snapshots.sh:/docker-entrypoint-initdb.d/99-apply-snapshots.sh:ro
       - ./database/snapshots:/docker-entrypoint-initdb.d/snapshots:ro
-    # Apply dev snapshot after schema/seeds on fresh volumes
-      - ./database/snapshots/99-dev-snapshot.sql.gz:/docker-entrypoint-initdb.d/99-dev-snapshot.sql.gz:ro
+    # Snapshots are applied by 99-apply-snapshots.sh from the mounted snapshots directory
 
   backend:
     build:
