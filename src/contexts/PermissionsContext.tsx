@@ -124,7 +124,20 @@ export const PermissionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(rolePermissions));
+    // Ensure registry roles always keep access to registry pages (migration/safety net)
+    const ensureRegistryAccess = (rp: RolePermissions): RolePermissions => {
+      const ensure = (role: keyof RolePermissions) => {
+        const list = new Set(rp[role] || []);
+        list.add('page.registry.requests');
+        list.add('page.employee-files');
+        rp[role] = Array.from(list) as any;
+      };
+      ensure('registry_manager');
+      ensure('registry_staff');
+      return rp;
+    };
+    const sanitized = ensureRegistryAccess({ ...rolePermissions });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
   }, [rolePermissions]);
 
   const setRolePermissions = (role: UserRole, permissions: PermissionKey[]) => {

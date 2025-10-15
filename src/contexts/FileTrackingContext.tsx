@@ -68,6 +68,8 @@ type FileTrackingContextType = {
   // Document types management
   knownDocumentTypes: DocumentType[];
   addDocumentType: (name: string) => void;
+  renameDocumentType: (oldName: string, newName: string) => void;
+  deleteDocumentType: (name: string) => void;
   // Requests
   requests: FileRequest[];
   listMyRequests: (userId: string) => FileRequest[];
@@ -156,6 +158,37 @@ export const FileTrackingProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setKnownDocumentTypes(prev => prev.includes(n) ? prev : [...prev, n]);
     // Add to all employee files as a default document if not present
     setFiles(prev => prev.map(f => ({ ...f, defaultDocuments: f.defaultDocuments.includes(n) ? f.defaultDocuments : [...f.defaultDocuments, n] })));
+  };
+
+  const renameDocumentType: FileTrackingContextType['renameDocumentType'] = (oldName, newName) => {
+    const o = (oldName || '').toString().trim();
+    const n = (newName || '').toString().trim();
+    if (!o || !n || o === n) return;
+    setKnownDocumentTypes(prev => {
+      if (!prev.includes(o)) return prev;
+      if (prev.includes(n)) {
+        // If new already exists, just remove old to avoid duplicates
+        return prev.filter(d => d !== o);
+      }
+      return prev.map(d => (d === o ? n : d));
+    });
+    // Update all employee files defaultDocuments
+    setFiles(prev => prev.map(f => {
+      if (!f.defaultDocuments.includes(o)) return f;
+      const updated = f.defaultDocuments.map(d => (d === o ? n : d));
+      return { ...f, defaultDocuments: Array.from(new Set(updated)) };
+    }));
+    // Update requests that referenced old name
+    setRequests(prev => prev.map(r => (r.documentType === o ? { ...r, documentType: n } : r)));
+  };
+
+  const deleteDocumentType: FileTrackingContextType['deleteDocumentType'] = (name) => {
+    const n = (name || '').toString().trim();
+    if (!n) return;
+    setKnownDocumentTypes(prev => prev.filter(d => d !== n));
+    // Remove from all employee files defaultDocuments
+    setFiles(prev => prev.map(f => ({ ...f, defaultDocuments: f.defaultDocuments.filter(d => d !== n) })));
+    // We intentionally do not mutate existing requests; historical records may still refer to removed types
   };
 
   useEffect(() => {
@@ -373,7 +406,7 @@ export const FileTrackingProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  const value = useMemo(() => ({ files, getFileByEmployeeId, moveFile, ensureDefaultsForEmployee, knownDocumentTypes, addDocumentType, requests, listMyRequests, listAllRequests, requestFile, approveRequest, rejectRequest, listAssignedToUser }), [files, requests, knownDocumentTypes]);
+  const value = useMemo(() => ({ files, getFileByEmployeeId, moveFile, ensureDefaultsForEmployee, knownDocumentTypes, addDocumentType, renameDocumentType, deleteDocumentType, requests, listMyRequests, listAllRequests, requestFile, approveRequest, rejectRequest, listAssignedToUser }), [files, requests, knownDocumentTypes]);
 
   return (
     <FileTrackingContext.Provider value={value}>
