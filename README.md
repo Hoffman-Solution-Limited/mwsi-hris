@@ -44,6 +44,29 @@ docker-compose down -v; docker-compose up --build
 
 More details are in `RUNNING.md`.
 
+### Using shared development data (snapshots)
+
+Fresh clones should get real data automatically on first run. We commit a compressed SQL snapshot and an init script that applies it after schema and seeds.
+
+- Snapshot location: `database/snapshots/*.sql.gz`
+- Init script: `database/init/99-apply-snapshots.sh`
+- Compose mounts both into Postgres so snapshots are applied on a fresh volume
+
+Generate a new snapshot from your current DB (Windows PowerShell):
+```powershell
+# Ensure stack is running and DB has desired data
+scripts/export-db-snapshot.ps1
+# This writes: database/snapshots/YYYY-MM-DD-dev-snapshot.sql.gz
+# Commit the new file so teammates get the same data on fresh volumes
+```
+
+Apply snapshot on your machine (fresh DB):
+```powershell
+docker-compose down -v
+docker-compose up --build
+```
+This drops the volume and reinitializes the DB with schema, seeds, and the committed snapshot.
+
 ## Local development without full Docker
 
 Run DB in Docker, backend + frontend on host.
