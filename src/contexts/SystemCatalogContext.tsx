@@ -21,8 +21,6 @@ export type SystemCatalogContextType = {
   removeDesignation: (name: string) => void;
   addSkillLevel: (name: string) => void;
   editSkillLevel: (oldName: string, newName: string) => void;
-  deactivateSkillLevel: (name: string) => void;
-  reactivateSkillLevel: (name: string) => void;
   removeSkillLevel: (name: string) => void;
   addStation: (name: string) => void;
   editStation: (oldName: string, newName: string) => void;
@@ -116,8 +114,19 @@ export const SystemCatalogProvider: React.FC<{ children: React.ReactNode }> = ({
     let mounted = true;
     (async () => {
       try {
-        const rows = await api.get('/api/employees');
-        if (!mounted) return;
+          const [skillLevelsResult, employeeRows] = await Promise.all([
+            api.get('/api/skills/levels'),
+            api.get('/api/employees')
+          ]);
+
+          if (!mounted) return;
+
+          if (Array.isArray(skillLevelsResult)) {
+            setSkillLevels(skillLevelsResult as Item[]);
+          }
+
+          const rows = employeeRows;
+
         if (Array.isArray(rows) && rows.length > 0) {
           const designSet = new Set<string>(designations.map(d => d.value));
           const skillSet = new Set<string>(skillLevels.map(s => s.value));
@@ -136,7 +145,7 @@ export const SystemCatalogProvider: React.FC<{ children: React.ReactNode }> = ({
           }
 
           setDesignations(Array.from(designSet).map(v => ({ value: v, active: true })));
-          setSkillLevels(Array.from(skillSet).map(v => ({ value: v, active: true })));
+          // setSkillLevels(Array.from(skillSet).map(v => ({ value: v, active: true })));
           setStations(Array.from(stationSet).map(n => ({ name: n, active: true })));
           setJobGroups(Array.from(jobGroupSet).map(v => ({ value: v, active: true })));
           setEngagementTypes(Array.from(engagementSet).map(v => ({ value: v, active: true })));
@@ -185,34 +194,25 @@ export const SystemCatalogProvider: React.FC<{ children: React.ReactNode }> = ({
     setDesignations(prev => prev.filter(x => x.value !== n));
   };
 
-  const addSkillLevel = (name: string) => {
+  const addSkillLevel = async (name: string) => {
     const n = name.trim();
     if (!n) return;
-    setSkillLevels(prev => (prev.some(x => x.value === n) ? prev : [...prev, { value: n, active: true }]));
+    const newItem = await api.post('/api/skills/levels', { name: n });
+    setSkillLevels(prev => [...prev, newItem]);
   };
 
-  const editSkillLevel = (oldName: string, newName: string) => {
+  const editSkillLevel = async (oldName: string, newName: string) => {
     const o = oldName.trim();
     const n = newName.trim();
     if (!o || !n) return;
-    setSkillLevels(prev => prev.map(x => (x.value === o ? { ...x, value: n } : x)));
+    const updatedItem = await api.put(`/api/skills/levels/${encodeURIComponent(o)}`, { name: n });
+    setSkillLevels(prev => prev.map(x => (x.value === o ? updatedItem : x)));
   };
 
-  const deactivateSkillLevel = (name: string) => {
+  const removeSkillLevel = async (name: string) => {
     const n = name.trim();
     if (!n) return;
-    setSkillLevels(prev => prev.map(x => (x.value === n ? { ...x, active: false } : x)));
-  };
-
-  const reactivateSkillLevel = (name: string) => {
-    const n = name.trim();
-    if (!n) return;
-    setSkillLevels(prev => prev.map(x => (x.value === n ? { ...x, active: true } : x)));
-  };
-
-  const removeSkillLevel = (name: string) => {
-    const n = name.trim();
-    if (!n) return;
+    await api.del(`/api/skills/levels/${encodeURIComponent(n)}`);
     setSkillLevels(prev => prev.filter(x => x.value !== n));
   };
 
@@ -297,8 +297,6 @@ export const SystemCatalogProvider: React.FC<{ children: React.ReactNode }> = ({
     removeDesignation,
     addSkillLevel,
     editSkillLevel,
-    deactivateSkillLevel,
-    reactivateSkillLevel,
     removeSkillLevel,
     addStation,
     editStation,

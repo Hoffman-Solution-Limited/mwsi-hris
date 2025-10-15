@@ -13,6 +13,7 @@ import leavesRouter from './routes/leaves';
 import trainingsRouter from './routes/trainings';
 import disciplinaryRouter from './routes/disciplinary';
 import systemLogsRouter from './routes/systemLogs';
+import skillsRouter from './routes/skills';
 
 const app = express();
 
@@ -94,5 +95,6 @@ app.use('/api/leaves', leavesRouter);
 app.use('/api/trainings', trainingsRouter);
 app.use('/api/disciplinary', disciplinaryRouter);
 app.use('/api/system_logs', systemLogsRouter);
+app.use('/api/skills', skillsRouter);
 
 export default app;
