@@ -39,7 +39,7 @@ const TrainingProgramDetails: React.FC = () => {
       id: r.id,
       employeeId: r.employeeId,
       name: emp?.name || `Employee ${r.employeeId}`,
-      department: emp?.department || emp?.stationName,
+      department: emp?.stationName,
       status: r.status,
       completionDate: r.completionDate,
       expiryDate: r.expiryDate,
@@ -221,7 +221,7 @@ const TrainingProgramDetails: React.FC = () => {
           {(() => {
             const byDept: Record<string, { total: number; completed: number }> = {};
             related.forEach(r => {
-              const dept = (employees || []).find(e=>e.id===r.employeeId)?.department || 'Unknown';
+              const dept = (employees || []).find(e=>e.id===r.employeeId)?.stationName || 'Unknown';
               if (!byDept[dept]) byDept[dept] = { total: 0, completed: 0 };
               byDept[dept].total += 1;
               if (r.status === 'completed') byDept[dept].completed += 1;

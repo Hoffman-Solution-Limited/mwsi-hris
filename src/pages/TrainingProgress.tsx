@@ -73,7 +73,7 @@ const TrainingProgress: React.FC = () => {
         if (isNaN(d.getTime()) || d.getFullYear() !== y) return;
       }
       const emp = (employees || []).find(e => e.id === t.employeeId);
-      const dept = (emp?.department || emp?.stationName || 'Unknown').toString();
+  const dept = (emp?.stationName || 'Unknown').toString();
       if (!map.has(dept)) map.set(dept, { total: 0, completed: 0 });
       const cur = map.get(dept)!;
       cur.total += 1;

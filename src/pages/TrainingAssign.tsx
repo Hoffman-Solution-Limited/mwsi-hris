@@ -21,7 +21,6 @@ const TrainingAssign: React.FC = () => {
 
   const title = decodeURIComponent(routeTitle || '');
   const [q, setQ] = useState('');
-  const [department, setDepartment] = useState<string>('all');
   const [station, setStation] = useState<string>('all');
   const [page, setPage] = useState<number>(1);
   const [selected, setSelected] = useState<string[]>([]);
@@ -51,11 +50,6 @@ const TrainingAssign: React.FC = () => {
   }, [trainings, title]);
 
   // Build filter options
-  const departments = useMemo(() => {
-    const set = new Set<string>();
-    (employees || []).forEach(e => { if (e.department) set.add(String(e.department)); });
-    return Array.from(set).sort();
-  }, [employees]);
   const stations = useMemo(() => {
     const set = new Set<string>();
     (employees || []).forEach(e => { if (e.stationName) set.add(String(e.stationName)); });
@@ -67,15 +61,14 @@ const TrainingAssign: React.FC = () => {
 
   const filtered = useMemo(() => {
     return baseList.filter(e => {
-      if (department !== 'all' && String(e.department) !== department) return false;
       if (station !== 'all' && String(e.stationName) !== station) return false;
       if (q) {
-        const hay = `${e.name || ''} ${e.position || ''} ${e.department || ''} ${e.stationName || ''}`.toLowerCase();
+        const hay = `${e.name || ''} ${e.position || ''} ${e.stationName || ''}`.toLowerCase();
         if (!hay.includes(q.toLowerCase())) return false;
       }
       return true;
     });
-  }, [baseList, department, station, q]);
+  }, [baseList, station, q]);
 
   // keep all-filtered selection in sync when filters change
   useEffect(() => {
@@ -86,7 +79,7 @@ const TrainingAssign: React.FC = () => {
   }, [allFilteredSelected, filtered, assignedSet]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  useEffect(() => { setPage(1); }, [department, station, q]);
+  useEffect(() => { setPage(1); }, [station, q]);
   const startIdx = (page - 1) * PAGE_SIZE;
   const pageRows = filtered.slice(startIdx, startIdx + PAGE_SIZE);
 
@@ -144,7 +137,7 @@ const TrainingAssign: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>{programMeta.title}</CardTitle>
-          <CardDescription>Assign this program to employees. Use filters to narrow by department or workstation.</CardDescription>
+          <CardDescription>Assign this program to employees. Use filters to narrow by workstation.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2 items-center">
           {(programMeta as any).type && <Badge variant={(programMeta as any).type === 'mandatory' ? 'destructive' : 'secondary'}>{(programMeta as any).type}</Badge>}
@@ -159,14 +152,7 @@ const TrainingAssign: React.FC = () => {
           <CardTitle>Filters</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3 items-center">
-          <Input placeholder="Search name, position, dept, station" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
-          <Select value={department} onValueChange={(v: string) => setDepartment(v)}>
-            <SelectTrigger className="w-56"><SelectValue placeholder="Department" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Departments</SelectItem>
-              {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <Input placeholder="Search name, position, workstation" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
           <Select value={station} onValueChange={(v: string) => setStation(v)}>
             <SelectTrigger className="w-56"><SelectValue placeholder="Workstation" /></SelectTrigger>
             <SelectContent>
@@ -198,7 +184,6 @@ const TrainingAssign: React.FC = () => {
           {selected.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <Badge variant="outline">Selected: {selected.length}</Badge>
-              {department !== 'all' && <Badge variant="secondary">Dept: {department}</Badge>}
               {station !== 'all' && <Badge variant="secondary">Workstation: {station}</Badge>}
               {q && <Badge variant="outline">Search: "{q}"</Badge>}
               <Button size="sm" variant="ghost" onClick={() => { setSelected([]); setAllFilteredSelected(false); }}>Clear</Button>
@@ -222,7 +207,7 @@ const TrainingAssign: React.FC = () => {
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{emp.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{emp.position} • {emp.department || emp.stationName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{emp.position} • {emp.stationName}</p>
                   </div>
                   {already && <Badge variant="outline">Already assigned</Badge>}
                 </div>

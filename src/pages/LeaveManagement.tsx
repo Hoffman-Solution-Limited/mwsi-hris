@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
+import { getWorkStation } from '@/lib/utils';
 
 export const LeaveManagement: React.FC = () => {
   const { user } = useAuth();
@@ -90,7 +91,7 @@ export const LeaveManagement: React.FC = () => {
       return directReports.map(emp => ({
         employeeId: emp.id,
         employeeName: emp.name,
-        department: emp.department,
+        department: emp.stationName,
         station: emp.stationName,
         annual: {
           allocated: 25,
@@ -112,7 +113,7 @@ export const LeaveManagement: React.FC = () => {
     return employees.map(emp => ({
       employeeId: emp.id,
       employeeName: emp.name,
-      department: emp.department,
+      department: emp.stationName,
       station: emp.stationName,
       annual: {
         allocated: 25,
@@ -132,18 +133,18 @@ export const LeaveManagement: React.FC = () => {
     }));
   }, [user, leaveRequests, employees]);
 
-  // Apply optional HR "my queue only" department filter
+  // Apply optional HR "my queue only" workstation filter
   const hrScopedLeaves = useMemo(() => {
-    // HR oversight: optionally scope by department when myQueueOnly is on
-    if (myQueueOnly && isHrRole && user?.department && (!isHrManager || hrMode === 'hr')) {
-      const dept = user.department;
+    // HR oversight: optionally scope by workstation when myQueueOnly is on
+    if (myQueueOnly && isHrRole && (!isHrManager || hrMode === 'hr')) {
+      const ws = getWorkStation(user as any);
       return baseLeaves.filter(req => {
         const emp = employees.find(e => e.id === req.employeeId);
-        return emp?.department === dept;
+        return getWorkStation(emp as any) === ws;
       });
     }
     return baseLeaves;
-  }, [myQueueOnly, isHrRole, user?.department, baseLeaves, isHrManager, hrMode, employees]);
+  }, [myQueueOnly, isHrRole, user, baseLeaves, isHrManager, hrMode, employees]);
 
   const filteredRequests = hrScopedLeaves.filter(request => {
     const matchesSearch = request.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -502,7 +503,7 @@ export const LeaveManagement: React.FC = () => {
                           <div>
                             <h4 className="font-medium">{request.employeeName}</h4>
                             <p className="text-sm text-muted-foreground">
-                              {employee?.department} • {employee?.position}
+                              {getWorkStation(employee as any)} • {employee?.position}
                             </p>
                             <p className="text-sm mt-1">
                               <span className="font-medium">
@@ -663,7 +664,7 @@ export const LeaveManagement: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <Input
-                    placeholder="Search by employee name, ID, or department..."
+                    placeholder="Search by employee name, ID, or workstation..."
                     value={balancesSearch}
                     onChange={(e) => setBalancesSearch(e.target.value)}
                     className="max-w-md"
@@ -674,7 +675,7 @@ export const LeaveManagement: React.FC = () => {
                     <thead>
                       <tr>
                         <th>Employee</th>
-                        <th>Department</th>
+                        <th>Workstation</th>
                         <th>Annual Leave</th>
                         <th>Sick Leave</th>
                         <th>Emergency Leave</th>
@@ -689,7 +690,7 @@ export const LeaveManagement: React.FC = () => {
                         return (
                           b.employeeName.toLowerCase().includes(q) ||
                           b.employeeId.toLowerCase().includes(q) ||
-                          b.department.toLowerCase().includes(q)
+                          (b.station || '').toLowerCase().includes(q)
                         );
                       })
                       .map((balance) => {
@@ -707,7 +708,7 @@ export const LeaveManagement: React.FC = () => {
                               <span className="font-medium">{balance.employeeName} <span className="text-xs text-muted-foreground">(ID: {balance.employeeId} • Employee No: {(employee as any)?.employeeNumber || '—'})</span></span>
                             </div>
                           </td>
-                          <td>{balance.department}</td>
+                          <td>{balance.station || balance.department}</td>
                           <td>
                             <div className="space-y-1">
                               <div className="flex justify-between text-sm">
@@ -793,15 +794,15 @@ export const LeaveManagement: React.FC = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Department Analysis</CardTitle>
+                <CardTitle>Workstation Analysis</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {['Engineering', 'Human Resources', 'Marketing', 'Finance'].map(dept => {
-                    const deptEmployees = employees.filter(emp => emp.department === dept);
+                  {Array.from(new Set(employees.map(e => getWorkStation(e as any)))).filter(Boolean).map(dept => {
+                    const deptEmployees = employees.filter(emp => getWorkStation(emp as any) === dept);
                     const deptRequests = leaveRequests.filter(req => {
                       const emp = employees.find(e => e.id === req.employeeId);
-                      return emp?.department === dept;
+                      return getWorkStation(emp as any) === dept;
                     });
                     const totalDays = deptRequests.reduce((sum, req) => sum + req.days, 0);
                     const avgDays = deptEmployees.length > 0 ? (totalDays / deptEmployees.length).toFixed(1) : '0';

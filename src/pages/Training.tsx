@@ -88,7 +88,7 @@ export const Training: React.FC = () => {
       return {
         id: r.id,
         employeeName: emp?.name || `Employee ${r.employeeId}`,
-        department: emp?.department || emp?.stationName,
+        department: emp?.stationName,
         status: r.status,
         completionDate: r.completionDate,
       };
@@ -617,7 +617,7 @@ export const Training: React.FC = () => {
                           <h4 className="font-medium">{training.title}</h4>
                           {['hr_manager', 'hr_staff'].includes(user?.role || '') && (
                             <p className="text-sm text-muted-foreground">
-                              {employee?.name} • {employee?.department}
+                              {employee?.name} • {employee?.stationName}
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground">
