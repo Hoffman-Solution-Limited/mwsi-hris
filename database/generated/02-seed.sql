@@ -49,3 +49,13 @@ INSERT INTO role_permissions (role_id, permission_key) VALUES
 ('employee','employee.view'),
 ('registry_manager','page.registry.requests')
 ON CONFLICT DO NOTHING;
+
+-- Seed data for leave_types
+INSERT INTO leave_types (id, name, description, max_days_per_year, created_at) VALUES
+	(gen_random_uuid(), 'Annual Leave', 'Paid time off for vacation', 30, NOW()),
+	(gen_random_uuid(), 'Sick Leave', 'Leave for illness or medical reasons', 15, NOW()),
+	(gen_random_uuid(), 'Maternity Leave', 'Leave for maternity', 90, NOW()),
+	(gen_random_uuid(), 'Paternity Leave', 'Leave for paternity', 14, NOW()),
+	(gen_random_uuid(), 'Emergency Leave', 'Leave for urgent personal matters', 7, NOW()),
+	(gen_random_uuid(), 'Study Leave', 'Leave for study or exams', 30, NOW());
+ON CONFLICT DO NOTHING;

@@ -93,12 +93,14 @@ POST http://localhost:5000/api/leaves
 Content-Type: application/json
 
 {
-    "employee_id": "612972f4-d2be-495d-82c7-4bfae3496907",
-    "employee_name": "John Mwangi",
-    "leave_type_id": 1,
+    "employee_id": "2",
+    "employee_name": "Sarah Johnson",
+    "leave_type_id": "eeb4285c-9bcb-478f-8f30-065254a4ad05",
     "start_date":"2025-11-01",
     "end_date": "2025-11-05",
     "days": 4,
-    "reason": "Vacation"
+    "reason": "Exams"
 }
-### //create leave
+### //get one leave
+GET http://localhost:5000/api/leaves/myleave/2
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g

@@ -84,7 +84,7 @@
 
 // export default router;
 import express from 'express';
-import { applyForLeave, deleteLeave, getLeaveById, getLeaves, updateLeave } from '../controllers/leaves';
+import { applyForLeave, deleteLeave, getLeaveById, getLeaves, updateLeave, approveLeave, rejectLeave, getEmployeeLeavesAndBalance, managerApproveLeave } from '../controllers/leaves';
 
 const router = express.Router();
 
@@ -93,5 +93,9 @@ router.get('/:id', getLeaveById);
 router.post('/', applyForLeave);
 router.put('/:id', updateLeave);
 router.delete('/:id', deleteLeave);
+router.patch('/:id/manager/approve', managerApproveLeave);
+router.patch('/:id/approve', approveLeave);
+router.patch('/:id/reject', rejectLeave);
+router.get('/myleave/:employee_id', getEmployeeLeavesAndBalance);
 
 export default router;

@@ -1,10 +1,10 @@
 // src/types/index.ts
 
-export type LeaveStatus = 'Pending' | 'Approved' | 'Rejected' | 'Cancelled';
+export type LeaveStatus = 'pending_manager' | 'pending_hr' | 'manager_approved' | 'hr_approved' | 'manager_rejected' | 'hr_rejected' | 'cancelled';
 
 // --- LeaveType (API / DTO) ---
 export interface LeaveType {
-  id?: number;
+  id?: string;
   name: string;
   description?: string | null;
   maxDaysPerYear?: number | null;
@@ -13,7 +13,7 @@ export interface LeaveType {
 
 // --- DB row shape for leave_types (matches DB column names) ---
 export interface LeaveTypeRow {
-  id: number;
+  id: string;
   name: string;
   description: string | null;
   max_days_per_year: number | null;
@@ -41,10 +41,10 @@ export interface LeaveTypeRow {
 
 // --- DB row shape for leaves (matches DB column names) ---
 export interface Leave {
-  id: number;
+  id: string;
   employee_id: string | null;
   employee_name: string | null;
-  leave_type_id: number;
+  leave_type_id: string;
   start_date: string;      // Postgres DATE comes back as string
   end_date: string;
   days: number | null;

@@ -13,6 +13,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useEmployees } from '@/contexts/EmployeesContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLeave } from '@/contexts/LeaveContext';
+import {
+  useGetAllLeavesQuery,
+  useApproveLeaveMutation,
+  useRejectLeaveMutation,
+  useDeleteLeaveMutation,
+  useUpdateLeaveMutation
+} from '@/features/leave/leaveApi';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -20,27 +27,38 @@ import { Switch } from '@/components/ui/switch';
 
 export const LeaveManagement: React.FC = () => {
   const { user } = useAuth();
-  const { leaveRequests, addLeaveRequest, approveManagerRequest, rejectManagerRequest, approveHrRequest, rejectHrRequest, updateLeaveRequest, deleteLeaveRequest } = useLeave();
+  const { leaveRequests: localLeaveRequests, addLeaveRequest } = useLeave();
+  // RTK Query hooks
+  const { data: apiLeaves, isLoading: leavesLoading } = useGetAllLeavesQuery(undefined);
+  const [approveLeave] = useApproveLeaveMutation();
+  const [rejectLeave] = useRejectLeaveMutation();
+  const [deleteLeave] = useDeleteLeaveMutation();
+  const [updateLeave] = useUpdateLeaveMutation();
   const { employees } = useEmployees();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [balancesSearch, setBalancesSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [applyOpen, setApplyOpen] = useState(false);
-  const [form, setForm] = useState({ type: 'annual', startDate: '', endDate: '', days: 1, reason: '' });
+  const [form, setForm] = useState<{ type: 'annual' | 'sick' | 'emergency' | 'maternity' | 'study'; startDate: string; endDate: string; days: number; reason: string }>({ type: 'annual', startDate: '', endDate: '', days: 1, reason: '' });
   const { toast } = useToast();
 
+  console.log("user>>",user.role);
+  console.log("employees>>>>",employees);
+  
   const isHrRole = ['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '');
   const isManager = user?.role === 'manager' || user?.role === 'registry_manager';
   const isHrManager = user?.role === 'hr_manager';
   const isHrStaff = user?.role === 'hr_staff';
-
+  console.log("isManager>>", isManager);
+  console.log("isHrManager>>", isHrManager);
+  console.log("isHrRole>>", isHrRole);
   // My queue only toggle (for managers and HR)
   const [myQueueOnly, setMyQueueOnly] = useState<boolean>(!!(isManager || isHrRole));
 
   // HR Manager mode: act as Team Manager (direct reports) vs HR Oversight (all)
   const [hrMode, setHrMode] = useState<'hr' | 'team'>(isHrManager ? 'hr' : 'hr');
-
+  console.log("hrMode>>", hrMode);
   // Details dialog state
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<import('@/types/models').LeaveRequest | null>(null);
@@ -60,29 +78,39 @@ export const LeaveManagement: React.FC = () => {
     } else if (isHrRole) {
       setStatusFilter('pending_hr');
     }
-  }, []);
+  }, [user, statusFilter, isHrRole]);
 
+  // Prefer API leaves when available, fallback to local context leaves
+  const allLeaves = apiLeaves ?? localLeaveRequests;
+  console.log("allLeaves>>", allLeaves);
+  
   const baseLeaves = useMemo(() => {
     if (user?.role === 'employee') {
-      return leaveRequests.filter(leave => leave.employeeId === user.id);
+      return (allLeaves || []).filter(leave => leave.employeeId === user.id);
     }
     if (user?.role === 'manager' || user?.role === 'registry_manager' || (isHrManager && hrMode === 'team')) {
   const directReportIds = employees.filter(emp => (emp.managerId && String(emp.managerId) === String(user.id)) || (emp.manager && user?.name && String(emp.manager).toLowerCase() === String(user.name).toLowerCase())).map(emp => emp.id);
-      return leaveRequests.filter(leave => directReportIds.includes(leave.employeeId));
+          console.log("directReportIds", directReportIds);
+          console.log("allLeaves inside base leaves", allLeaves);
+      return (allLeaves || []).filter(leave => directReportIds.includes(leave.employee_id));
     }
-    return leaveRequests;
-  }, [user, leaveRequests, employees]);
+  
+    
+    return allLeaves || [];
+  }, [user, allLeaves, employees, hrMode, isHrManager]);
+
+  console.log("baseLeaves",baseLeaves);
 
   const myApprovedLeaves = user?.role === 'employee' 
-    ? leaveRequests.filter(leave => leave.employeeId === user.id && leave.status === 'approved')
+    ? (allLeaves || []).filter(leave => leave.employee_id === user.id && (leave.status === 'hr_approved' || leave.status === 'approved' || leave.status === 'manager_approved'))
     : [];
   const usedLeaveDays = myApprovedLeaves.reduce((sum, leave) => sum + leave.days, 0);
   const leaveBalance = 25 - usedLeaveDays; 
-
-  const pendingManagerRequests = leaveRequests.filter(req => req.status === 'pending_manager');
-  const pendingHrRequests = leaveRequests.filter(req => req.status === 'pending_hr');
-  const approvedRequests = leaveRequests.filter(req => req.status === 'approved');
-  const rejectedRequests = leaveRequests.filter(req => req.status === 'rejected');
+  
+  console.log("myApprovedLeaves",myApprovedLeaves);
+  
+  const approvedRequests = (allLeaves || []).filter(req => req.status === 'hr_approved' || req.status === 'manager_approved' || req.status === 'approved');
+  const rejectedRequests = (allLeaves || []).filter(req => req.status && String(req.status).toLowerCase().includes('rejected'));
 
   const leaveBalances = useMemo(() => {
     if (user?.role === 'manager' || user?.role === 'registry_manager' || (isHrManager && hrMode === 'team')) {
@@ -95,21 +123,21 @@ export const LeaveManagement: React.FC = () => {
         annual: {
           allocated: 25,
           used: Math.floor(Math.random() * 15) + 5,
-          pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'annual').reduce((sum, req) => sum + req.days, 0)
+          pending: (allLeaves || []).filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'annual').reduce((sum, req) => sum + req.days, 0)
         },
         sick: {
           allocated: 10,
           used: Math.floor(Math.random() * 5),
-          pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'sick').reduce((sum, req) => sum + req.days, 0)
+          pending: (allLeaves || []).filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'sick').reduce((sum, req) => sum + req.days, 0)
         },
         emergency: {
           allocated: 5,
           used: Math.floor(Math.random() * 2),
-          pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'emergency').reduce((sum, req) => sum + req.days, 0)
+          pending: (allLeaves || []).filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'emergency').reduce((sum, req) => sum + req.days, 0)
         }
       }));
     }
-    return employees.map(emp => ({
+  return employees.map(emp => ({
       employeeId: emp.id,
       employeeName: emp.name,
       department: emp.department,
@@ -117,20 +145,22 @@ export const LeaveManagement: React.FC = () => {
       annual: {
         allocated: 25,
         used: Math.floor(Math.random() * 15) + 5,
-        pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'annual').reduce((sum, req) => sum + req.days, 0)
+        pending: (allLeaves || []).filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'annual').reduce((sum, req) => sum + req.days, 0)
       },
       sick: {
         allocated: 10,
         used: Math.floor(Math.random() * 5),
-        pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'sick').reduce((sum, req) => sum + req.days, 0)
+        pending: (allLeaves || []).filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'sick').reduce((sum, req) => sum + req.days, 0)
       },
       emergency: {
         allocated: 5,
         used: Math.floor(Math.random() * 2),
-        pending: leaveRequests.filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'emergency').reduce((sum, req) => sum + req.days, 0)
+        pending: (allLeaves || []).filter(req => req.employeeId === emp.id && ['pending_manager', 'pending_hr'].includes(req.status) && req.type === 'emergency').reduce((sum, req) => sum + req.days, 0)
       }
     }));
-  }, [user, leaveRequests, employees]);
+  }, [user, allLeaves, employees, hrMode, isHrManager]);
+
+  // debug: pendingManagerRequests will be logged after it's declared
 
   // Apply optional HR "my queue only" department filter
   const hrScopedLeaves = useMemo(() => {
@@ -146,18 +176,30 @@ export const LeaveManagement: React.FC = () => {
   }, [myQueueOnly, isHrRole, user?.department, baseLeaves, isHrManager, hrMode, employees]);
 
   const filteredRequests = hrScopedLeaves.filter(request => {
-    const matchesSearch = request.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         request.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         request.reason.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const employeeName = String(request.employeeName || '').toLowerCase();
+    const typeStr = String(request.type || '').toLowerCase();
+    const reasonStr = String(request.reason || '').toLowerCase();
+    const matchesSearch = employeeName.includes(q) || typeStr.includes(q) || reasonStr.includes(q);
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const calendarEvents = leaveRequests
-    .filter(req => req.status === 'approved')
+  console.log("filteredRequests>>>>>>>.",filteredRequests);
+
+  // Pending requests scoped to the current user's responsibility
+  // Managers should see only pending_manager requests for their direct reports (baseLeaves already contains direct reports for managers)
+  const pendingManagerRequests = baseLeaves.filter(req => req.status === 'pending_manager');
+  // HR should see pending_hr requests, scoped by hrScopedLeaves (which applies department/team filters when applicable)
+  const pendingHrRequests = isHrRole ? hrScopedLeaves.filter(req => req.status === 'pending_hr') : [];
+  console.log("pendingManagerRequests",pendingManagerRequests);
+  console.log("pendingHrRequests",pendingHrRequests);
+  
+  const calendarEvents = (allLeaves || [])
+    .filter(req => req.status === 'approved' || req.status === 'hr_approved' || req.status === 'manager_approved')
     .map(req => ({
       id: req.id,
-      title: `${req.employeeName} - ${req.type.toUpperCase()}`,
+      title: `${req.employeeName} - ${String(req.type).toUpperCase()}`,
       start: req.startDate,
       end: req.endDate,
       type: req.type
@@ -170,7 +212,7 @@ export const LeaveManagement: React.FC = () => {
     if (!form.startDate || !form.endDate || !form.reason) return;
     addLeaveRequest({
       employeeId: user.id,
-      type: form.type as any,
+      type: form.type,
       startDate: form.startDate,
       endDate: form.endDate,
       days: Number(form.days) || 1,
@@ -276,7 +318,7 @@ export const LeaveManagement: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Approved This Month</p>
-                  <p className="text-2xl font-bold">{leaveRequests.filter(req => req.status === 'approved').length}</p>
+                  <p className="text-2xl font-bold">{(allLeaves || []).filter(req => req.status === 'approved' || req.status === 'hr_approved' || req.status === 'manager_approved').length}</p>
                 </div>
               </div>
             </CardContent>
@@ -290,7 +332,7 @@ export const LeaveManagement: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Rejected This Month</p>
-                  <p className="text-2xl font-bold">{leaveRequests.filter(req => req.status === 'rejected').length}</p>
+                  <p className="text-2xl font-bold">{(allLeaves || []).filter(req => req.status && String(req.status).toLowerCase().includes('rejected')).length}</p>
                 </div>
               </div>
             </CardContent>
@@ -465,7 +507,7 @@ export const LeaveManagement: React.FC = () => {
               {isHrManager && (
                 <div className="flex items-center gap-2">
                   <label className="text-sm">Mode:</label>
-                  <Select value={hrMode} onValueChange={(v: any) => setHrMode(v)}>
+                  <Select value={hrMode} onValueChange={(v: 'hr' | 'team') => setHrMode(v)}>
                     <SelectTrigger className="w-36">
                       <SelectValue />
                     </SelectTrigger>
@@ -489,18 +531,21 @@ export const LeaveManagement: React.FC = () => {
               <CardContent>
                 <div className="space-y-4">
                   {filteredRequests.map((request) => {
-                    const employee = employees.find(emp => emp.id === request.employeeId);
+                    const employee = employees?.find(emp => emp.id === request.employee_id);
+                    console.log("request>",request);
+                    console.log("employee>",employee);
+                    
                     return (
                       <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center gap-4">
                           <Avatar>
                             <AvatarImage src={employee?.avatar} />
                             <AvatarFallback>
-                              {request.employeeName.split(' ').map(n => n[0]).join('')}
+                              {String(request.employee_name || '').split(' ').map(n => n?.[0] ?? '').join('')}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <h4 className="font-medium">{request.employeeName}</h4>
+                            <h4 className="font-medium">{request.employee_name}</h4>
                             <p className="text-sm text-muted-foreground">
                               {employee?.department} • {employee?.position}
                             </p>
@@ -523,8 +568,13 @@ export const LeaveManagement: React.FC = () => {
                             <Badge className={`status-${request.status}`}>
                               {request.status}
                             </Badge>
+                            <p className="text-xs text-muted-foreground mt-1">{
+                              request.status === 'pending_manager' ? 'Next: Manager' :
+                              request.status === 'pending_hr' ? 'Next: HR' :
+                              'Status: ' + request.status
+                            }</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              Applied: {new Date(request.appliedDate).toLocaleDateString()}
+                              Applied: {new Date(request.applied_date).toLocaleDateString()}
                             </p>
                           </div>
                           <Button size="sm" variant="outline" onClick={() => { setSelectedRequest(request); setActionComment(''); setDetailsOpen(true); }}>
@@ -539,10 +589,13 @@ export const LeaveManagement: React.FC = () => {
                               }}>
                                 Edit
                               </Button>
-                              <Button size="sm" variant="destructive" onClick={() => {
-                                deleteLeaveRequest(request.id).then(() => {
+                              <Button size="sm" variant="destructive" onClick={async () => {
+                                try {
+                                  await deleteLeave(request.id).unwrap();
                                   toast({ title: 'Request withdrawn', description: 'Your leave request was withdrawn.' });
-                                });
+                                } catch (err) {
+                                  toast({ title: 'Error', description: 'Failed to withdraw request.' });
+                                }
                               }}>
                                 Withdraw
                               </Button>
@@ -550,9 +603,13 @@ export const LeaveManagement: React.FC = () => {
                           )}
                           {request.status === 'pending_manager' && ((user?.role === 'manager' || user?.role === 'registry_manager') || (isHrManager && hrMode === 'team')) && (
                             <div className="flex gap-1">
-                              <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => {
-                                approveManagerRequest(request.id);
-                                toast({ title: 'Leave approved', description: `${request.employeeName}'s ${request.type} request approved.` });
+                              <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={async () => {
+                                try {
+                                  await approveLeave({ leaveId: request.id, approvalData: { approver_id: user?.id, approver_role: 'manager' } }).unwrap();
+                                  toast({ title: 'Leave approved', description: `${request.employeeName}'s ${request.type} request approved.` });
+                                } catch (err) {
+                                  toast({ title: 'Error', description: 'Failed to approve leave.' });
+                                }
                               }}>
                                 <CheckCircle className="w-4 h-4" />
                               </Button>
@@ -564,11 +621,15 @@ export const LeaveManagement: React.FC = () => {
                               </Button>
                             </div>
                           )}
-                          {request.status === 'pending_hr' && isHrRole && (
+                          {request.status === 'pending_hr' && (isHrStaff || (isHrManager && hrMode === 'team')) && (
                             <div className="flex gap-1">
-                              <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={() => {
-                                approveHrRequest(request.id);
-                                toast({ title: 'Leave approved', description: `${request.employeeName}'s ${request.type} request approved.` });
+                              <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={async () => {
+                                try {
+                                  await approveLeave({ leaveId: request.id, approvalData: { approver_id: user?.id, approver_role: 'hr' } }).unwrap();
+                                  toast({ title: 'Leave approved', description: `${request.employeeName}'s ${request.type} request approved.` });
+                                } catch (err) {
+                                  toast({ title: 'Error', description: 'Failed to approve leave.' });
+                                }
                               }}>
                                 <CheckCircle className="w-4 h-4" />
                               </Button>
@@ -701,10 +762,10 @@ export const LeaveManagement: React.FC = () => {
                               <Avatar className="w-8 h-8">
                                 <AvatarImage src={employee?.avatar} />
                                 <AvatarFallback>
-                                  {balance.employeeName.split(' ').map(n => n[0]).join('')}
+                                  {String(balance.employeeName || '').split(' ').map(n => n?.[0] ?? '').join('')}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{balance.employeeName} <span className="text-xs text-muted-foreground">(ID: {balance.employeeId} • Employee No: {(employee as any)?.employeeNumber || '—'})</span></span>
+                              <span className="font-medium">{balance.employeeName} <span className="text-xs text-muted-foreground">(ID: {balance.employeeId} • Employee No: {(employee as { employeeNumber?: string } )?.employeeNumber || '—'})</span></span>
                             </div>
                           </td>
                           <td>{balance.department}</td>
@@ -799,7 +860,7 @@ export const LeaveManagement: React.FC = () => {
                 <div className="space-y-4">
                   {['Engineering', 'Human Resources', 'Marketing', 'Finance'].map(dept => {
                     const deptEmployees = employees.filter(emp => emp.department === dept);
-                    const deptRequests = leaveRequests.filter(req => {
+                    const deptRequests = (allLeaves || []).filter(req => {
                       const emp = employees.find(e => e.id === req.employeeId);
                       return emp?.department === dept;
                     });
@@ -866,16 +927,16 @@ export const LeaveManagement: React.FC = () => {
                 <p className="text-muted-foreground text-sm mb-1">Reason</p>
                 <p className="text-sm">{selectedRequest.reason}</p>
               </div>
-              {(selectedRequest as any).managerComments && (
+              {selectedRequest?.managerComments && (
                 <div className="text-sm">
                   <p className="text-muted-foreground mb-1">Manager Comments</p>
-                  <p>{(selectedRequest as any).managerComments}</p>
+                  <p>{selectedRequest.managerComments}</p>
                 </div>
               )}
-              {(selectedRequest as any).hrComments && (
+              {selectedRequest?.hrComments && (
                 <div className="text-sm">
                   <p className="text-muted-foreground mb-1">HR Comments</p>
-                  <p>{(selectedRequest as any).hrComments}</p>
+                  <p>{selectedRequest.hrComments}</p>
                 </div>
               )}
               <div>
@@ -897,15 +958,20 @@ export const LeaveManagement: React.FC = () => {
                       Reject
                     </Button>
                     <Button
-                      onClick={() => {
-                        if (selectedRequest.status === 'pending_manager' && (isManager || (isHrManager && hrMode === 'team'))) {
-                          approveManagerRequest(selectedRequest.id, actionComment);
-                        } else if (selectedRequest.status === 'pending_hr' && isHrRole) {
-                          approveHrRequest(selectedRequest.id, actionComment);
+                      onClick={async () => {
+                        if (!selectedRequest) return;
+                        try {
+                          if (selectedRequest.status === 'pending_manager' && (isManager || (isHrManager && hrMode === 'team'))) {
+                            await approveLeave({ leaveId: selectedRequest.id, approvalData: { approver_id: user?.id, approver_role: 'manager', comments: actionComment } }).unwrap();
+                          } else if (selectedRequest.status === 'pending_hr' && isHrRole) {
+                            await approveLeave({ leaveId: selectedRequest.id, approvalData: { approver_id: user?.id, approver_role: 'hr', comments: actionComment } }).unwrap();
+                          }
+                          toast({ title: 'Leave approved', description: `${selectedRequest.employeeName}'s ${selectedRequest.type} request approved.` });
+                          setDetailsOpen(false);
+                          setActionComment('');
+                        } catch (err) {
+                          toast({ title: 'Error', description: 'Failed to approve leave.' });
                         }
-                        toast({ title: 'Leave approved', description: `${selectedRequest.employeeName}'s ${selectedRequest.type} request approved.` });
-                        setDetailsOpen(false);
-                        setActionComment('');
                       }}
                     >
                       Approve
@@ -947,18 +1013,15 @@ export const LeaveManagement: React.FC = () => {
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => { setEditOpen(false); }}>Cancel</Button>
-                <Button onClick={() => {
+                <Button onClick={async () => {
                   if (!selectedRequest) return;
-                  updateLeaveRequest(selectedRequest.id, {
-                    startDate: editForm.startDate,
-                    endDate: editForm.endDate,
-                    days: editForm.days,
-                    reason: editForm.reason,
-                    status: 'pending_manager'
-                  }).then(() => {
+                  try {
+                    await updateLeave({ id: selectedRequest.id, start_date: editForm.startDate, end_date: editForm.endDate, days: editForm.days, reason: editForm.reason, status: 'pending_manager' }).unwrap();
                     toast({ title: 'Request updated', description: 'Your leave request was updated and re-submitted.' });
                     setEditOpen(false);
-                  });
+                  } catch (err) {
+                    toast({ title: 'Error', description: 'Failed to update request.' });
+                  }
                 }}>Save</Button>
               </div>
             </div>
@@ -982,18 +1045,19 @@ export const LeaveManagement: React.FC = () => {
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
             <Button
               className="bg-red-600 text-white hover:bg-red-700"
-              onClick={() => {
+              onClick={async () => {
                 if (!rejectTarget) return;
-                if (rejectTarget.status === 'pending_manager' && (isManager || (isHrManager && hrMode === 'team'))) {
-                  rejectManagerRequest(rejectTarget.id, actionComment || undefined);
-                } else if (rejectTarget.status === 'pending_hr' && isHrRole) {
-                  rejectHrRequest(rejectTarget.id, actionComment || undefined);
+                try {
+                  const role = (rejectTarget.status === 'pending_manager' && (isManager || (isHrManager && hrMode === 'team'))) ? 'manager' : 'hr';
+                  await rejectLeave({ leaveId: rejectTarget.id, rejectData: { rejector_id: user?.id, rejector_role: role, comments: actionComment || null } }).unwrap();
+                  toast({ title: 'Leave rejected', description: `${rejectTarget.employeeName}'s ${rejectTarget.type} request rejected.`, variant: 'destructive' });
+                  setConfirmOpen(false);
+                  setDetailsOpen(false);
+                  setRejectTarget(null);
+                  setActionComment('');
+                } catch (err) {
+                  toast({ title: 'Error', description: 'Failed to reject leave.' });
                 }
-                toast({ title: 'Leave rejected', description: `${rejectTarget.employeeName}'s ${rejectTarget.type} request rejected.`, variant: 'destructive' as any });
-                setConfirmOpen(false);
-                setDetailsOpen(false);
-                setRejectTarget(null);
-                setActionComment('');
               }}
             >
               Confirm Reject
