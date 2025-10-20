@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTraining } from '@/contexts/TrainingContext';
 import { useEmployees } from '@/contexts/EmployeesContext';
-import { Calendar, CheckCircle, Clock, GraduationCap, ArrowLeft, ExternalLink } from 'lucide-react';
+import { CheckCircle, Clock, GraduationCap, ArrowLeft, ExternalLink } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
