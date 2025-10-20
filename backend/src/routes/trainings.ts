@@ -49,7 +49,7 @@ router.post('/', async (req: Request, res: Response) => {
       const upd: Record<string, any> = {};
       if (data.description !== undefined) upd.description = data.description;
       if (data.duration !== undefined) upd.duration = data.duration;
-      if (data.maxParticipants !== undefined) upd.max_participants = data.maxParticipants;
+      if (data.maxParticipants !== undefined || data.max_participants !== undefined) upd.max_participants = data.maxParticipants ?? data.max_participants;
       if (data.prerequisites !== undefined) upd.prerequisites = data.prerequisites;
       if (data.category !== undefined) upd.category = data.category;
       if (data.archived !== undefined) upd.archived = data.archived;
