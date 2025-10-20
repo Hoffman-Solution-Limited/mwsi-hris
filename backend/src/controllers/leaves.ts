@@ -1,546 +1,944 @@
-
-// import { Request, Response } from 'express';
-// import { pool } from '../db';
-// import { Leave } from '../types';
-// import { v4 as uuidv4 } from 'uuid';
-
-// // Create Leave
-// export const applyForLeave = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const {
-//       employee_id,
-//       employee_name,
-//       leave_type_id,
-//       start_date,
-//       end_date,
-//       days,
-//       status,
-//       reason
-//     } = req.body as Leave;
-
-//     const id = uuidv4();
-
-//     const result = await pool.query<Leave>(
-//       `INSERT INTO leave_requests (
-//         id, employee_id, employee_name, leave_type_id,
-//         start_date, end_date, days, status, reason,
-//         applied_date, manager_comments, hr_comments,
-//         approved_by, approved_date
-//       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NULL,NULL,NULL,NULL)
-//       RETURNING *`,
-//       [
-//         id,
-//         employee_id,
-//         employee_name,
-//         leave_type_id,
-//         start_date,
-//         end_date,
-//         days,
-//         status ?? 'pending_manager',
-//         reason
-//       ]
-//     );
-
-//     res.status(201).json(result.rows[0]);
-//   } catch (error) {
-//     console.error('[createLeave]', error);
-//     res.status(500).json({ error: 'Failed to create leave' });
-//   }
-// };
-
-
-// export const getLeaves = async (_req: Request, res: Response): Promise<void> => {
-//   try {
-//     const result = await pool.query<Leave>(
-//       `SELECT l.*, lt.name AS type
-//        FROM leave_requests l
-//        JOIN leave_types lt ON lt.id = l.leave_type_id
-//        ORDER BY l.id DESC`
-//     )
-
-//     const dto: Leave[] = result.rows
-//     res.json(dto)
-//   } catch (error) {
-//     console.error('[getLeaves]', error)
-//     res.status(500).json({ error: 'Failed to get leaves' })
-//   }
-// }
-
-// export const getLeaveById = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const { id } = req.params
-//     const result = await pool.query<Leave>(
-//       `SELECT l.*, lt.name AS type
-//        FROM leave_requests l
-//        JOIN leave_types lt ON lt.id = l.leave_type_id
-//        WHERE l.id = $1`,
-//       [id]
-//     )
-
-//     if (result.rows.length === 0) {
-//       res.status(404).json({ error: 'Leave not found' })
-//       return
-//     }
-
-//     res.json(result.rows[0])
-//   } catch (error) {
-//     console.error('[getLeaveById]', error)
-//     res.status(500).json({ error: 'Failed to get leave' })
-//   }
-// }
-
-// // Update Leave
-// export const updateLeave = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const { id } = req.params
-//     const {
-//       start_date,
-//       end_date,
-//       days,
-//       status,
-//       reason
-//     } = req.body as Leave
-
-//     const result = await pool.query<Leave>(
-//       `UPDATE leave_requests SET
-//         start_date = $1,
-//         end_date = $2,
-//         days = $3,
-//         status = $4,
-//         reason = $5
-//        WHERE id = $6
-//        RETURNING *`,
-//       [start_date, end_date, days, status, reason, id]
-//     )
-
-//     if (result.rows.length === 0) {
-//       res.status(404).json({ error: 'Leave not found' })
-//       return
-//     }
-
-//     res.json(result.rows[0])
-//   } catch (error) {
-//     console.error('[updateLeave]', error)
-//     res.status(500).json({ error: 'Failed to update leave' })
-//   }
-// }
-
-// export const deleteLeave = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const { id } = req.params
-//     const result = await pool.query('DELETE FROM leave_requests WHERE id = $1 RETURNING *', [id])
-//     if (result.rows.length === 0) {
-//       res.status(404).json({ error: 'Leave not found' })
-//       return
-//     }
-//     res.json({ message: 'Leave deleted successfully' })
-//   } catch (error) {
-//     console.error('[deleteLeave]', error)
-//     res.status(500).json({ error: 'Failed to delete leave' })
-//   }
-// }
-
-// // Assign leave to HR (set status to 'Pending HR')
-// export const managerApproveLeave = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const { id } = req.params;
-//     const { approver_id } = req.body;
-//     const result = await pool.query(
-//       `UPDATE leave_requests SET status = 'pending_hr', approved_by = $1 WHERE id = $2 RETURNING *`,
-//       [approver_id, id]
-//     );
-//     if (result.rows.length === 0) {
-//       res.status(404).json({ error: 'Leave not found' });
-//       return;
-//     }
-//     res.json(result.rows[0]);
-//   } catch (error) {
-//     console.error('[managerApproveLeave]', error);
-//     res.status(500).json({ error: 'Failed to assign leave to HR' });
-//   }
-// };
-
-// // // Assign leave to HR (set status to 'Pending HR')
-// // export const assignLeaveToHr = async (req: Request, res: Response): Promise<void> => {
-// //   try {
-// //     const { id } = req.params;
-// //     const { hr_id } = req.body;
-// //     const result = await pool.query(
-// //       `UPDATE leave_requests SET status = 'pending_hr', approved_by = $1 WHERE id = $2 RETURNING *`,
-// //       [hr_id, id]
-// //     );
-// //     if (result.rows.length === 0) {
-// //       res.status(404).json({ error: 'Leave not found' });
-// //       return;
-// //     }
-// //     res.json(result.rows[0]);
-// //   } catch (error) {
-// //     console.error('[assignLeaveToHr]', error);
-// //     res.status(500).json({ error: 'Failed to assign leave to HR' });
-// //   }
-// // };
-
-// // Approve leave (manager or HR)
-// export const approveLeave = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const { id } = req.params;
-//     const { approver_id} = req.body;
-//     const newStatus = 'hr_approved';
-//     const result = await pool.query(
-//       `UPDATE leave_requests SET status = $1, approved_by = $2, approved_date = NOW() WHERE id = $3 RETURNING *`,
-//       [newStatus, approver_id, id]
-//     );
-//     if (result.rows.length === 0) {
-//       res.status(404).json({ error: 'Leave not found' });
-//       return;
-//     }
-//     // If HR approved, recalculate days used for the employee/leave_type
-//     if (newStatus === 'hr_approved') {
-//       // No DB update needed here, but you may want to trigger recalculation elsewhere
-//     }
-//     res.json(result.rows[0]);
-//   } catch (error) {
-//     console.error('[approveLeave]', error);
-//     res.status(500).json({ error: 'Failed to approve leave' });
-//   }
-// };
-
-// // Reject leave (manager or HR)
-// export const rejectLeave = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const { id } = req.params;
-//     const { rejector_id, rejector_role, comments } = req.body;
-//     let newStatus: string;
-//     let commentsField: string;
-//     if (rejector_role === 'manager') {
-//       newStatus = 'Manager Rejected';
-//       commentsField = 'manager_comments';
-//     } else if (rejector_role === 'hr') {
-//       newStatus = 'Hr Rejected';
-//       commentsField = 'hr_comments';
-//     } else {
-//       res.status(400).json({ error: 'Invalid rejector role' });
-//       return;
-//     }
-//     const result = await pool.query(
-//       `UPDATE leave_requests SET status = $1, ${commentsField} = $2, approved_by = $3, approved_date = NOW() WHERE id = $4 RETURNING *`,
-//       [newStatus, comments, rejector_id, id]
-//     );
-//     if (result.rows.length === 0) {
-//       res.status(404).json({ error: 'Leave not found' });
-//       return;
-//     }
-//     res.json(result.rows[0]);
-//   } catch (error) {
-//     console.error('[rejectLeave]', error);
-//     res.status(500).json({ error: 'Failed to reject leave' });
-//   }
-// };
-
-// // Get all leaves for a specific employee, with days used and remaining for each leave type
-// export const getEmployeeLeavesAndBalance = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const { employee_id } = req.params;
-//     // Get all leave types
-//     const leaveTypesResult = await pool.query('SELECT * FROM leave_types');
-//     const leaveTypes = leaveTypesResult.rows;
-//     // Get all leaves for employee
-//     const leavesResult = await pool.query(
-//       `SELECT * FROM leave_requests WHERE employee_id = $1 ORDER BY applied_date DESC`,
-//       [employee_id]
-//     );
-//     const leaves = leavesResult.rows;
-//     // Calculate days used and remaining for each leave type
-//     const balances = leaveTypes.map((lt: any) => {
-//       const used = leaves
-//         .filter((l: any) => l.leave_type_id === lt.id && l.status === 'hr_approved')
-//         .reduce((sum: number, l: any) => sum + (l.days || 0), 0);
-//       return {
-//         leave_type_id: lt.id,
-//         leave_type_name: lt.name,
-//         max_days_per_year: lt.max_days_per_year,
-//         days_used: used,
-//         days_remaining: (lt.max_days_per_year || 0) - used
-//       };
-//     });
-//     res.json({ leaves, balances });
-//   } catch (error) {
-//     console.error('[getEmployeeLeavesAndBalance]', error);
-//     res.status(500).json({ error: 'Failed to get employee leaves and balance' });
-//   }
-// };
-
 import { Request, Response } from 'express';
 import { pool } from '../db';
-import { Leave } from '../types';
-import { v4 as uuidv4 } from 'uuid';
 
-// Create Leave
-export const applyForLeave = async (req: Request, res: Response): Promise<void> => {
+// Helper: Calculate business days excluding weekends
+function calculateBusinessDays(startDate: Date, endDate: Date): number {
+  let count = 0;
+  const curDate = new Date(startDate);
+
+  while (curDate <= endDate) {
+    const dayOfWeek = curDate.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) count++;
+    curDate.setDate(curDate.getDate() + 1);
+  }
+
+  return count;
+}
+
+// export const applyForLeave = async (req: Request, res: Response) => {
+//   const { employee_id, leave_type_id, start_date, end_date, reason, number_of_days } = req.body;
+
+//   try {
+//     // Step 1: Get max days for this leave type
+//     const leaveTypeResult = await pool.query(
+//       `SELECT max_days_per_year FROM leave_types WHERE id = $1`,
+//       [leave_type_id]
+//     );
+//     if (leaveTypeResult.rows.length === 0) {
+//       return res.status(400).json({ error: 'Invalid leave type' });
+//     }
+
+//     const maxDays = leaveTypeResult.rows[0].max_days_per_year;
+
+//     // Step 2: Calculate total used leave days for this employee & leave type in the current year
+//     const usedResult = await pool.query(
+//       `
+//       SELECT COALESCE(SUM(number_of_days), 0) AS used_days
+//       FROM leave_requests
+//       WHERE employee_id = $1
+//       AND leave_type_id = $2
+//       AND EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+//       AND status IN ('approved', 'pending_manager', 'pending_hr') -- optional: exclude rejected/cancelled
+//       `,
+//       [employee_id, leave_type_id]
+//     );
+
+//     const usedDays = usedResult.rows[0].used_days;
+//     const remainingDays = maxDays - usedDays;
+
+//     // Step 3: Check if applying days exceed remaining days
+//     if (number_of_days > remainingDays) {
+//       return res.status(400).json({
+//         error: `You only have ${remainingDays} remaining day(s) for this leave type. Requested: ${number_of_days}`
+//       });
+//     }
+
+//     // Step 4: Insert leave application
+//     await pool.query(
+//       `
+//       INSERT INTO leave_requests (employee_id, leave_type_id, start_date, end_date, number_of_days, status, reason, created_at)
+//       VALUES ($1, $2, $3, $4, $5, 'pending_manager', $6, NOW())
+//       `,
+//       [employee_id, leave_type_id, start_date, end_date, number_of_days, reason]
+//     );
+
+//     const totalEntitled = maxDays;
+//     const year = new Date().getFullYear();
+//     // 2️⃣ Insert into leave_balances using totalEntitled
+//     const result = await pool.query(
+//       `INSERT INTO leave_balances (
+//         employee_id, leave_type_id, year, total_entitled, remaining_days
+//       ) VALUES ($1, $2, $3, $4, $4)
+//       RETURNING *`,
+//       [employee_id, leave_type_id, year, totalEntitled]
+//     );
+
+//     res.status(201).json({ message: 'Leave request submitted successfully' });
+//   } catch (err) {
+//     console.error('Error applying for leave:', err);
+//     res.status(500).json({ error: 'Something went wrong' });
+//   }
+// };
+export const applyForLeave = async (req: Request, res: Response) => {
+  const { employee_id, employee_name, leave_type_id, start_date, end_date, reason, number_of_days } = req.body;
+  const client = await pool.connect();
+
   try {
-    const {
-      employee_id,
-      employee_name,
-      leave_type_id,
-      start_date,
-      end_date,
-      days,
-      status,
-      reason
-    } = req.body as Leave;
+    await client.query('BEGIN');
 
-    const id = uuidv4();
+    // 1️⃣ Get max days for this leave type
+    const leaveTypeResult = await client.query(
+      `SELECT max_days_per_year FROM leave_types WHERE id = $1`,
+      [leave_type_id]
+    );
+    if (leaveTypeResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Invalid leave type' });
+    }
 
-    const result = await pool.query<Leave>(
-      `INSERT INTO leave_requests (
-        id, employee_id, employee_name, leave_type_id,
-        start_date, end_date, days, status, reason,
-        applied_date, manager_comments, hr_comments,
-        approved_by, approved_date
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NULL,NULL,NULL,NULL)
-      RETURNING *`,
-      [
-        id,
-        employee_id,
-        employee_name,
-        leave_type_id,
-        start_date,
-        end_date,
-        days,
-        status ?? 'pending_manager',
-        reason
-      ]
+    const maxDays = leaveTypeResult.rows[0].max_days_per_year;
+    const currentYear = new Date().getFullYear();
+
+    // 2️⃣ Ensure leave_balances row exists for this employee & leave type
+    const balanceResult = await client.query(
+      `
+      SELECT *
+      FROM leave_balances
+      WHERE employee_id = $1
+      AND leave_type_id = $2
+      AND year = $3
+      FOR UPDATE;
+      `,
+      [employee_id, leave_type_id, currentYear]
     );
 
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
-    console.error('[createLeave]', error);
-    res.status(500).json({ error: 'Failed to create leave' });
+    let balanceRow;
+    if (balanceResult.rowCount === 0) {
+      const insertBal = await client.query(
+        `
+        INSERT INTO leave_balances (employee_id, leave_type_id, year, total_entitled, used_days, remaining_days, created_at)
+        VALUES ($1, $2, $3, $4, 0, $4, NOW())
+        RETURNING *;
+        `,
+        [employee_id, leave_type_id, currentYear, maxDays]
+      );
+      balanceRow = insertBal.rows[0];
+    } else {
+      balanceRow = balanceResult.rows[0];
+    }
+
+    const { remaining_days, used_days, total_entitled } = balanceRow;
+
+    // 3️⃣ Check if applying days exceed remaining days
+    if (number_of_days > remaining_days) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: `You only have ${remaining_days} remaining day(s) for this leave type. Requested: ${number_of_days}`,
+      });
+    }
+
+    // 4️⃣ Insert leave application
+    await client.query(
+      `
+      INSERT INTO leave_requests (employee_id, employee_name, leave_type_id, start_date, end_date, number_of_days, status, reason, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, 'pending_manager', $7, NOW())
+      `,
+      [employee_id, employee_name, leave_type_id, start_date, end_date, number_of_days, reason]
+    );
+
+    // 5️⃣ Deduct from leave balance
+    const newUsedDays = used_days + number_of_days;
+    const newRemainingDays = total_entitled - newUsedDays;
+
+    await client.query(
+      `
+      UPDATE leave_balances
+      SET used_days = $1,
+          remaining_days = $2,
+          updated_at = NOW()
+      WHERE employee_id = $3
+      AND leave_type_id = $4
+      AND year = $5
+      `,
+      [newUsedDays, newRemainingDays, employee_id, leave_type_id, currentYear]
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json({ message: 'Leave request submitted successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[applyForLeave]', err);
+    res.status(500).json({ error: 'Something went wrong' });
+  } finally {
+    client.release();
   }
 };
 
-
-export const getLeaves = async (_req: Request, res: Response): Promise<void> => {
+/**
+ * 📊 Get all leave requests
+ */
+export const getLeaves = async (_req: Request, res: Response) => {
   try {
-    const result = await pool.query<Leave>(
-      `SELECT l.*, lt.name AS type
-       FROM leave_requests l
-       JOIN leave_types lt ON lt.id = l.leave_type_id
-       ORDER BY l.id DESC`
-    )
 
-    const dto: Leave[] = result.rows
-    res.json(dto)
-  } catch (error) {
-    console.error('[getLeaves]', error)
-    res.status(500).json({ error: 'Failed to get leaves' })
-  }
-}
-
-export const getLeaveById = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params
-    const result = await pool.query<Leave>(
-      `SELECT l.*, lt.name AS type
-       FROM leave_requests l
-       JOIN leave_types lt ON lt.id = l.leave_type_id
-       WHERE l.id = $1`,
-      [id]
-    )
-
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Leave not found' })
-      return
-    }
-
-    res.json(result.rows[0])
-  } catch (error) {
-    console.error('[getLeaveById]', error)
-    res.status(500).json({ error: 'Failed to get leave' })
-  }
-}
-
-// Update Leave
-export const updateLeave = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params
-    const {
-      start_date,
-      end_date,
-      days,
-      status,
-      reason
-    } = req.body as Leave
-
-    const result = await pool.query<Leave>(
-      `UPDATE leave_requests SET
-        start_date = $1,
-        end_date = $2,
-        days = $3,
-        status = $4,
-        reason = $5
-       WHERE id = $6
-       RETURNING *`,
-      [start_date, end_date, days, status, reason, id]
-    )
-
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Leave not found' })
-      return
-    }
-
-    res.json(result.rows[0])
-  } catch (error) {
-    console.error('[updateLeave]', error)
-    res.status(500).json({ error: 'Failed to update leave' })
-  }
-}
-
-export const deleteLeave = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params
-    const result = await pool.query('DELETE FROM leave_requests WHERE id = $1 RETURNING *', [id])
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Leave not found' })
-      return
-    }
-    res.json({ message: 'Leave deleted successfully' })
-  } catch (error) {
-    console.error('[deleteLeave]', error)
-    res.status(500).json({ error: 'Failed to delete leave' })
-  }
-}
-
-// Assign leave to HR (set status to 'Pending HR')
-export const managerApproveLeave = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { approver_id } = req.body;
     const result = await pool.query(
-      `UPDATE leave_requests SET status = 'pending_hr', approved_by = $1 WHERE id = $2 RETURNING *`,
-      [approver_id, id]
+      `
+      SELECT l.*, lt.name AS type
+      FROM leave_requests l
+      JOIN leave_types lt ON lt.id = l.leave_type_id
+      ORDER BY l.id DESC;
+      `
     );
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Leave not found' });
-      return;
-    }
+    res.json(result.rows);
+  } catch (error) {
+    console.error('[getLeaves]', error);
+    res.status(500).json({ error: 'Failed to get leaves' });
+  }
+};
+
+/**
+ * 🧍 Get single leave request by ID
+ */
+export const getLeaveById = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `
+      SELECT l.*, lt.name AS leave_type_name
+      FROM leave_requests l
+      JOIN leave_types lt ON lt.id = l.leave_type_id
+      WHERE l.id = $1
+      `,
+      [id]
+    );
+
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Leave not found' });
+
     res.json(result.rows[0]);
+  } catch (error) {
+    console.error('[getLeaveById]', error);
+    res.status(500).json({ error: 'Failed to get leave' });
+  }
+};
+
+/**
+ * ✍ Update leave request (before approval)
+ */
+export const updateLeave = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { start_date, end_date, reason } = req.body;
+
+  try {
+    const start = new Date(start_date);
+    const end = new Date(end_date);
+    const number_of_days = calculateBusinessDays(start, end);
+
+    const result = await pool.query(
+      `
+      UPDATE leave_requests
+      SET start_date = $1,
+          end_date = $2,
+          number_of_days = $3,
+          reason = $4,
+          updated_at = NOW()
+      WHERE id = $5 AND status = 'pending_manager'
+      RETURNING *;
+      `,
+      [start, end, number_of_days, reason, id]
+    );
+
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Leave not found or already processed' });
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('[updateLeave]', error);
+    res.status(500).json({ error: 'Failed to update leave' });
+  }
+};
+
+/**
+ * 🗑 Delete leave request
+ */
+export const deleteLeave = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `DELETE FROM leave_requests WHERE id = $1 AND status = 'pending_manager' RETURNING *;`,
+      [id]
+    );
+
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Leave not found or already processed' });
+
+    res.json({ message: 'Leave deleted successfully' });
+  } catch (error) {
+    console.error('[deleteLeave]', error);
+    res.status(500).json({ error: 'Failed to delete leave' });
+  }
+};
+
+/**
+ * 👨 Manager approves
+ */
+export const managerApproveLeave = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { manager_id } = req.body;
+
+  try {
+    const result = await pool.query(
+      `
+      UPDATE leave_requests
+      SET status = 'pending_hr',
+          manager_id = $1,
+          manager_action_status = 'approved',
+          manager_action_date = NOW()
+      WHERE id = $2 AND status = 'pending_manager'
+      RETURNING *;
+      `,
+      [manager_id, id]
+    );
+
+    if (result.rowCount === 0) return res.status(400).json({ message: 'Invalid leave or already processed' });
+
+    res.json({ message: 'Manager approved successfully', leave: result.rows[0] });
   } catch (error) {
     console.error('[managerApproveLeave]', error);
-    res.status(500).json({ error: 'Failed to assign leave to HR' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
-// Approve leave (manager or HR)
-export const approveLeave = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { approver_id, approver_role, comments } = req.body;
-    // Decide new status depending on who approves
-    let newStatus = 'approved';
-    let updateFields = `status = $1, approved_by = $2, approved_date = NOW()`;
-  let params: (string | number | null)[];
-    if (approver_role === 'manager') {
-      // Manager approval moves the request to pending HR
-      newStatus = 'pending_hr';
-      // store manager comments if provided
-      updateFields = `status = $1, manager_comments = $2, approved_by = $3, approved_date = NOW()`;
-      params = [newStatus, comments || null, approver_id, id];
-    } else if (approver_role === 'hr') {
-      // HR approval is final
-      newStatus = 'approved';
-      updateFields = `status = $1, hr_comments = $2, approved_by = $3, approved_date = NOW()`;
-      params = [newStatus, comments || null, approver_id, id];
-    } else {
-      // default to final approval if role not provided
-      newStatus = 'approved';
-      updateFields = `status = $1, approved_by = $2, approved_date = NOW()`;
-      params = [newStatus, approver_id, id];
-    }
+/**
+ * ❌ Manager rejects
+ */
+export const managerRejectLeave = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { manager_id, manager_remarks } = req.body;
 
+  try {
     const result = await pool.query(
-      `UPDATE leave_requests SET ${updateFields} WHERE id = $${params.length} RETURNING *`,
-      params
+      `
+      UPDATE leave_requests
+      SET status = 'manager_rejected',
+          manager_id = $1,
+          manager_action_status = 'rejected',
+          manager_action_date = NOW(),
+          manager_remarks = $2
+      WHERE id = $3 AND status = 'pending_manager'
+      RETURNING *;
+      `,
+      [manager_id, manager_remarks, id]
     );
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Leave not found' });
-      return;
-    }
-    // If HR approved, recalculate days used for the employee/leave_type
-    if (newStatus === 'approved') {
-      // No DB update needed here; balances are computed on-demand in getEmployeeLeavesAndBalance
-    }
-    res.json(result.rows[0]);
+
+    if (result.rowCount === 0) return res.status(400).json({ message: 'Invalid leave or already processed' });
+
+    res.json({ message: 'Manager rejected successfully', leave: result.rows[0] });
   } catch (error) {
-    console.error('[approveLeave]', error);
-    res.status(500).json({ error: 'Failed to approve leave' });
+    console.error('[managerRejectLeave]', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
-// Reject leave (manager or HR)
-export const rejectLeave = async (req: Request, res: Response): Promise<void> => {
+/**
+ * 👩 HR approves + deduct leave balance
+ */
+// export const hrApproveLeave = async (req: Request, res: Response) => {
+//   const { id } = req.params;
+//   const { hr_id } = req.body;
+
+//   const client = await pool.connect();
+//   try {
+//     await client.query('BEGIN');
+
+//     const leaveQuery = await client.query(
+//       `
+//       SELECT l.employee_id, l.leave_type_id, l.number_of_days, lb.remaining_days
+//       FROM leave_requests l
+//       JOIN leave_balances lb
+//       ON lb.employee_id = l.employee_id
+//       AND lb.leave_type_id = l.leave_type_id
+//       AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
+//       WHERE l.id = $1 FOR UPDATE;
+//       `,
+//       [id]
+//     );
+
+//     if (leaveQuery.rowCount === 0) {
+//       await client.query('ROLLBACK');
+//       return res.status(404).json({ message: 'Leave or balance not found' });
+//     }
+
+//     const { employee_id, leave_type_id, number_of_days, remaining_days } = leaveQuery.rows[0];
+//     console.log("Leave approved:", { number_of_days, remaining_days });
+    
+//     if (remaining_days < number_of_days) {
+//       await client.query('ROLLBACK');
+//       return res.status(400).json({ message: 'Insufficient leave balance' });
+//     }
+
+//     await client.query(
+//       `
+//       UPDATE leave_balances
+//       SET used_days = used_days + $1,
+//           remaining_days = remaining_days - $1,
+//           updated_at = NOW()
+//       WHERE employee_id = $2
+//       AND leave_type_id = $3
+//       AND year = EXTRACT(YEAR FROM CURRENT_DATE);
+//       `,
+//       [number_of_days, employee_id, leave_type_id]
+//     );
+
+//     const result = await client.query(
+//       `
+//       UPDATE leave_requests
+//       SET status = 'approved',
+//           hr_id = $1,
+//           hr_action_status = 'approved',
+//           hr_action_date = NOW()
+//       WHERE id = $2 AND status = 'pending_hr'
+//       RETURNING *;
+//       `,
+//       [hr_id, id]
+//     );
+
+//     await client.query('COMMIT');
+//     res.json({ message: 'HR approved and balance updated', leave: result.rows[0] });
+//   } catch (error) {
+//     await client.query('ROLLBACK');
+//     console.error('[hrApproveLeave]', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   } finally {
+//     client.release();
+//   }
+// };
+// export const hrApproveLeave = async (req: Request, res: Response) => {
+//   const { id } = req.params;
+//   const { hr_id } = req.body;
+
+//   const client = await pool.connect();
+//   try {
+//     await client.query('BEGIN');
+
+//     // Lock and fetch everything needed
+//     const leaveQuery = await client.query(
+//       `
+//       SELECT l.employee_id, l.leave_type_id, l.number_of_days,
+//              lb.used_days, lb.max_days_per_year, lb.remaining_days
+//       FROM leave_requests l
+//       JOIN leave_balances lb
+//       ON lb.employee_id = l.employee_id
+//       AND lb.leave_type_id = l.leave_type_id
+//       AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
+//       WHERE l.id = $1
+//       FOR UPDATE;
+//       `,
+//       [id]
+//     );
+
+//     if (leaveQuery.rowCount === 0) {
+//       await client.query('ROLLBACK');
+//       return res.status(404).json({ message: 'Leave or balance not found' });
+//     }
+
+//     const { employee_id, leave_type_id, number_of_days, used_days, max_days_per_year } = leaveQuery.rows[0];
+
+//     const newUsedDays = used_days + number_of_days;
+//     const newRemainingDays = max_days_per_year - newUsedDays;
+
+//     if (newRemainingDays < 0) {
+//       await client.query('ROLLBACK');
+//       return res.status(400).json({ message: 'Insufficient leave balance' });
+//     }
+
+//     // Update the leave balance correctly
+//     await client.query(
+//       `
+//       UPDATE leave_balances
+//       SET used_days = $1,
+//           remaining_days = $2,
+//           updated_at = NOW()
+//       WHERE employee_id = $3
+//       AND leave_type_id = $4
+//       AND year = EXTRACT(YEAR FROM CURRENT_DATE);
+//       `,
+//       [newUsedDays, newRemainingDays, employee_id, leave_type_id]
+//     );
+
+//     // Approve the leave
+//     const result = await client.query(
+//       `
+//       UPDATE leave_requests
+//       SET status = 'approved',
+//           hr_id = $1,
+//           hr_action_status = 'approved',
+//           hr_action_date = NOW()
+//       WHERE id = $2 AND status = 'pending_hr'
+//       RETURNING *;
+//       `,
+//       [hr_id, id]
+//     );
+
+//     await client.query('COMMIT');
+
+//     res.json({
+//       message: 'HR approved and balance updated successfully',
+//       leave: result.rows[0]
+//     });
+//   } catch (error) {
+//     await client.query('ROLLBACK');
+//     console.error('[hrApproveLeave]', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   } finally {
+//     client.release();
+//   }
+// };
+
+// export const hrApproveLeave = async (req: Request, res: Response) => {
+//   const { id } = req.params;
+//   const { hr_id, remarks } = req.body;
+
+//   const client = await pool.connect();
+//   try {
+//     await client.query('BEGIN');
+
+//     // 1️⃣ Lock & fetch leave + balance for update
+//     const leaveQuery = await client.query(
+//       `
+//       SELECT l.employee_id, l.leave_type_id, l.number_of_days,
+//              lb.used_days, lb.total_entitled, lb.remaining_days
+//       FROM leave_requests l
+//       JOIN leave_balances lb
+//         ON lb.employee_id = l.employee_id
+//        AND lb.leave_type_id = l.leave_type_id
+//        AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
+//       WHERE l.id = $1
+//       FOR UPDATE;
+//       `,
+//       [id]
+//     );
+
+//     if (leaveQuery.rowCount === 0) {
+//       await client.query('ROLLBACK');
+//       return res.status(404).json({ message: 'Leave or balance not found' });
+//     }
+
+//     const { employee_id, leave_type_id, number_of_days, used_days, total_entitled } = leaveQuery.rows[0];
+//     const newUsedDays = used_days + number_of_days;
+//     const newRemainingDays = total_entitled - newUsedDays;
+
+//     if (newRemainingDays < 0) {
+//       await client.query('ROLLBACK');
+//       return res.status(400).json({ message: 'Insufficient leave balance' });
+//     }
+
+//     // 2️⃣ Update leave balance
+//     await client.query(
+//       `
+//       UPDATE leave_balances
+//       SET used_days = $1,
+//           remaining_days = $2,
+//           updated_at = NOW()
+//       WHERE employee_id = $3
+//       AND leave_type_id = $4
+//       AND year = EXTRACT(YEAR FROM CURRENT_DATE);
+//       `,
+//       [newUsedDays, newRemainingDays, employee_id, leave_type_id]
+//     );
+
+//     // 3️⃣ Approve the leave by HR
+//     const result = await client.query(
+//       `
+//       UPDATE leave_requests
+//       SET status = 'approved',
+//           hr_id = $1,
+//           hr_action_status = 'approved',
+//           hr_action_date = NOW(),
+//           hr_remarks = $2,
+//           updated_at = NOW()
+//       WHERE id = $3 AND status = 'pending_hr'
+//       RETURNING *;
+//       `,
+//       [hr_id, remarks || null, id]
+//     );
+
+//     if (result.rowCount === 0) {
+//       await client.query('ROLLBACK');
+//       return res.status(400).json({ message: 'Leave not in pending_hr status' });
+//     }
+
+//     await client.query('COMMIT');
+//     res.json({
+//       message: 'HR approved and balance updated successfully',
+//       leave: result.rows[0]
+//     });
+//   } catch (error) {
+//     await client.query('ROLLBACK');
+//     console.error('[hrApproveLeave]', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   } finally {
+//     client.release();
+//   }
+// };
+export const hrApproveLeave = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { hr_id, remarks } = req.body;
+
   try {
-    const { id } = req.params;
-    const { rejector_id, rejector_role, comments } = req.body;
-    let newStatus: string;
-    let commentsField: string;
-    if (rejector_role === 'manager') {
-      newStatus = 'manager_rejected';
-      commentsField = 'manager_comments';
-    } else if (rejector_role === 'hr') {
-      newStatus = 'hr_rejected';
-      commentsField = 'hr_comments';
-    } else {
-      res.status(400).json({ error: 'Invalid rejector role' });
-      return;
-    }
     const result = await pool.query(
-      `UPDATE leave_requests SET status = $1, ${commentsField} = $2, approved_by = $3, approved_date = NOW() WHERE id = $4 RETURNING *`,
-      [newStatus, comments, rejector_id, id]
+      `
+      UPDATE leave_requests
+      SET status = 'approved',
+          hr_id = $1,
+          hr_action_status = 'approved',
+          hr_action_date = NOW(),
+          hr_remarks = $2,
+          updated_at = NOW()
+      WHERE id = $3 AND status = 'pending_hr'
+      RETURNING *;
+      `,
+      [hr_id, remarks || null, id]
     );
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Leave not found' });
-      return;
+
+    if (result.rowCount === 0) {
+      return res.status(400).json({ message: 'Leave not in pending_hr status' });
     }
-    res.json(result.rows[0]);
+
+    res.json({
+      message: 'HR approved successfully',
+      leave: result.rows[0],
+    });
   } catch (error) {
-    console.error('[rejectLeave]', error);
-    res.status(500).json({ error: 'Failed to reject leave' });
+    console.error('[hrApproveLeave]', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
-// Get all leaves for a specific employee, with days used and remaining for each leave type
-export const getEmployeeLeavesAndBalance = async (req: Request, res: Response): Promise<void> => {
+
+
+/**
+ * ❌ HR rejects
+ */
+// export const hrRejectLeave = async (req: Request, res: Response) => {
+//   const { id } = req.params;
+//   const { hr_id, hr_remarks } = req.body;
+
+//   try {
+//     const result = await pool.query(
+//       `
+//       UPDATE leave_requests
+//       SET status = 'hr_rejected',
+//           hr_id = $1,
+//           hr_action_status = 'rejected',
+//           hr_action_date = NOW(),
+//           hr_remarks = $2
+//       WHERE id = $3 AND status = 'pending_hr'
+//       RETURNING *;
+//       `,
+//       [hr_id, hr_remarks, id]
+//     );
+
+//     if (result.rowCount === 0) return res.status(400).json({ message: 'Invalid leave or already processed' });
+
+//     res.json({ message: 'HR rejected successfully', leave: result.rows[0] });
+//   } catch (error) {
+//     console.error('[hrRejectLeave]', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// };
+export const hrRejectLeave = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { hr_id, hr_remarks } = req.body;
+  const client = await pool.connect();
+
   try {
-    const { employee_id } = req.params;
-    // Get all leave types
-    const leaveTypesResult = await pool.query('SELECT * FROM leave_types');
-    const leaveTypes = leaveTypesResult.rows;
-    // Get all leaves for employee
-    const leavesResult = await pool.query(
-      `SELECT * FROM leave_requests WHERE employee_id = $1 ORDER BY applied_date DESC`,
+    await client.query('BEGIN');
+
+    // 1️⃣ Fetch the leave request
+    const leaveResult = await client.query(
+      `
+      SELECT employee_id, leave_type_id, number_of_days
+      FROM leave_requests
+      WHERE id = $1 AND status = 'pending_hr'
+      FOR UPDATE;
+      `,
+      [id]
+    );
+
+    if (leaveResult.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Leave not found or already processed' });
+    }
+
+    const { employee_id, leave_type_id, number_of_days } = leaveResult.rows[0];
+    const year = new Date().getFullYear();
+
+    // 2️⃣ Reverse the balance
+    await client.query(
+      `
+      UPDATE leave_balances
+      SET used_days = used_days - $1,
+          remaining_days = remaining_days + $1,
+          updated_at = NOW()
+      WHERE employee_id = $2
+      AND leave_type_id = $3
+      AND year = $4
+      `,
+      [number_of_days, employee_id, leave_type_id, year]
+    );
+
+    // 3️⃣ Update leave request status
+    const updateLeave = await client.query(
+      `
+      UPDATE leave_requests
+      SET status = 'hr_rejected',
+          hr_id = $1,
+          hr_action_status = 'rejected',
+          hr_action_date = NOW(),
+          hr_remarks = $2,
+          updated_at = NOW()
+      WHERE id = $3
+      RETURNING *;
+      `,
+      [hr_id, hr_remarks, id]
+    );
+
+    await client.query('COMMIT');
+    res.json({ message: 'HR rejected and balance reversed successfully', leave: updateLeave.rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('[hrRejectLeave]', error);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * 🧮 Get leave balance
+ */
+// export const getLeaveBalance = async (req: Request, res: Response) => {
+//   const { employee_id, leave_type_id } = req.params;
+//   try {
+//     const result = await pool.query(
+//       `
+//       SELECT remaining_days
+//       FROM leave_balances
+//       WHERE employee_id = $1
+//       AND leave_type_id = $2
+//       AND year = EXTRACT(YEAR FROM CURRENT_DATE);
+//       `,
+//       [employee_id, leave_type_id]
+//     );
+
+//     if (result.rowCount === 0) return res.status(404).json({ message: 'Balance not found' });
+
+//     res.json({ remainingDays: result.rows[0].remaining_days });
+//   } catch (error) {
+//     console.error('[getLeaveBalance]', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// };
+// export const getLeaveBalance = async (req: Request, res: Response) => {
+//   const { employee_id } = req.params;
+
+//   try {
+//     const result = await pool.query(
+//       `
+//       SELECT 
+//         lt.id AS leave_type_id,
+//         lt.name AS leave_type_name,
+//         lt.max_days_per_year,
+//         COALESCE(lb.used_days, 0) AS used_days,
+//         COALESCE(lb.remaining_days, lt.max_days_per_year) AS remaining_days
+//       FROM leave_types lt
+//       LEFT JOIN leave_balances lb
+//         ON lb.leave_type_id = lt.id
+//         AND lb.employee_id = $1
+//         AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
+//       ORDER BY lt.name;
+//       `,
+//       [employee_id]
+//     );
+
+//     if (result.rowCount === 0) {
+//       return res.status(404).json({ message: 'No leave types or balances found for this employee' });
+//     }
+
+//     res.json(result.rows);
+//   } catch (error) {
+//     console.error('[getLeaveBalance]', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// };
+export const getLeaveBalance = async (req: Request, res: Response) => {
+  const { employee_id } = req.params;
+
+  console.log("Fetching leave balance for employee:", employee_id);
+  
+  try {
+    const result = await pool.query(
+      `
+      SELECT 
+        e.id AS employee_id,
+        e.name AS employee_name,
+        lt.id AS leave_type_id,
+        lt.name AS leave_type_name,
+        lt.max_days_per_year,
+        COALESCE(lb.used_days, 0) AS used_days,
+        COALESCE(lb.remaining_days, lt.max_days_per_year) AS remaining_days,
+        COALESCE(lb.carried_forward, 0) AS carried_forward
+      FROM employees e
+      CROSS JOIN leave_types lt
+      LEFT JOIN leave_balances lb
+        ON lb.employee_id = e.id
+        AND lb.leave_type_id = lt.id
+        AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
+      WHERE e.id = $1
+      ORDER BY lt.name;
+      `,
       [employee_id]
     );
-    const leaves = leavesResult.rows;
-    // Calculate days used and remaining for each leave type
-    type LeaveTypeRow = { id: string; name: string; max_days_per_year: number };
-    type LeaveRow = { leave_type_id: string; status: string; days: number };
-    const balances = (leaveTypes as LeaveTypeRow[]).map((lt) => {
-      const used = (leaves as LeaveRow[])
-        .filter((l) => l.leave_type_id === lt.id && l.status === 'approved')
-        .reduce((sum: number, l) => sum + (l.days || 0), 0);
-      return {
-        leave_type_id: lt.id,
-        leave_type_name: lt.name,
-        max_days_per_year: lt.max_days_per_year,
-        days_used: used,
-        days_remaining: (lt.max_days_per_year || 0) - used
-      };
-    });
-    res.json({ leaves, balances });
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'No leave types or balances found for this employee' });
+    }
+
+    res.json(result.rows);
   } catch (error) {
-    console.error('[getEmployeeLeavesAndBalance]', error);
-    res.status(500).json({ error: 'Failed to get employee leaves and balance' });
+    console.error('[getLeaveBalance]', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// export const getAllLeaveBalance = async (req: Request, res: Response) => {
+//   try {
+//     const result = await pool.query(
+//       `
+//       SELECT 
+//         e.id AS employee_id,
+//         e.name AS employee_name,
+//         lt.id AS leave_type_id,
+//         lt.name AS leave_type_name,
+//         lt.max_days_per_year,
+//         COALESCE(lb.used_days, 0) AS used_days,
+//         COALESCE(lb.remaining_days, lt.max_days_per_year) AS remaining_days
+//       FROM employees e
+//       CROSS JOIN leave_types lt
+//       LEFT JOIN leave_balances lb
+//         ON lb.employee_id = e.id
+//         AND lb.leave_type_id = lt.id
+//         AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
+//       ORDER BY e.name, lt.name;
+//       `
+//     );
+
+//     if (result.rowCount === 0) {
+//       return res.status(404).json({ message: 'No leave balances found' });
+//     }
+
+//     res.json(result.rows);
+//   } catch (error) {
+//     console.error('[getAllLeaveBalance]', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// };
+export const getAllLeaveBalance = async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT 
+        e.id AS employee_id,
+        e.name AS employee_name,
+        e.department,
+        e. station_name,
+        lt.id AS leave_type_id,
+        lt.name AS leave_type_name,
+        lt.max_days_per_year,
+        COALESCE(lb.used_days, 0) AS used_days,
+        COALESCE(lb.remaining_days, lt.max_days_per_year) AS remaining_days
+      FROM employees e
+      CROSS JOIN leave_types lt
+      LEFT JOIN leave_balances lb
+        ON lb.employee_id = e.id
+        AND lb.leave_type_id = lt.id
+        AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
+      ORDER BY e.name, lt.name;
+      `
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'No leave balances found' });
+    }
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('[getAllLeaveBalance]', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getUsedLeaveDays = async (req: Request, res: Response) => {
+  const { employee_id, leave_type_id } = req.params;
+  try {
+    const result = await pool.query(
+      `
+      SELECT used_days
+      FROM leave_balances
+      WHERE employee_id = $1
+      AND leave_type_id = $2
+      AND year = EXTRACT(YEAR FROM CURRENT_DATE);
+      `,
+      [employee_id, leave_type_id]
+    );
+
+    if (result.rowCount === 0) return res.status(404).json({ message: 'used days not found' });
+
+    res.json({ usedDays: result.rows[0].used_days });
+  } catch (error) {
+    console.error('[getUsedLeaveDays]', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+/**
+ * 🕒 Get pending approvals for a manager
+ */
+export const getPendingApprovalsForManager = async (req: Request, res: Response) => {
+  const { manager_id } = req.params;
+  try {
+    const result = await pool.query(
+      `
+      SELECT l.*, lt.name as leave_type_name
+      FROM leave_requests l
+      JOIN leave_types lt ON lt.id = l.leave_type_id
+      WHERE l.manager_id = $1 AND l.status = 'pending_manager';
+      `,
+      [manager_id]
+    );
+    res.json({ pending: result.rows });
+  } catch (error) {
+    console.error('[getPendingApprovalsForManager]', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+/**
+ * 🕒 Get pending approvals for HR
+ */
+export const getPendingApprovalsForHR = async (_req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT l.*, lt.name as leave_type_name
+      FROM leave_requests l
+      JOIN leave_types lt ON lt.id = l.leave_type_id
+      WHERE l.status = 'pending_hr';
+      `
+    );
+    res.json({ pending: result.rows });
+  } catch (error) {
+    console.error('[getPendingApprovalsForHR]', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+
 

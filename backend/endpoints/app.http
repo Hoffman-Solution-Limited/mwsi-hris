@@ -104,3 +104,13 @@ Content-Type: application/json
 ### //get one leave
 GET http://localhost:5000/api/leaves/myleave/2
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g
+
+
+### //get balances
+GET http://localhost:5000/api/leaves/balance/3
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g
+
+
+### //get balances
+GET http://localhost:5000/api/leaves/balances
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g

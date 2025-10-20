@@ -18,7 +18,12 @@ import {
   useApproveLeaveMutation,
   useRejectLeaveMutation,
   useDeleteLeaveMutation,
-  useUpdateLeaveMutation
+  useUpdateLeaveMutation,
+  useManagerApproveLeaveMutation,
+  useManagerRejectLeaveMutation,
+  useGetPendingApprovalsForManagerQuery,
+  useGetPendingApprovalsForHRQuery,
+  useGetAllLeaveBalanceQuery
 } from '@/features/leave/leaveApi';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,12 +33,23 @@ import { Switch } from '@/components/ui/switch';
 export const LeaveManagement: React.FC = () => {
   const { user } = useAuth();
   const { leaveRequests: localLeaveRequests, addLeaveRequest } = useLeave();
+  const isHrRole = ['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '');
+  const isManager = user?.role === 'manager' || user?.role === 'registry_manager';
+  const isHrManager = user?.role === 'hr_manager';
+  const isHrStaff = user?.role === 'hr_staff';
+
   // RTK Query hooks
   const { data: apiLeaves, isLoading: leavesLoading } = useGetAllLeavesQuery(undefined);
+  const [managerApproveLeave] = useManagerApproveLeaveMutation();
   const [approveLeave] = useApproveLeaveMutation();
+  const [managerRejectLeave] = useManagerRejectLeaveMutation();
   const [rejectLeave] = useRejectLeaveMutation();
   const [deleteLeave] = useDeleteLeaveMutation();
   const [updateLeave] = useUpdateLeaveMutation();
+  const { data: allLeaveBalances } = useGetAllLeaveBalanceQuery(undefined);
+  // Pending queues from server
+  const { data: managerPending } = useGetPendingApprovalsForManagerQuery(String(user?.id), { skip: !isManager });
+  const { data: hrPending } = useGetPendingApprovalsForHRQuery(undefined, { skip: !isHrRole });
   const { employees } = useEmployees();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,13 +62,13 @@ export const LeaveManagement: React.FC = () => {
   console.log("user>>",user.role);
   console.log("employees>>>>",employees);
   
-  const isHrRole = ['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '');
-  const isManager = user?.role === 'manager' || user?.role === 'registry_manager';
-  const isHrManager = user?.role === 'hr_manager';
-  const isHrStaff = user?.role === 'hr_staff';
-  console.log("isManager>>", isManager);
-  console.log("isHrManager>>", isHrManager);
-  console.log("isHrRole>>", isHrRole);
+  // const isHrRole = ['hr_manager', 'hr_staff', 'admin'].includes(user?.role || '');
+  // const isManager = user?.role === 'manager' || user?.role === 'registry_manager';
+  // const isHrManager = user?.role === 'hr_manager';
+  // const isHrStaff = user?.role === 'hr_staff';
+  // console.log("isManager>>", isManager);
+  // console.log("isHrManager>>", isHrManager);
+  // console.log("isHrRole>>", isHrRole);
   // My queue only toggle (for managers and HR)
   const [myQueueOnly, setMyQueueOnly] = useState<boolean>(!!(isManager || isHrRole));
 
@@ -70,15 +86,27 @@ export const LeaveManagement: React.FC = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<import('@/types/models').LeaveRequest | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-    if (statusFilter !== 'all') return;
-    if (user.role === 'manager' || user.role === 'registry_manager') {
-      setStatusFilter('pending_manager');
-    } else if (isHrRole) {
-      setStatusFilter('pending_hr');
-    }
-  }, [user, statusFilter, isHrRole]);
+//  useEffect(() => {
+//   if (!user) return;
+
+//   // Manager roles
+//   if (user.role === 'manager' || user.role === 'registry_manager') {
+//     setStatusFilter('pending_manager');
+//     return;
+//   }
+
+//   // HR roles
+//   if (isHrRole) {
+//     setStatusFilter('pending_hr');
+//     return;
+//   }
+
+//   // If "all", just keep all leaves
+//   if (statusFilter === 'all' && apiLeaves) {
+//     setStatusFilter(apiLeaves);
+//   }
+// }, [user, statusFilter, isHrRole, apiLeaves]);
+
 
   // Prefer API leaves when available, fallback to local context leaves
   const allLeaves = apiLeaves ?? localLeaveRequests;
@@ -100,6 +128,38 @@ export const LeaveManagement: React.FC = () => {
   }, [user, allLeaves, employees, hrMode, isHrManager]);
 
   console.log("baseLeaves",baseLeaves);
+
+  // Transform the API response
+const groupedLeaveBalances = React.useMemo(() => {
+  if (!allLeaveBalances) return [];
+
+  const map = new Map<string, any>();
+
+  allLeaveBalances.forEach((b: any) => {
+    if (!map.has(b.employee_id)) {
+      map.set(b.employee_id, {
+        employee_id: b.employee_id,
+        employee_name: b.employee_name,
+        department: b.department,
+        avatar: employees.find(emp => emp.id === b.employee_id)?.avatar,
+        leaves: {} as Record<string, any>,
+      });
+    }
+
+    const employeeData = map.get(b.employee_id);
+    employeeData.leaves[b.leave_type_name.toLowerCase().replace(' ', '_')] = {
+      allocated: b.max_days_per_year,
+      used: b.used_days,
+      remaining: b.remaining_days,
+      pending: b.pending || 0,
+    };
+  });
+
+  return Array.from(map.values());
+}, [allLeaveBalances, employees]);
+
+console.log("groupedLeaveBalances",groupedLeaveBalances);
+
 
   const myApprovedLeaves = user?.role === 'employee' 
     ? (allLeaves || []).filter(leave => leave.employee_id === user.id && (leave.status === 'hr_approved' || leave.status === 'approved' || leave.status === 'manager_approved'))
@@ -189,9 +249,9 @@ export const LeaveManagement: React.FC = () => {
 
   // Pending requests scoped to the current user's responsibility
   // Managers should see only pending_manager requests for their direct reports (baseLeaves already contains direct reports for managers)
-  const pendingManagerRequests = baseLeaves.filter(req => req.status === 'pending_manager');
-  // HR should see pending_hr requests, scoped by hrScopedLeaves (which applies department/team filters when applicable)
-  const pendingHrRequests = isHrRole ? hrScopedLeaves.filter(req => req.status === 'pending_hr') : [];
+  // pending lists: prefer server-provided pending queues when available
+  const pendingManagerRequests = (isManager && managerPending?.pending) ? managerPending.pending : baseLeaves.filter(req => req.status === 'pending_manager');
+  const pendingHrRequests = (isHrRole && hrPending?.pending) ? hrPending.pending : (isHrRole ? hrScopedLeaves.filter(req => req.status === 'pending_hr') : []);
   console.log("pendingManagerRequests",pendingManagerRequests);
   console.log("pendingHrRequests",pendingHrRequests);
   
@@ -207,20 +267,20 @@ export const LeaveManagement: React.FC = () => {
 
   const canActOnRequests = user && user.role !== 'employee';
 
-  const submitLeave = () => {
-    if (!user) return;
-    if (!form.startDate || !form.endDate || !form.reason) return;
-    addLeaveRequest({
-      employeeId: user.id,
-      type: form.type,
-      startDate: form.startDate,
-      endDate: form.endDate,
-      days: Number(form.days) || 1,
-      reason: form.reason
-    });
-    setApplyOpen(false);
-    setForm({ type: 'annual', startDate: '', endDate: '', days: 1, reason: '' });
-  };
+  // const submitLeave = () => {
+  //   if (!user) return;
+  //   if (!form.startDate || !form.endDate || !form.reason) return;
+  //   addLeaveRequest({
+  //     employeeId: user.id,
+  //     type: form.type,
+  //     startDate: form.startDate,
+  //     endDate: form.endDate,
+  //     days: Number(form.days) || 1,
+  //     reason: form.reason
+  //   });
+  //   setApplyOpen(false);
+  //   setForm({ type: 'annual', startDate: '', endDate: '', days: 1, reason: '' });
+  // };
 
   return (
     <div className="space-y-6">
@@ -554,9 +614,9 @@ export const LeaveManagement: React.FC = () => {
                                 {request.type.replace('_', ' ').toUpperCase()}
                               </span>
                               {' • '}
-                              {request.startDate} to {request.endDate}
+                              {new Date(request.start_date).toLocaleDateString()} to {new Date(request.end_date).toLocaleDateString()}
                               {' • '}
-                              {request.days} day{request.days > 1 ? 's' : ''}
+                              {request.number_of_days} day{request.number_of_days > 1 ? 's' : ''}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
                               Reason: {request.reason}
@@ -574,7 +634,7 @@ export const LeaveManagement: React.FC = () => {
                               'Status: ' + request.status
                             }</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              Applied: {new Date(request.applied_date).toLocaleDateString()}
+                              Applied: {new Date(request.created_at).toLocaleDateString()}
                             </p>
                           </div>
                           <Button size="sm" variant="outline" onClick={() => { setSelectedRequest(request); setActionComment(''); setDetailsOpen(true); }}>
@@ -584,7 +644,7 @@ export const LeaveManagement: React.FC = () => {
                             <>
                               <Button size="sm" variant="ghost" onClick={() => {
                                 setSelectedRequest(request);
-                                setEditForm({ startDate: request.startDate, endDate: request.endDate, days: request.days, reason: request.reason });
+                                setEditForm({ startDate: request.start_date, endDate: request.end_date, days: request.number_of_days, reason: request.reason });
                                 setEditOpen(true);
                               }}>
                                 Edit
@@ -605,7 +665,7 @@ export const LeaveManagement: React.FC = () => {
                             <div className="flex gap-1">
                               <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={async () => {
                                 try {
-                                  await approveLeave({ leaveId: request.id, approvalData: { approver_id: user?.id, approver_role: 'manager' } }).unwrap();
+                                  await managerApproveLeave({ leaveId: request.id, manager_id: String(user?.id) }).unwrap();
                                   toast({ title: 'Leave approved', description: `${request.employeeName}'s ${request.type} request approved.` });
                                 } catch (err) {
                                   toast({ title: 'Error', description: 'Failed to approve leave.' });
@@ -625,7 +685,7 @@ export const LeaveManagement: React.FC = () => {
                             <div className="flex gap-1">
                               <Button size="sm" variant="outline" className="text-success hover:text-success" onClick={async () => {
                                 try {
-                                  await approveLeave({ leaveId: request.id, approvalData: { approver_id: user?.id, approver_role: 'hr' } }).unwrap();
+                                  await approveLeave({ leaveId: request.id, approvalData: { hr_id: String(user?.id), hr_remarks: '' } }).unwrap();
                                   toast({ title: 'Leave approved', description: `${request.employeeName}'s ${request.type} request approved.` });
                                 } catch (err) {
                                   toast({ title: 'Error', description: 'Failed to approve leave.' });
@@ -742,77 +802,95 @@ export const LeaveManagement: React.FC = () => {
 
                       </tr>
                     </thead>
-                    <tbody>
-                    {leaveBalances
-                      .filter((b) => {
-                        const q = balancesSearch.toLowerCase().trim();
-                        if (!q) return true;
-                        return (
-                          b.employeeName.toLowerCase().includes(q) ||
-                          b.employeeId.toLowerCase().includes(q) ||
-                          b.department.toLowerCase().includes(q)
-                        );
-                      })
-                      .map((balance) => {
-                      const employee = employees.find(emp => emp.id === balance.employeeId);
-                      return (
-                        <tr key={balance.employeeId}>
-                          <td>
-                            <div className="flex items-center gap-2">
-                              <Avatar className="w-8 h-8">
-                                <AvatarImage src={employee?.avatar} />
-                                <AvatarFallback>
-                                  {String(balance.employeeName || '').split(' ').map(n => n?.[0] ?? '').join('')}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="font-medium">{balance.employeeName} <span className="text-xs text-muted-foreground">(ID: {balance.employeeId} • Employee No: {(employee as { employeeNumber?: string } )?.employeeNumber || '—'})</span></span>
-                            </div>
-                          </td>
-                          <td>{balance.department}</td>
-                          <td>
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-sm">
-                                <span>Remaining: {balance.annual.allocated - balance.annual.used - balance.annual.pending}</span>
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Used: {balance.annual.used}/{balance.annual.allocated}
-                                {balance.annual.pending > 0 && (
-                                  <span className="text-warning"> | Pending: {balance.annual.pending}</span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-sm">
-                                <span>Remaining: {balance.sick.allocated - balance.sick.used - balance.sick.pending}</span>
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Used: {balance.sick.used}/{balance.sick.allocated}
-                                {balance.sick.pending > 0 && (
-                                  <span className="text-warning"> | Pending: {balance.sick.pending}</span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-sm">
-                                <span>Remaining: {balance.emergency.allocated - balance.emergency.used - balance.emergency.pending}</span>
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Used: {balance.emergency.used}/{balance.emergency.allocated}
-                                {balance.emergency.pending > 0 && (
-                                  <span className="text-warning"> | Pending: {balance.emergency.pending}</span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
+                   <tbody>
+                    {groupedLeaveBalances &&
+                      groupedLeaveBalances
+                        .filter((b) => {
+                          const q = balancesSearch.toLowerCase().trim();
+                          if (!q) return true;
+                          return (
+                            b.employee_name.toLowerCase().includes(q) ||
+                            b.employee_id.toLowerCase().includes(q) ||
+                            b.department.toLowerCase().includes(q)
+                          );
+                        })
+                        .map((balance) => {
+                          const employee = employees.find(emp => emp.id === balance.employee_id);
 
-                        </tr>
-                      );
-                    })}
-                    </tbody>
+                          return (
+                            <tr key={balance.employee_id}>
+                              <td>
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="w-8 h-8">
+                                    <AvatarImage src={employee?.avatar} />
+                                    <AvatarFallback>
+                                      {String(balance.employee_name || '')
+                                        .split(' ')
+                                        .map(n => n?.[0] ?? '')
+                                        .join('')}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="font-medium">
+                                    {balance.employee_name}{" "}
+                                    <span className="text-xs text-muted-foreground">
+                                      (ID: {balance.employee_id} • Employee No: {(employee as { employeeNumber?: string })?.employeeNumber || '—'})
+                                    </span>
+                                  </span>
+                                </div>
+                              </td>
+
+                              <td>{employee.department}</td>
+
+                              {/* Annual Leave */}
+                              <td>
+                                <div className="space-y-1">
+                                  <div className="flex justify-between text-sm">
+                                    <span>Remaining: {balance.leaves.annual_leave?.remaining}</span>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Used: {balance.leaves.annual_leave?.used}/{balance.leaves.annual_leave?.allocated}
+                                    {balance.leaves.annual_leave?.pending > 0 && (
+                                      <span className="text-warning"> | Pending: {balance.leaves.annual_leave?.pending}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Sick Leave */}
+                              <td>
+                                <div className="space-y-1">
+                                  <div className="flex justify-between text-sm">
+                                    <span>Remaining: {balance.leaves.sick_leave?.remaining}</span>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Used: {balance.leaves.sick_leave?.used}/{balance.leaves.sick_leave?.allocated}
+                                    {balance.leaves.sick_leave?.pending > 0 && (
+                                      <span className="text-warning"> | Pending: {balance.leaves.sick_leave?.pending}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Emergency Leave */}
+                              <td>
+                                <div className="space-y-1">
+                                  <div className="flex justify-between text-sm">
+                                    <span>Remaining: {balance.leaves.emergency_leave?.remaining}</span>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Used: {balance.leaves.emergency_leave?.used}/{balance.leaves.emergency_leave?.allocated}
+                                    {balance.leaves.emergency_leave?.pending > 0 && (
+                                      <span className="text-warning"> | Pending: {balance.leaves.emergency_leave?.pending}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+
+                            </tr>
+                          );
+                        })}
+                  </tbody>
+
                   </table>
                 </div>
               </div>
@@ -900,7 +978,7 @@ export const LeaveManagement: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Employee</p>
-                  <p className="font-medium">{selectedRequest.employeeName}</p>
+                  <p className="font-medium">{selectedRequest.employee_name}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Type</p>
@@ -908,15 +986,15 @@ export const LeaveManagement: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Dates</p>
-                  <p className="font-medium">{selectedRequest.startDate} – {selectedRequest.endDate}</p>
+                  <p className="font-medium">{new Date(selectedRequest.start_date).toLocaleDateString()} – {new Date(selectedRequest.end_date).toLocaleDateString()}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Days</p>
-                  <p className="font-medium">{selectedRequest.days}</p>
+                  <p className="font-medium">{selectedRequest.number_of_days}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Applied</p>
-                  <p className="font-medium">{new Date(selectedRequest.appliedDate).toLocaleDateString()}</p>
+                  <p className="font-medium">{new Date(selectedRequest.created_at).toLocaleDateString()}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Status</p>
@@ -927,16 +1005,16 @@ export const LeaveManagement: React.FC = () => {
                 <p className="text-muted-foreground text-sm mb-1">Reason</p>
                 <p className="text-sm">{selectedRequest.reason}</p>
               </div>
-              {selectedRequest?.managerComments && (
+              {selectedRequest?.manager_remarks && (
                 <div className="text-sm">
                   <p className="text-muted-foreground mb-1">Manager Comments</p>
-                  <p>{selectedRequest.managerComments}</p>
+                  <p>{selectedRequest.manager_remarks}</p>
                 </div>
               )}
-              {selectedRequest?.hrComments && (
+              {selectedRequest?.hr_remarks && (
                 <div className="text-sm">
                   <p className="text-muted-foreground mb-1">HR Comments</p>
-                  <p>{selectedRequest.hrComments}</p>
+                  <p>{selectedRequest.hr_remarks}</p>
                 </div>
               )}
               <div>
@@ -962,11 +1040,11 @@ export const LeaveManagement: React.FC = () => {
                         if (!selectedRequest) return;
                         try {
                           if (selectedRequest.status === 'pending_manager' && (isManager || (isHrManager && hrMode === 'team'))) {
-                            await approveLeave({ leaveId: selectedRequest.id, approvalData: { approver_id: user?.id, approver_role: 'manager', comments: actionComment } }).unwrap();
+                            await managerApproveLeave({ leaveId: selectedRequest.id, manager_id: String(user?.id) }).unwrap();
                           } else if (selectedRequest.status === 'pending_hr' && isHrRole) {
-                            await approveLeave({ leaveId: selectedRequest.id, approvalData: { approver_id: user?.id, approver_role: 'hr', comments: actionComment } }).unwrap();
+                            await approveLeave({ leaveId: selectedRequest.id, approvalData: { hr_id: String(user?.id), hr_remarks: actionComment } }).unwrap();
                           }
-                          toast({ title: 'Leave approved', description: `${selectedRequest.employeeName}'s ${selectedRequest.type} request approved.` });
+                          toast({ title: 'Leave approved', description: `${selectedRequest.employee_name}'s ${selectedRequest.type} request approved.` });
                           setDetailsOpen(false);
                           setActionComment('');
                         } catch (err) {
@@ -1037,20 +1115,24 @@ export const LeaveManagement: React.FC = () => {
             <DialogDescription>This action will reject the leave request. You can proceed or cancel.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 text-sm">
-            <p><span className="text-muted-foreground">Employee: </span><span className="font-medium">{rejectTarget?.employeeName}</span></p>
+            <p><span className="text-muted-foreground">Employee: </span><span className="font-medium">{rejectTarget?.employee_name}</span></p>
             <p><span className="text-muted-foreground">Type: </span><span className="font-medium capitalize">{rejectTarget?.type}</span></p>
-            <p><span className="text-muted-foreground">Dates: </span><span className="font-medium">{rejectTarget?.startDate} – {rejectTarget?.endDate}</span></p>
+            <p><span className="text-muted-foreground">Dates: </span><span className="font-medium">{rejectTarget?.start_date} – {rejectTarget?.end_date}</span></p>
           </div>
-          <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
             <Button
               className="bg-red-600 text-white hover:bg-red-700"
               onClick={async () => {
                 if (!rejectTarget) return;
                 try {
-                  const role = (rejectTarget.status === 'pending_manager' && (isManager || (isHrManager && hrMode === 'team'))) ? 'manager' : 'hr';
-                  await rejectLeave({ leaveId: rejectTarget.id, rejectData: { rejector_id: user?.id, rejector_role: role, comments: actionComment || null } }).unwrap();
-                  toast({ title: 'Leave rejected', description: `${rejectTarget.employeeName}'s ${rejectTarget.type} request rejected.`, variant: 'destructive' });
+                  const isManagerAction = (rejectTarget.status === 'pending_manager' && (isManager || (isHrManager && hrMode === 'team')));
+                  if (isManagerAction) {
+                    await managerRejectLeave({ leaveId: rejectTarget.id, manager_id: String(user?.id) }).unwrap();
+                  } else {
+                    await rejectLeave({ leaveId: rejectTarget.id, rejectData: { hr_id: String(user?.id), hr_remarks: actionComment || null } }).unwrap();
+                  }
+                  toast({ title: 'Leave rejected', description: `${rejectTarget.employee_name}'s ${rejectTarget.type} request rejected.`, variant: 'destructive' });
                   setConfirmOpen(false);
                   setDetailsOpen(false);
                   setRejectTarget(null);
