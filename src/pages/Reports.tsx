@@ -313,7 +313,7 @@ export const Reports: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><PieChart className="w-4 h-4" /> Department Distribution</CardTitle>
+                <CardTitle className="flex items-center gap-2"><PieChart className="w-4 h-4" /> Workstation Distribution</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -389,7 +389,7 @@ export const Reports: React.FC = () => {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Largest Departments</CardTitle>
+                <CardTitle>Largest Workstations</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {Object.entries(workforce.byDept)
@@ -456,7 +456,7 @@ export const Reports: React.FC = () => {
               <div className="text-sm text-muted-foreground">Total: {retirementsUpcoming.length}</div>
               {retirementsUpcoming.slice(0,10).map(r => (
                 <div key={r.id} className="flex justify-between text-sm">
-                  <span className="truncate max-w-[60%]" title={`${r.name} • ${r.department} • ${r.cadre || ''}`}>{r.name}</span>
+                  <span className="truncate max-w-[60%]" title={`${r.name} • ${r.stationName || r.department} • ${r.cadre || ''}`}>{r.name}</span>
                   <span className="text-muted-foreground">{new Date(r.retirement).toLocaleDateString()}</span>
                 </div>
               ))}

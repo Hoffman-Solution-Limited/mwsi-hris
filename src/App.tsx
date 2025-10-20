@@ -28,6 +28,8 @@ import { EmployeeDirectory } from "@/pages/EmployeeDirectory";
 import { EmployeeProfile } from "@/pages/EmployeeProfile";
 import Recruitment from "@/pages/Recruitment";
 import { Training } from "@/pages/Training";
+import TrainingProgramDetails from "@/pages/TrainingProgramDetails";
+import TrainingAssign from "@/pages/TrainingAssign";
 import { LeaveManagement } from "@/pages/LeaveManagement";
 import { PerformanceReviews } from "@/pages/PerformanceReviews";
 import { Reports } from "@/pages/Reports";
@@ -110,6 +112,8 @@ const App = () => (
                           <Route path="/profile" element={<ProtectedRoute><Layout><EmployeeProfile /></Layout></ProtectedRoute>} />
                           <Route path="/recruitment" element={<ProtectedRoute><Layout><Recruitment /></Layout></ProtectedRoute>} />
                           <Route path="/training" element={<ProtectedRoute><Layout><Training /></Layout></ProtectedRoute>} />
+                          <Route path="/training/program/:title" element={<ProtectedRoute><Layout><TrainingProgramDetails /></Layout></ProtectedRoute>} />
+                          <Route path="/training/assign/:title" element={<ProtectedRoute><Layout><TrainingAssign /></Layout></ProtectedRoute>} />
                           <Route path="/leave" element={<ProtectedRoute><Layout><LeaveManagement /></Layout></ProtectedRoute>} />
                           <Route path="/performance" element={<ProtectedRoute><Layout><PerformanceReviews /></Layout></ProtectedRoute>} />
                           <Route path="/performance/reviews/:id" element={<ProtectedRoute><Layout><PerformanceReviewDetails /></Layout></ProtectedRoute>} />

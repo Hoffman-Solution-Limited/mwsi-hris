@@ -94,6 +94,7 @@ const WorkStationsPage: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold mb-2">Work Stations</h1>
           <p className="text-muted-foreground">Manage work stations and view employee counts</p>
+          <p className="text-xs text-muted-foreground mt-1">Note: In this system, a Department is the same as a Workstation. Creating or renaming a workstation updates the department list everywhere.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
