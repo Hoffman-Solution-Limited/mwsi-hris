@@ -580,7 +580,7 @@ export const Training: React.FC = () => {
                           <p className="text-xs text-muted-foreground">Archived assignments: {related.length} • Completed: {completed}</p>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => (window.location.href = `/training/program/${encodeURIComponent(title)}`)}>View</Button>
+                          <Button size="sm" variant="outline" onClick={() => navigate(`/training/program/${encodeURIComponent(title)}`)}>View</Button>
                           <Button size="sm" onClick={async () => {
                             const related = trainings.filter(t => (t.title || 'Untitled') === title && t.archived);
                             await Promise.all(related.map(r => editTraining(r.id, { archived: false, ...(r.status === 'closed' ? { status: 'not_started' as any } : {}) })));
