@@ -848,7 +848,7 @@ export const getAllLeaveBalance = async (req: Request, res: Response) => {
         e.id AS employee_id,
         e.name AS employee_name,
         e.department,
-        e. station_name,
+        e.station_name,
         lt.id AS leave_type_id,
         lt.name AS leave_type_name,
         lt.max_days_per_year,
