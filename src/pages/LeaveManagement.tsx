@@ -29,6 +29,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
+import { getWorkStation } from '@/lib/utils';
 
 export const LeaveManagement: React.FC = () => {
   const { user } = useAuth();
@@ -178,7 +179,7 @@ console.log("groupedLeaveBalances",groupedLeaveBalances);
       return directReports.map(emp => ({
         employeeId: emp.id,
         employeeName: emp.name,
-        department: emp.department,
+        department: emp.stationName,
         station: emp.stationName,
         annual: {
           allocated: 25,
@@ -200,7 +201,7 @@ console.log("groupedLeaveBalances",groupedLeaveBalances);
   return employees.map(emp => ({
       employeeId: emp.id,
       employeeName: emp.name,
-      department: emp.department,
+      department: emp.stationName,
       station: emp.stationName,
       annual: {
         allocated: 25,
@@ -222,18 +223,18 @@ console.log("groupedLeaveBalances",groupedLeaveBalances);
 
   // debug: pendingManagerRequests will be logged after it's declared
 
-  // Apply optional HR "my queue only" department filter
+  // Apply optional HR "my queue only" workstation filter
   const hrScopedLeaves = useMemo(() => {
-    // HR oversight: optionally scope by department when myQueueOnly is on
-    if (myQueueOnly && isHrRole && user?.department && (!isHrManager || hrMode === 'hr')) {
-      const dept = user.department;
+    // HR oversight: optionally scope by workstation when myQueueOnly is on
+    if (myQueueOnly && isHrRole && (!isHrManager || hrMode === 'hr')) {
+      const ws = getWorkStation(user as any);
       return baseLeaves.filter(req => {
         const emp = employees.find(e => e.id === req.employeeId);
-        return emp?.department === dept;
+        return getWorkStation(emp as any) === ws;
       });
     }
     return baseLeaves;
-  }, [myQueueOnly, isHrRole, user?.department, baseLeaves, isHrManager, hrMode, employees]);
+  }, [myQueueOnly, isHrRole, user, baseLeaves, isHrManager, hrMode, employees]);
 
   const filteredRequests = hrScopedLeaves.filter(request => {
     const q = searchQuery.toLowerCase();
@@ -607,7 +608,7 @@ console.log("groupedLeaveBalances",groupedLeaveBalances);
                           <div>
                             <h4 className="font-medium">{request.employee_name}</h4>
                             <p className="text-sm text-muted-foreground">
-                              {employee?.department} • {employee?.position}
+                              {getWorkStation(employee as any)} • {employee?.position}
                             </p>
                             <p className="text-sm mt-1">
                               <span className="font-medium">
@@ -784,7 +785,7 @@ console.log("groupedLeaveBalances",groupedLeaveBalances);
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <Input
-                    placeholder="Search by employee name, ID, or department..."
+                    placeholder="Search by employee name, ID, or workstation..."
                     value={balancesSearch}
                     onChange={(e) => setBalancesSearch(e.target.value)}
                     className="max-w-md"
@@ -795,7 +796,7 @@ console.log("groupedLeaveBalances",groupedLeaveBalances);
                     <thead>
                       <tr>
                         <th>Employee</th>
-                        <th>Department</th>
+                        <th>Workstation</th>
                         <th>Annual Leave</th>
                         <th>Sick Leave</th>
                         <th>Emergency Leave</th>
@@ -890,7 +891,6 @@ console.log("groupedLeaveBalances",groupedLeaveBalances);
                           );
                         })}
                   </tbody>
-
                   </table>
                 </div>
               </div>
@@ -932,7 +932,7 @@ console.log("groupedLeaveBalances",groupedLeaveBalances);
 
             <Card>
               <CardHeader>
-                <CardTitle>Department Analysis</CardTitle>
+                <CardTitle>Workstation Analysis</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -940,7 +940,7 @@ console.log("groupedLeaveBalances",groupedLeaveBalances);
                     const deptEmployees = employees.filter(emp => emp.department === dept);
                     const deptRequests = (allLeaves || []).filter(req => {
                       const emp = employees.find(e => e.id === req.employeeId);
-                      return emp?.department === dept;
+                      return getWorkStation(emp as any) === dept;
                     });
                     const totalDays = deptRequests.reduce((sum, req) => sum + req.days, 0);
                     const avgDays = deptEmployees.length > 0 ? (totalDays / deptEmployees.length).toFixed(1) : '0';

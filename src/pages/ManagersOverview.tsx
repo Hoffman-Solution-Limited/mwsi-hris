@@ -109,7 +109,7 @@ const ManagersOverview: React.FC = () => {
     // Also include managers detected from employee records (position contains 'manager') that might not have a user
     const mgrFromEmployees = employees
       .filter(e => /manager/i.test(e.position || ''))
-      .map(e => ({ id: e.id, name: e.name, email: e.email, position: e.position, department: e.department, avatar: e.avatar }))
+      .map(e => ({ id: e.id, name: e.name, email: e.email, position: e.position, stationName: getWorkStation(e as any), avatar: e.avatar }))
 
     // Combine by unique name/email/id (prefer users)
     const combined: any[] = []
@@ -119,7 +119,7 @@ const ManagersOverview: React.FC = () => {
       const key = u.email || u.id || u.name
       if (!seen.has(key)) {
         seen.add(key)
-        combined.push({ id: u.id, name: u.name || u.email, email: u.email, position: 'Manager', department: 'Unassigned', avatar: u.avatar })
+  combined.push({ id: u.id, name: u.name || u.email, email: u.email, position: 'Manager', stationName: 'Unassigned', avatar: u.avatar })
       }
     })
 
@@ -127,7 +127,7 @@ const ManagersOverview: React.FC = () => {
       const key = e.email || e.id || e.name
       if (!seen.has(key)) {
         seen.add(key)
-        combined.push({ id: e.id, name: e.name, email: e.email, position: e.position, department: e.department, avatar: e.avatar })
+  combined.push({ id: e.id, name: e.name, email: e.email, position: e.position, stationName: getWorkStation(e as any), avatar: e.avatar })
       }
     })
 
@@ -187,18 +187,18 @@ const ManagersOverview: React.FC = () => {
     navigate('/employees')
   }
 
-  // Filter managers/employees by search query (search name, email, position, department)
+  // Filter managers/employees by search query (search name, email, position, workstation)
   const matchesQuery = (item: any, q: string) => {
     if (!q) return true
     const s = q.toLowerCase()
-    return (item.name || '').toLowerCase().includes(s) || (item.email || '').toLowerCase().includes(s) || (item.position || '').toLowerCase().includes(s) || (item.department || '').toLowerCase().includes(s)
+    return (item.name || '').toLowerCase().includes(s) || (item.email || '').toLowerCase().includes(s) || (item.position || '').toLowerCase().includes(s) || (getWorkStation(item as any) || '').toLowerCase().includes(s)
   }
 
   return (
     <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Managers Overview</h1>
-          <p className="text-muted-foreground">View all managers, their department/workstation and direct reports.</p>
+          <p className="text-muted-foreground">View all managers, their workstation and direct reports.</p>
         </div>
 
         <div className="flex items-center gap-3">
