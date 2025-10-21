@@ -840,7 +840,7 @@ console.log("groupedLeaveBalances",groupedLeaveBalances);
                                 </div>
                               </td>
 
-                              <td>{employee.department}</td>
+                              <td>{employee?.department || '—'}</td>
 
                               {/* Annual Leave */}
                               <td>
