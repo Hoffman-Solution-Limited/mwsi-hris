@@ -90,25 +90,55 @@ CREATE TABLE training_records (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Leave requests
-CREATE TABLE leave_requests (
-  id VARCHAR(50) PRIMARY KEY,
-  employee_id VARCHAR(50) REFERENCES employees(id) ON DELETE CASCADE,
-  employee_name VARCHAR(200),
-  type VARCHAR(50),
-  start_date DATE,
-  end_date DATE,
-  days INTEGER,
-  status VARCHAR(50),
-  reason TEXT,
-  applied_date DATE,
-  manager_comments TEXT,
-  hr_comments TEXT,
-  approved_by VARCHAR(200),
-  approved_date DATE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+--
+CREATE TABLE IF NOT EXISTS leave_types (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL UNIQUE,
+    max_days_per_year INT NOT NULL,
+    carry_forward BOOLEAN DEFAULT FALSE,
+    carry_forward_limit INT DEFAULT 5,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Leave Balance Schema (Annual/Yearly tracking)
+CREATE TABLE IF NOT EXISTS leave_balances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id VARCHAR(50) REFERENCES employees(id) ON DELETE CASCADE,
+    leave_type_id UUID NOT NULL REFERENCES leave_types(id) ON DELETE CASCADE,
+    year INT NOT NULL,
+    total_entitled INT NOT NULL,
+    used_days INT NOT NULL DEFAULT 0,
+    remaining_days INT NOT NULL,
+    carried_forward INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (employee_id, leave_type_id, year)
+);
+
+-- -- Leave application requests
+CREATE TABLE IF NOT EXISTS leave_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id VARCHAR(50) REFERENCES employees(id) ON DELETE CASCADE,
+    employee_name VARCHAR(200),
+    leave_type_id UUID NOT NULL REFERENCES leave_types(id) ON DELETE CASCADE,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    number_of_days INT NOT NULL,
+    reason TEXT,
+    status VARCHAR(30) NOT NULL DEFAULT 'pending_manager', -- pending_manager, pending_hr, approved, manager_rejected, hr_rejected
+    manager_id VARCHAR(50) REFERENCES employees(id) ON DELETE CASCADE,
+    hr_id VARCHAR(50) REFERENCES employees(id) ON DELETE CASCADE,
+    manager_action_status VARCHAR(30) DEFAULT 'pending',   -- approved, rejected, pending
+    manager_action_date TIMESTAMP,
+    manager_remarks TEXT,
+    hr_action_status VARCHAR(30) DEFAULT 'pending',        -- approved, rejected, pending
+    hr_action_date TIMESTAMP,
+    hr_remarks TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 -- Performance templates
 CREATE TABLE performance_templates (
   id VARCHAR(50) PRIMARY KEY,

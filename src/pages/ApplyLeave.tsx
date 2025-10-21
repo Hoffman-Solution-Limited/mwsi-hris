@@ -6,13 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useApplyLeaveMutation, useGetAllLeaveTypesQuery } from '@/features/leave/leaveApi';
 
 const ApplyLeave: React.FC = () => {
   const { user } = useAuth();
   const { addLeaveRequest } = useLeave();
   const [form, setForm] = useState({ type: 'annual', startDate: '', endDate: '', days: 1, reason: '' });
   const [success, setSuccess] = useState(false);
-
+  const [applyLeave] = useApplyLeaveMutation();
+  const { data } = useGetAllLeaveTypesQuery();
+  console.log("leave data>>",data);
+  
   const submitLeave = () => {
     if (!user) return;
     if (!form.startDate || !form.endDate || !form.reason) return;

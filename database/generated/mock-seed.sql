@@ -1,3 +1,4 @@
+
 -- Generated seed data derived from src/data mock arrays
 -- Note: Run after applying mock-schema.sql
 

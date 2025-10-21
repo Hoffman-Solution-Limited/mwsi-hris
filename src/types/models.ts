@@ -111,16 +111,16 @@ export interface TrainingRecord {
 export interface LeaveRequest {
   id: string;
   employeeId: string;
-  employeeName: string;
+  employee_name: string;
   type: 'annual' | 'sick' | 'emergency' | 'maternity' | 'study';
-  startDate: string;
-  endDate: string;
+  start_date: string;
+  end_date: string;
   days: number;
   status: 'pending_manager' | 'pending_hr' | 'approved' | 'rejected';
   reason: string;
-  appliedDate: string;
-  managerComments?: string;
-  hrComments?: string;
+  created_at: string;
+  manager_remarks?: string;
+  hr_remarks?: string;
   approvedBy?: string;
   approvedDate?: string;
 }
