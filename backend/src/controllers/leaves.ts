@@ -889,7 +889,7 @@ export const getUsedLeaveDays = async (req: Request, res: Response) => {
       [employee_id, leave_type_id]
     );
 
-    if (result.rowCount === 0) return res.status(404).json({ message: 'used days not found' });
+    if (result.rowCount === 0) return res.status(404).json({ message: 'Used days not found for the specified employee and leave type' });
 
     res.json({ usedDays: result.rows[0].used_days });
   } catch (error) {
