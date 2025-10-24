@@ -114,3 +114,23 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM
 ### //get balances
 GET http://localhost:5000/api/leaves/balances
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g
+
+### //get documents
+GET http://localhost:5000/api/document_types
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g
+
+### //get documents
+GET http://localhost:5000/api/employee_files
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g
+
+### //get documents
+GET http://localhost:5000/api/employee_files/10
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g
+
+### //get file requests
+GET http://localhost:5000/api/file_requests
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g
+
+### //get file movement
+GET http://localhost:5000/api/file_movements/10
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2ZiNTRhM2I0Y2EyMzQ4ZjYxZGJjZGUiLCJleHAiOjE3NDQ3OTEzNjZ9.kzH4ULN_rM5P6b5MRRvX51C102-wqlpWpMrwKCem-_g

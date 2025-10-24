@@ -90,7 +90,7 @@ CREATE TABLE training_records (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
---
+-- Leave Types
 CREATE TABLE IF NOT EXISTS leave_types (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL UNIQUE,
@@ -230,52 +230,112 @@ CREATE TABLE disciplinary_case_updates (
   text TEXT
 );
 
--- File tracking & flexible document types (matches front-end FileTrackingContext)
-
--- Document types: flexible strings managed on the front-end
 CREATE TABLE document_types (
-  name VARCHAR(200) PRIMARY KEY,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Employee files: one physical file per employee
-CREATE TABLE employee_files (
-  employee_id VARCHAR(50) PRIMARY KEY REFERENCES employees(id) ON DELETE CASCADE,
-  current_location VARCHAR(200) NOT NULL,
-  assigned_user_id VARCHAR(50),
-  assigned_user_name VARCHAR(200),
-  default_documents TEXT[], -- array of document type names
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(200) UNIQUE NOT NULL,
+  created_by VARCHAR(50),
+  updated_by VARCHAR(50),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Movements/history for employee files
+
+-- ===========================
+-- EMPLOYEE FILES
+-- ===========================
+CREATE TABLE employee_files (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id VARCHAR(50) UNIQUE NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  file_number VARCHAR(100) UNIQUE NOT NULL,
+  current_location VARCHAR(200) NOT NULL DEFAULT 'Registry',
+  assigned_user_id VARCHAR(50),
+  assigned_user_name VARCHAR(200),
+  default_documents TEXT[],  -- All document_type names for this file
+  status VARCHAR(50) NOT NULL DEFAULT 'AVAILABLE', -- AVAILABLE | WITH_USER | ARCHIVED
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===========================
+-- FILE REQUESTS
+-- ===========================
+CREATE TABLE file_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id VARCHAR(50) REFERENCES employees(id) ON DELETE CASCADE,
+  file_id UUID REFERENCES employee_files(id) ON DELETE CASCADE,
+  document_type VARCHAR(200),
+  requested_by_user_id VARCHAR(50) NOT NULL,
+  requested_by_name VARCHAR(200) NOT NULL,
+  requested_by_department VARCHAR(200),
+  status VARCHAR(50) NOT NULL DEFAULT 'PENDING', -- PENDING | APPROVED | REJECTED | RETURNED | CANCELLED
+  remarks TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===========================
+-- FILE MOVEMENTS
+-- ===========================
 CREATE TABLE file_movements (
   id SERIAL PRIMARY KEY,
   employee_id VARCHAR(50) REFERENCES employees(id) ON DELETE CASCADE,
+  file_id UUID REFERENCES employee_files(id) ON DELETE CASCADE,
   by_user_id VARCHAR(50),
   by_user_name VARCHAR(200),
   from_location VARCHAR(200),
   to_location VARCHAR(200),
   to_assignee_user_id VARCHAR(50),
   to_assignee_name VARCHAR(200),
+  action VARCHAR(50) NOT NULL, -- APPROVE | REJECT | RETURN
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   remarks TEXT
 );
 
--- File requests (matches FileRequest type in front-end)
-CREATE TABLE file_requests (
-  id VARCHAR(100) PRIMARY KEY,
-  file_id VARCHAR(50) REFERENCES employee_files(employee_id) ON DELETE CASCADE,
-  employee_id VARCHAR(50),
-  document_type VARCHAR(200),
-  requested_by_user_id VARCHAR(50),
-  requested_by_name VARCHAR(200),
-  requested_by_department VARCHAR(200),
-  status VARCHAR(50),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  remarks TEXT
-);
+
+-- -- Document types: flexible strings managed on the front-end
+-- CREATE TABLE document_types (
+--   name VARCHAR(200) PRIMARY KEY,
+--   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- );
+
+-- -- Employee files: one physical file per employee
+-- CREATE TABLE employee_files (
+--   employee_id VARCHAR(50) PRIMARY KEY REFERENCES employees(id) ON DELETE CASCADE,
+--   current_location VARCHAR(200) NOT NULL,
+--   assigned_user_id VARCHAR(50),
+--   assigned_user_name VARCHAR(200),
+--   default_documents TEXT[], -- array of document type names
+--   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+--   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- );
+
+-- -- Movements/history for employee files
+-- CREATE TABLE file_movements (
+--   id SERIAL PRIMARY KEY,
+--   employee_id VARCHAR(50) REFERENCES employees(id) ON DELETE CASCADE,
+--   by_user_id VARCHAR(50),
+--   by_user_name VARCHAR(200),
+--   from_location VARCHAR(200),
+--   to_location VARCHAR(200),
+--   to_assignee_user_id VARCHAR(50),
+--   to_assignee_name VARCHAR(200),
+--   timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+--   remarks TEXT
+-- );
+
+-- -- File requests (matches FileRequest type in front-end)
+-- CREATE TABLE file_requests (
+--   id VARCHAR(100) PRIMARY KEY,
+--   file_id VARCHAR(50) REFERENCES employee_files(employee_id) ON DELETE CASCADE,
+--   employee_id VARCHAR(50),
+--   document_type VARCHAR(200),
+--   requested_by_user_id VARCHAR(50),
+--   requested_by_name VARCHAR(200),
+--   requested_by_department VARCHAR(200),
+--   status VARCHAR(50),
+--   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+--   remarks TEXT
+-- );
 
 -- System catalog tables (designations, stations, skill levels, job groups, engagement types, ethnicities)
 CREATE TABLE system_designations (name VARCHAR(200) PRIMARY KEY, created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP);
@@ -360,3 +420,5 @@ CREATE TABLE IF NOT EXISTS role_permissions (
   PRIMARY KEY (role_id, permission_key)
 );
 -- Role permissions mapping: each row represents a single permission assigned to a role
+
+

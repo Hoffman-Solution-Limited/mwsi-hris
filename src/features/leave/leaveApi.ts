@@ -1,4 +1,5 @@
 // import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import API_BASE_URL from '@/lib/apiConfig';
 // const apiBaseUrl='http://localhost:5000/api'
 
 // export const leaveApi = createApi({
@@ -187,11 +188,9 @@
 // } = leaveApi;
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const apiBaseUrl = "http://localhost:5000/api";
-
 export const leaveApi = createApi({
   reducerPath: "leaveApi",
-  baseQuery: fetchBaseQuery({ baseUrl: apiBaseUrl }),
+  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
   tagTypes: ["leaves", "leaveTypes"],
   endpoints: (builder) => ({
 

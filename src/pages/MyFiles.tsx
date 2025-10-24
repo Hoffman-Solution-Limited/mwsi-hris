@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFileTracking } from '@/contexts/FileTrackingContext';
+import { useGetFileByEmployeeQuery, useGetFileMovementsQuery } from '@/features/employeeFile/employeeFileApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,14 +9,15 @@ import { useEmployees } from '@/contexts/EmployeesContext';
 
 const MyFilesPage: React.FC = () => {
   const { user } = useAuth();
-  const { getFileByEmployeeId } = useFileTracking();
   const { employees } = useEmployees();
 
-  if (!user) return null;
+  // ensure hooks are called in the same order (use skip when user is not available)
+  const { data: myFile } = useGetFileByEmployeeQuery(String(user?.id), { skip: !user });
+  const { data: movements = [] } = useGetFileMovementsQuery(String(user?.id), { skip: !user });
 
-  const myFile = getFileByEmployeeId(user.id);
-  const emp = employees.find(e => e.id === myFile?.employeeId);
-  const empNo = emp?.employeeNumber || myFile?.employeeId;
+  if (!user) return null;
+  const emp = employees.find(e => e.id === myFile?.employee_id);
+  const empNo = emp?.employeeNumber || myFile?.employee_id;
 
   return (
     <div className="space-y-6">
@@ -42,7 +44,7 @@ const MyFilesPage: React.FC = () => {
                   <div className="p-3 border rounded flex items-center justify-between">
                     <div>
                       <div className="font-medium">Employee File: {empNo}</div>
-                      <div className="text-xs text-muted-foreground">Current Location: {myFile.currentLocation} {myFile.assignedUserName ? `• Holder: ${myFile.assignedUserName}` : ''}</div>
+                      <div className="text-xs text-muted-foreground">Current Location: {myFile.current_location} {myFile.assigned_user_name ? `• Holder: ${myFile.assigned_user_name}` : ''}</div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">File</Badge>
@@ -50,8 +52,8 @@ const MyFilesPage: React.FC = () => {
                   </div>
                   <div className="p-3 border rounded">
                     <div className="text-sm font-medium mb-1">Default Documents</div>
-                    <ul className="list-disc list-inside text-sm text-muted-foreground">
-                      {myFile.defaultDocuments.map((d) => (
+                      <ul className="list-disc list-inside text-sm text-muted-foreground">
+                      {(myFile.default_documents || []).map((d) => (
                         <li key={d}>{empNo}_{d}</li>
                       ))}
                     </ul>
@@ -59,10 +61,10 @@ const MyFilesPage: React.FC = () => {
                   <div className="p-3 border rounded">
                     <div className="text-sm font-medium mb-1">Movement History</div>
                     <ul className="text-xs text-muted-foreground space-y-1">
-                      {myFile.movementHistory.map((m, idx) => (
+                      {movements.map((m, idx) => (
                         <li key={idx}>
-                          {m.timestamp.slice(0,19).replace('T',' ')}: {m.byUserName} moved from {m.fromLocation} to {m.toLocation}
-                          {m.toAssigneeName ? ` • New Holder: ${m.toAssigneeName}` : ''}
+                          {new Date(m.timestamp || '').toLocaleString()}: {m.by_user_name} moved from {m.from_location} to {m.to_location}
+                          {m.to_assignee_name ? ` • New Holder: ${m.to_assignee_name}` : ''}
                           {m.remarks ? ` • Remarks: ${m.remarks}` : ''}
                         </li>
                       ))}

@@ -98,6 +98,21 @@ router.post('/', async (req: Request, res: Response) => {
     try { console.log('employees.insert cols=', cols); } catch {}
     const q = `INSERT INTO employees(${cols.join(',')}) VALUES(${placeholders.join(',')}) RETURNING *`;
     const result = await pool.query(q, vals);
+     const employee = result.rows[0];
+    const employeeId = employee.id;
+
+    // 2. Get all document types
+    const docsResult = await pool.query(`SELECT name FROM document_types`);
+    const docTypes = docsResult.rows.map(d => d.name);
+
+    // 3. Create employee file
+    const fileNumber = employee.employee_number || `FILE-${employeeId}`;
+    await pool.query(
+      `INSERT INTO employee_files (employee_id, file_number, default_documents)
+       VALUES ($1, $2, $3)`,
+      [employeeId, fileNumber, docTypes]
+    );
+    
     res.status(201).json(rowToCamel(result.rows[0]));
   } catch (err) {
     res.status(500).json({ error: String(err) });

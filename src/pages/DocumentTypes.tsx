@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Plus, List, Pencil, Trash2 } from 'lucide-react';
 import { useFileTracking } from '@/contexts/FileTrackingContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,13 +21,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useForm } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { useGetAllDocumentTypesQuery, useCreateDocumentTypeMutation, useUpdateDocumentTypeMutation, useDeleteDocumentTypeMutation } from '@/features/document/documentTypeApi';
+import { useAuth } from '@/contexts/AuthContext';
 
 type DocRow = { id: string; name: string; count: number };
 
 const DocumentTypesPage: React.FC = () => {
-  const { knownDocumentTypes, addDocumentType, renameDocumentType, deleteDocumentType, files } = useFileTracking();
+  const { user } = useAuth();
+  const userId = String(user?.id);
+  const { files } = useFileTracking();
+  const { data: apiDocTypes = [] } = useGetAllDocumentTypesQuery();
+  const [createDocumentType] = useCreateDocumentTypeMutation();
+  const [updateDocumentType] = useUpdateDocumentTypeMutation();
+  const [deleteDocumentTypeApi] = useDeleteDocumentTypeMutation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [newDoc, setNewDoc] = useState('');
+  // local name state removed; using react-hook-form for add/edit
   const [addOpen, setAddOpen] = useState(false);
   const [confirm, setConfirm] = useState<{ open: boolean; title: string; description: string }>({ open: false, title: '', description: '' });
   const [alert, setAlert] = useState<{ open: boolean; title: string; description: string }>({ open: false, title: '', description: '' });
@@ -45,56 +56,102 @@ const DocumentTypesPage: React.FC = () => {
   const allDocs: DocRow[] = useMemo(() => {
     const counts: Record<string, number> = {};
     files.forEach(f => {
-      f.defaultDocuments.forEach(d => {
+      (f.defaultDocuments || []).forEach(d => {
         counts[d] = (counts[d] || 0) + 1;
       });
     });
-    return knownDocumentTypes.map((d, i) => ({ id: `d-${i + 1}`, name: d, count: counts[d] || 0 }));
-  }, [knownDocumentTypes, files]);
+    return apiDocTypes.map((d, i) => ({ id: d.id || `d-${i + 1}`, name: d.name, count: counts[d.name] || 0 }));
+  }, [apiDocTypes, files]);
+
+  function getErrorMessage(err: unknown): string {
+    if (!err) return 'Unknown error';
+    if (typeof err === 'string') return err;
+    if (typeof err === 'object' && err !== null) {
+      const e = err as Record<string, unknown>;
+      if (typeof e.message === 'string') return e.message;
+    }
+    return String(err);
+  }
 
   const filtered = allDocs.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const handleAdd = () => {
-    const original = newDoc.trim();
-    const v = normalizeName(original);
-    if (!v) return;
-    if (knownDocumentTypes.includes(v)) {
-      setAlert({ open: true, title: 'Already exists', description: `${v} is already listed. Try a different name.` });
-      return;
-    }
-    addDocumentType(v);
-    setNewDoc('');
-    setAddOpen(false);
-    const normalizedNote = original !== v ? ` (normalized from "${original}")` : '';
-    setConfirm({
-      open: true,
-      title: 'Document type added',
-      description: `${v}${normalizedNote}. This will now appear by default on all employee files.`,
-    });
-  };
+  // add flow handled by react-hook-form onSubmit below
 
   const openEdit = (name: string) => setEditModal({ open: true, original: name, name });
-  const submitEdit = () => {
-    const o = editModal.original || '';
-    const n = normalizeName(editModal.name.trim());
-    if (!o || !n) return;
-    if (o === n) { setEditModal({ open: false, original: undefined, name: '' }); return; }
-    if (knownDocumentTypes.includes(n) && o !== n) {
-      setAlert({ open: true, title: 'Name in use', description: `${n} already exists. Try a different name.` });
-      return;
-    }
-    renameDocumentType(o, n);
-    setEditModal({ open: false, original: undefined, name: '' });
-    setConfirm({ open: true, title: 'Document type renamed', description: `${o} → ${n}` });
-  };
+  // edit handled by form below
 
   const openDelete = (name: string) => setDeleteModal({ open: true, name });
   const submitDelete = () => {
-    const n = (deleteModal.name || '').trim();
-    if (!n) return;
-    deleteDocumentType(n);
-    setDeleteModal({ open: false, name: undefined });
-    setConfirm({ open: true, title: 'Document type removed', description: n });
+    (async () => {
+      const n = (deleteModal.name || '').trim();
+      if (!n) return;
+      try {
+        const doc = apiDocTypes.find(dt => dt.name === n);
+        if (!doc) throw new Error('Document type not found');
+        await deleteDocumentTypeApi(doc.id).unwrap();
+        setDeleteModal({ open: false, name: undefined });
+        setConfirm({ open: true, title: 'Document type removed', description: n });
+      } catch (err: unknown) {
+        setAlert({ open: true, title: 'Error', description: getErrorMessage(err) || 'Failed to delete document type' });
+      }
+    })();
+  };
+
+  // Form validation using react-hook-form + yup for add/edit
+  const schema = yup.object({
+    name: yup.string().required('Name is required').min(1).max(100),
+  }).required();
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<{ name?: string }>({ resolver: yupResolver(schema) });
+  const { register: registerEdit, handleSubmit: handleSubmitEdit, formState: { errors: editErrors }, reset: resetEdit } = useForm<{ name?: string }>({ resolver: yupResolver(schema) });
+
+  // reset edit form when edit modal opens
+  useEffect(() => {
+    if (editModal.open) {
+      resetEdit({ name: editModal.name });
+    }
+  }, [editModal.open, editModal.name, resetEdit]);
+
+  const onSubmit = async (data: { name?: string }) => {
+    const nameVal = (data.name || '').trim();
+    const original = nameVal;
+    const v = normalizeName(original);
+    if (!v) return;
+    if (apiDocTypes.some(dt => dt.name === v)) {
+      setAlert({ open: true, title: 'Already exists', description: `${v} is already listed. Try a different name.` });
+      return;
+    }
+    try {
+      await createDocumentType({ name: v , created_by: userId }).unwrap();
+      reset();
+      setAddOpen(false);
+      setConfirm({ open: true, title: 'Document type added', description: `${v}` });
+    } catch (err: unknown) {
+      setAlert({ open: true, title: 'Error', description: getErrorMessage(err) || 'Failed to add document type' });
+    }
+  };
+
+  const onEditSubmit = async (data: { name?: string }) => {
+    const newName = (data.name || '').trim();
+    const normalized = normalizeName(newName);
+    const original = editModal.original || '';
+    if (!original || !normalized) return;
+    if (original === normalized) {
+      setEditModal({ open: false, original: undefined, name: '' });
+      return;
+    }
+    if (apiDocTypes.some(dt => dt.name === normalized) && original !== normalized) {
+      setAlert({ open: true, title: 'Name in use', description: `${normalized} already exists. Try a different name.` });
+      return;
+    }
+    try {
+      const doc = apiDocTypes.find(dt => dt.name === original);
+      if (!doc) throw new Error('Original document type not found');
+      await updateDocumentType({ id: doc.id, name: normalized, updated_by: userId }).unwrap();
+      setEditModal({ open: false, original: undefined, name: '' });
+      setConfirm({ open: true, title: 'Document type renamed', description: `${original} → ${normalized}` });
+    } catch (err: unknown) {
+      setAlert({ open: true, title: 'Error', description: getErrorMessage(err) || 'Failed to rename document type' });
+    }
   };
 
   return (
@@ -116,10 +173,15 @@ const DocumentTypesPage: React.FC = () => {
               <DialogHeader>
                 <DialogTitle>Add New Document Name</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
-                <Input placeholder="e.g. Birth_Certificate" value={newDoc} onChange={e => setNewDoc(e.target.value)} />
-                <Button onClick={handleAdd}>Save</Button>
-              </div>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  <div>
+                    <Input placeholder="e.g. Birth_Certificate" {...register('name')} />
+                    {errors.name && <div className="text-destructive text-sm mt-1">{String(errors.name.message)}</div>}
+                  </div>
+                  <div className="flex justify-end">
+                    <Button type="submit">Save</Button>
+                  </div>
+                </form>
             </DialogContent>
           </Dialog>
         </div>
@@ -157,13 +219,16 @@ const DocumentTypesPage: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Rename Document Type</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <Input autoFocus value={editModal.name} onChange={e => setEditModal(prev => ({ ...prev, name: e.target.value }))} />
+          <form onSubmit={handleSubmitEdit(onEditSubmit)} className="space-y-4">
+            <div>
+              <Input autoFocus {...registerEdit('name')} />
+              {editErrors.name && <div className="text-destructive text-sm mt-1">{String(editErrors.name.message)}</div>}
+            </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setEditModal({ open: false, original: undefined, name: '' })}>Cancel</Button>
-              <Button onClick={submitEdit}>Save</Button>
+              <Button type="submit">Save</Button>
             </div>
-          </div>
+          </form>
         </DialogContent>
       </Dialog>
 

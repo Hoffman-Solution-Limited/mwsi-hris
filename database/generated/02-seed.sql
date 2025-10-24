@@ -8,6 +8,13 @@ VALUES
 ('3','20221234569','Michael Davis','michael.davis@mwsi.com','Software Developer','Engineering','David Manager','10','2022-07-10','active','https://api.dicebear.com/7.x/initials/svg?seed=MD','+254-700-345678','1990-04-01','male')
 ON CONFLICT (id) DO NOTHING;
 
+-- Create employee files for all employees without a file
+INSERT INTO employee_files (employee_id, file_number, default_documents)
+SELECT e.id, e.employee_number, ARRAY(SELECT name FROM document_types)
+FROM employees e
+LEFT JOIN employee_files f ON e.id = f.employee_id
+WHERE f.employee_id IS NULL;
+
 -- Users (id equals employee id for convenience; password stored in plaintext for demo)
 INSERT INTO users (id, employee_id, email, name, role, password, status)
 VALUES
