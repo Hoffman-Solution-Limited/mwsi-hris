@@ -13,6 +13,8 @@ services:
       - db_data:/var/lib/postgresql/data
       - ./database/generated/mock-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./database/generated/02-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - ./database/generated/mock-seed.sql:/docker-entrypoint-initdb.d/03-mock-seed.sql:ro
+      - ./database/generated/11-training-records-metadata.sql:/docker-entrypoint-initdb.d/11-training-records-metadata.sql:ro
       - ./database/generated/12-employees-status-retired.sql:/docker-entrypoint-initdb.d/12-employees-status-retired.sql:ro
       - ./database/generated/13-employees-kin-special-needs.sql:/docker-entrypoint-initdb.d/13-employees-kin-special-needs.sql:ro
       - ./database/generated/14-employees-home-subcounty.sql:/docker-entrypoint-initdb.d/14-employees-home-subcounty.sql:ro

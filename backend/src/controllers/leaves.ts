@@ -459,7 +459,7 @@ export const getAllLeaveBalance = async (req: Request, res: Response) => {
         e.id AS employee_id,
         e.name AS employee_name,
         e.department,
-        e. station_name,
+        e.station_name,
         lt.id AS leave_type_id,
         lt.name AS leave_type_name,
         lt.max_days_per_year,
@@ -500,7 +500,7 @@ export const getUsedLeaveDays = async (req: Request, res: Response) => {
       [employee_id, leave_type_id]
     );
 
-    if (result.rowCount === 0) return res.status(404).json({ message: 'used days not found' });
+    if (result.rowCount === 0) return res.status(404).json({ message: 'Used days not found for the specified employee and leave type' });
 
     res.json({ usedDays: result.rows[0].used_days });
   } catch (error) {

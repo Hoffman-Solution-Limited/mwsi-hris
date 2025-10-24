@@ -149,11 +149,11 @@ export const PerformanceReviews: React.FC = () => {
   // HR Assign: multi-employee selection and deadline
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [deadlineDate, setDeadlineDate] = useState('');
-  // HR Assign: department selection to auto-select employees
+  // HR Assign: workstation selection to auto-select employees
   const departments = useMemo(() => Array.from(new Set(employees.map(e => getWorkStation(e)))), [employees]);
   const [assignDepartment, setAssignDepartment] = useState<string>('all');
   const employeesByDept = useMemo(() => assignDepartment === 'all' ? employees : employees.filter(e => getWorkStation(e) === assignDepartment), [employees, assignDepartment]);
-  // Filter templates by department for assignment; allow global (no department) templates when a department is chosen
+  // Filter templates by station for assignment; allow global (no department) templates when a station is chosen
   const filteredTemplates = useMemo(() => {
     if (assignDepartment === 'all') return templates;
     return templates.filter(t => !t.department || t.department === assignDepartment);
@@ -164,11 +164,11 @@ export const PerformanceReviews: React.FC = () => {
     return !!(selectedTemplate.department && selectedTemplate.department !== assignDepartment);
   }, [assignDepartment, selectedTemplate]);
   useEffect(() => {
-    // when department changes, auto-select all employees in that department
+    // when workstation changes, auto-select all employees in that station
     if (assignDepartment === 'all') {
       setSelectedEmployees([]);
     } else {
-      setSelectedEmployees(employees.filter(e => e.department === assignDepartment).map(e => e.id));
+      setSelectedEmployees(employees.filter(e => getWorkStation(e) === assignDepartment).map(e => e.id));
     }
   }, [assignDepartment, employees]);
 
@@ -706,10 +706,10 @@ const handleSubmitToManager = () => {
                       <label className="text-sm font-medium">Department</label>
                       <Select value={assignDepartment} onValueChange={setAssignDepartment}>
                         <SelectTrigger>
-                          <SelectValue placeholder="All Departments" />
+                          <SelectValue placeholder="All Workstations" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All Departments</SelectItem>
+                          <SelectItem value="all">All Workstations</SelectItem>
                           {departments.map((dept) => (
                             <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                           ))}
@@ -749,7 +749,7 @@ const handleSubmitToManager = () => {
                           />
                           <div className="min-w-0">
                             <p className="text-sm font-medium truncate">{emp.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{emp.position} • {emp.department}</p>
+                            <p className="text-xs text-muted-foreground truncate">{emp.position} • {getWorkStation(emp)}</p>
                           </div>
                         </div>
                       ))}
@@ -799,7 +799,7 @@ const handleSubmitToManager = () => {
                           <div>
                             <h4 className="font-medium">{review.employeeName}</h4>
                             <p className="text-sm text-muted-foreground">{review.reviewPeriod} • {template?.name}</p>
-                            <p className="text-sm text-muted-foreground">Department: {employee?.department}</p>
+                            <p className="text-sm text-muted-foreground">Workstation: {getWorkStation(employee)}</p>
                             <p className="text-sm text-muted-foreground">Employee No: {(employee as any)?.employeeNumber || '-'}</p>
                             {review.deadlineDate && (
                               <p className="text-sm text-muted-foreground">Deadline: {new Date(review.deadlineDate).toLocaleDateString()}</p>
@@ -951,7 +951,7 @@ const handleSubmitToManager = () => {
                               {review.employeeName}
                             </CardTitle>
                             <CardDescription>
-                              {review.reviewPeriod} • {template?.name} • {employee?.department}
+                              {review.reviewPeriod} • {template?.name} • {getWorkStation(employee)}
                             </CardDescription>
                           </div>
                           <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
@@ -1027,7 +1027,7 @@ const handleSubmitToManager = () => {
                                     <div>
                                       <p className="font-medium">Employee: {review.employeeName}</p>
                                       <p className="text-sm text-muted-foreground">Period: {review.reviewPeriod}</p>
-                                      <p className="text-sm text-muted-foreground">Department: {employee?.department}</p>
+                                      <p className="text-sm text-muted-foreground">Workstation: {getWorkStation(employee)}</p>
                                     </div>
                                     <div>
                                       <p className="font-medium">Template: {template?.name}</p>
