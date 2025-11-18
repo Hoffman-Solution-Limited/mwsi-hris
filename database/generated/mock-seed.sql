@@ -85,19 +85,83 @@ VALUES
 ('dm3','10','Data Protection & GDPR Compliance','compliance','in_progress',NULL,NULL,'Legal Compliance Corp')
 ON CONFLICT DO NOTHING;
 
--- Leave requests
-INSERT INTO leave_requests (id, employee_id, employee_name, type, start_date, end_date, days, status, reason, applied_date, manager_comments, approved_by, approved_date)
+-- Seed data for leave_types
+BEGIN;
+
+-- ✅ Seed leave_types
+INSERT INTO leave_types (name, description, max_days_per_year, created_at)
 VALUES
-('L100','10','David Manager','annual','2025-08-01','2025-08-10',10,'approved','Annual leave','2025-07-15','Enjoy your break!','Sarah Johnson','2025-07-16'),
-('L101','10','David Manager','sick','2025-09-01','2025-09-03',3,'pending_manager','Medical','2025-08-31',NULL,NULL,NULL),
-('1','3','Michael Davis','annual','2024-03-25','2024-03-29',5,'pending_manager','Family vacation','2024-03-10',NULL,NULL,NULL),
-('6','3','Michael Davis','sick','2025-09-10','2025-09-12',3,'pending_hr','Medical recovery','2025-09-09',NULL,NULL,NULL),
-('7','3','Michael Davis','emergency','2025-09-15','2025-09-16',2,'pending_manager','Family emergency','2025-09-14',NULL,NULL,NULL),
-('2','4','Emily Chen','sick','2024-03-15','2024-03-16',2,'approved','Medical appointment','2024-03-14',NULL,'Sarah Johnson','2024-03-14'),
-('3','1','John Smith','study','2024-04-01','2024-04-05',5,'approved','Professional certification exam','2024-03-01',NULL,'Sarah Johnson','2024-03-01'),
-('4','1','John Smith','annual','2025-09-20','2025-09-25',6,'pending_hr','Travel abroad','2025-09-10',NULL,NULL,NULL),
-('5','1','John Smith','sick','2025-08-10','2025-08-12',3,'pending_manager','Flu recovery','2025-08-09',NULL,NULL,NULL)
-ON CONFLICT DO NOTHING;
+    ('Annual Leave', 'Paid time off for vacation', 30, NOW()),
+    ('Sick Leave', 'Leave for illness or medical reasons', 15, NOW()),
+    ('Maternity Leave', 'Leave for maternity', 90, NOW()),
+    ('Paternity Leave', 'Leave for paternity', 14, NOW()),
+    ('Emergency Leave', 'Leave for urgent personal matters', 7, NOW()),
+    ('Study Leave', 'Leave for study or exams', 30, NOW())
+ON CONFLICT (name) DO NOTHING;
+
+-- ✅ Seed leave_balances ONLY for missing records
+INSERT INTO leave_balances (
+    employee_id,
+    leave_type_id,
+    year,
+    total_entitled,
+    used_days,
+    remaining_days,
+    carried_forward,
+    created_at
+)
+SELECT 
+    e.id AS employee_id,
+    lt.id AS leave_type_id,
+    EXTRACT(YEAR FROM CURRENT_DATE) AS year,
+    lt.max_days_per_year 
+      + COALESCE(
+            CASE
+                WHEN lt.carry_forward = TRUE THEN
+                    LEAST(
+                        COALESCE(prev.remaining_days, 0),
+                        COALESCE(lt.carry_forward_limit, 0)
+                    )
+                ELSE 0
+            END, 0
+        ) AS total_entitled,
+    0 AS used_days,
+    lt.max_days_per_year 
+      + COALESCE(
+            CASE
+                WHEN lt.carry_forward = TRUE THEN
+                    LEAST(
+                        COALESCE(prev.remaining_days, 0),
+                        COALESCE(lt.carry_forward_limit, 0)
+                    )
+                ELSE 0
+            END, 0
+        ) AS remaining_days,
+    COALESCE(
+        CASE
+            WHEN lt.carry_forward = TRUE THEN
+                LEAST(
+                    COALESCE(prev.remaining_days, 0),
+                    COALESCE(lt.carry_forward_limit, 0)
+                )
+            ELSE 0
+        END, 0
+    ) AS carried_forward,
+    NOW()
+FROM employees e
+CROSS JOIN leave_types lt
+LEFT JOIN leave_balances prev
+    ON prev.employee_id = e.id
+   AND prev.leave_type_id = lt.id
+   AND prev.year = EXTRACT(YEAR FROM CURRENT_DATE) - 1
+WHERE NOT EXISTS (
+    SELECT 1 FROM leave_balances lb
+    WHERE lb.employee_id = e.id
+      AND lb.leave_type_id = lt.id
+      AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
+);
+
+COMMIT;
 
 -- Performance templates
 INSERT INTO performance_templates (id, name, type, description, department, created_by, created_at)
@@ -167,34 +231,49 @@ VALUES
 ('5','2025-10-02T08:00:00Z','Safety officer filed incident report and recommended suspension pending review.')
 ON CONFLICT DO NOTHING;
 
--- Document types (seed front-end defaults)
-INSERT INTO document_types (name) VALUES
-('Birth_Certificate'),
-('National_ID_Card'),
-('Current_Passport_Photo'),
-('KRA_PIN'),
-('Letter_of_First_Appointment'),
-('Letter_of_Confirmation'),
-('All_Promotion_Letters'),
-('Secondment_Letter'),
-('Next_of_Kin_GP25'),
-('Professional_and_Academic_Certificates')
-ON CONFLICT DO NOTHING;
+-- Create employee_files for all employees who don’t have one
+INSERT INTO employee_files (employee_id, file_number)
+SELECT e.id, e.employee_number
+FROM employees e
+LEFT JOIN employee_files f ON e.id = f.employee_id
+WHERE f.employee_id IS NULL;
 
--- Employee files: seed using employees above with default documents per front-end
-INSERT INTO employee_files (employee_id, current_location, assigned_user_id, assigned_user_name, default_documents)
-VALUES
-('1','Registry Office',NULL,NULL,ARRAY['Birth_Certificate','National_ID_Card','Current_Passport_Photo','KRA_PIN','Letter_of_First_Appointment','Letter_of_Confirmation','All_Promotion_Letters','Secondment_Letter','Next_of_Kin_GP25','Professional_and_Academic_Certificates']),
-('2','Registry Office',NULL,NULL,ARRAY['Birth_Certificate','National_ID_Card','Current_Passport_Photo','KRA_PIN','Letter_of_First_Appointment','Letter_of_Confirmation','All_Promotion_Letters','Secondment_Letter','Next_of_Kin_GP25','Professional_and_Academic_Certificates']),
-('3','Registry Office',NULL,NULL,ARRAY['Birth_Certificate','National_ID_Card','Current_Passport_Photo','KRA_PIN','Letter_of_First_Appointment','Letter_of_Confirmation','All_Promotion_Letters','Secondment_Letter','Next_of_Kin_GP25','Professional_and_Academic_Certificates'])
-ON CONFLICT DO NOTHING;
+INSERT INTO file_movements (
+  employee_id, file_id, by_user_id, by_user_name, from_location, to_location, action, remarks, created_at
+)
+SELECT 
+  ef.employee_id,
+  ef.id,
+  NULL AS by_user_id,
+  'System' AS by_user_name,
+  '-' AS from_location,
+  'Registry' AS to_location,
+  'CREATE' AS action,
+  'Auto-created employee file' AS remarks,
+  NOW() AS created_at
+FROM employee_files ef
+LEFT JOIN file_movements fm ON fm.file_id = ef.id
+WHERE fm.file_id IS NULL;
 
--- File requests (sample seeded by front-end behavior)
-INSERT INTO file_requests (id, file_id, employee_id, document_type, requested_by_user_id, requested_by_name, requested_by_department, status, created_at, remarks)
-VALUES
-('req-1','1','1','Birth_Certificate','2','Sarah Johnson','Human Resources','pending','2025-09-01T10:00:00Z','Needed for onboarding'),
-('req-2','2','2','National_ID_Card','10','David Manager','Operations','pending','2025-09-01T11:00:00Z','Verification')
-ON CONFLICT DO NOTHING;
+-- Automatically create employee_documents for each employee file based on available document_types
+INSERT INTO employee_documents (employee_id, document_type_id, document_name, created_at)
+SELECT 
+    e.id AS employee_id,
+    dt.id AS document_type_id,
+    dt.name AS document_name,
+    NOW() AS created_at
+FROM employees e
+CROSS JOIN document_types dt
+LEFT JOIN employee_documents ed 
+  ON ed.employee_id = e.id 
+  AND ed.document_type_id = dt.id
+WHERE ed.id IS NULL;
+
+UPDATE document_types
+SET employee_count = (
+  SELECT COUNT(*) FROM employee_documents ed WHERE ed.document_type_id = document_types.id
+),
+updated_at = NOW();
 
 -- System catalog seeds (designations, stations, skill levels, job groups, engagement types, ethnicities)
 INSERT INTO system_designations (name) VALUES
@@ -227,10 +306,13 @@ ON CONFLICT DO NOTHING;
 INSERT INTO users (id, employee_id, email, name, role, password, status)
 VALUES
 ('admin-001',NULL,'admin@mwsi.com','Main Admin','admin','demo123','active'),
+('1','1','john.smith@mwsi.com','John Smith','employee','demo123','active'),
 ('2','2','sarah.johnson@mwsi.com','Sarah Johnson','hr_manager','demo123','active'),
-('10','10','david.manager@mwsi.com','David Manager','manager','demo123','active'),
+('3','3','michael.davis@mwsi.com','Michael Davis','employee','demo123','active'),
 ('4','4','emily.chen@mwsi.com','Emily Chen','registry_manager','demo123','active'),
-('testing-user',NULL,'testing@mwsi.com','Testing User','testing','demo123','active')
+('10','10','david.manager@mwsi.com','David Manager','manager','demo123','active'),
+('testing-user',NULL,'testing@mwsi.com','Testing User','testing','demo123','active'),
+('admin-test',NULL,'admin.test@mwsi.com','Test Admin','admin','demo123','active')
 ON CONFLICT DO NOTHING;
 -- Default roles (seed for admin-managed roles)
 INSERT INTO roles (id, name, locked) VALUES

@@ -235,10 +235,29 @@ CREATE TABLE document_types (
   name VARCHAR(200) UNIQUE NOT NULL,
   created_by VARCHAR(50),
   updated_by VARCHAR(50),
+  employee_count INT DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE employee_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id VARCHAR(50) REFERENCES employees(id) ON DELETE CASCADE,
+  document_type_id UUID REFERENCES document_types(id) ON DELETE CASCADE,
+  document_name VARCHAR(200) NOT NULL,
+  file_url TEXT,                  -- uploaded file (nullable until uploaded)
+  file_type VARCHAR(50),          -- pdf, jpg, etc.
+  uploaded_by_user_id VARCHAR(50),
+  uploaded_by_name VARCHAR(200),
+  uploaded_at TIMESTAMPTZ,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  last_updated_at TIMESTAMPTZ,
+  is_verified BOOLEAN DEFAULT FALSE,   -- registry can verify uploads
+  verified_by VARCHAR(50),
+  verified_at TIMESTAMPTZ,
+  UNIQUE(employee_id, document_type_id)
+);
 
 -- ===========================
 -- EMPLOYEE FILES
@@ -250,11 +269,22 @@ CREATE TABLE employee_files (
   current_location VARCHAR(200) NOT NULL DEFAULT 'Registry',
   assigned_user_id VARCHAR(50),
   assigned_user_name VARCHAR(200),
-  default_documents TEXT[],  -- All document_type names for this file
-  status VARCHAR(50) NOT NULL DEFAULT 'AVAILABLE', -- AVAILABLE | WITH_USER | ARCHIVED
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  status VARCHAR(50) NOT NULL DEFAULT 'available',  -- AVAILABLE | WITH_USER | ARCHIVED
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
+-- CREATE TABLE employee_files (
+--   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--   employee_id VARCHAR(50) UNIQUE NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+--   file_number VARCHAR(100) UNIQUE NOT NULL,
+--   current_location VARCHAR(200) NOT NULL DEFAULT 'Registry',
+--   assigned_user_id VARCHAR(50),
+--   assigned_user_name VARCHAR(200),
+--   default_documents TEXT[],  -- All document_type names for this file
+--   status VARCHAR(50) NOT NULL DEFAULT 'available', -- AVAILABLE | WITH_USER | ARCHIVED
+--   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+--   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- );
 
 -- ===========================
 -- FILE REQUESTS
@@ -263,21 +293,42 @@ CREATE TABLE file_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   employee_id VARCHAR(50) REFERENCES employees(id) ON DELETE CASCADE,
   file_id UUID REFERENCES employee_files(id) ON DELETE CASCADE,
-  document_type VARCHAR(200),
   requested_by_user_id VARCHAR(50) NOT NULL,
   requested_by_name VARCHAR(200) NOT NULL,
   requested_by_department VARCHAR(200),
-  status VARCHAR(50) NOT NULL DEFAULT 'PENDING', -- PENDING | APPROVED | REJECTED | RETURNED | CANCELLED
+  status VARCHAR(50) NOT NULL DEFAULT 'pending',  -- PENDING | APPROVED | REJECTED | RETURNED | CANCELLED
   remarks TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE file_request_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id UUID REFERENCES file_requests(id) ON DELETE CASCADE,
+  document_type_id UUID REFERENCES document_types(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- CREATE TABLE file_requests (
+--   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--   employee_id VARCHAR(50) REFERENCES employees(id) ON DELETE CASCADE,
+--   file_id UUID REFERENCES employee_files(id) ON DELETE CASCADE,
+--   document_type VARCHAR(200),
+--   requested_by_user_id VARCHAR(50) NOT NULL,
+--   requested_by_name VARCHAR(200) NOT NULL,
+--   requested_by_department VARCHAR(200),
+--   status VARCHAR(50) NOT NULL DEFAULT 'pending', -- PENDING | APPROVED | REJECTED | RETURNED | CANCELLED
+--   remarks TEXT,
+--   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+--   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- );
 
 -- ===========================
 -- FILE MOVEMENTS
 -- ===========================
 CREATE TABLE file_movements (
-  id SERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   employee_id VARCHAR(50) REFERENCES employees(id) ON DELETE CASCADE,
   file_id UUID REFERENCES employee_files(id) ON DELETE CASCADE,
   by_user_id VARCHAR(50),
@@ -288,7 +339,9 @@ CREATE TABLE file_movements (
   to_assignee_name VARCHAR(200),
   action VARCHAR(50) NOT NULL, -- APPROVE | REJECT | RETURN
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  remarks TEXT
+  remarks TEXT,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 

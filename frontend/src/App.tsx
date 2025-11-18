@@ -66,6 +66,7 @@ import RequestsManagementPage from "@/pages/RequestsManagement";
 import EmploymentAttributesPage from "@/pages/EmploymentAttributes";
 import DocumentTypesPage from "@/pages/DocumentTypes";
 import ManagersOverview from '@/pages/ManagersOverview';
+import DocumentDetailsPage from "./pages/DocumentDetailsPage";
 
 const queryClient = new QueryClient();
 
@@ -125,6 +126,7 @@ const App = () => (
                           {/* Documents page removed - route deprecated */}
                           <Route path="/employee-files" element={<ProtectedRoute><RequirePermission permission="page.employee-files"><Layout><DocumentTrackingPage /></Layout></RequirePermission></ProtectedRoute>} />
                           <Route path="/my-files" element={<ProtectedRoute><Layout><MyFilesPage /></Layout></ProtectedRoute>} />
+                          <Route path="documents/:id" element={<ProtectedRoute><Layout><DocumentDetailsPage /></Layout></ProtectedRoute>} />
                           <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
                           <Route path="/managers" element={<ProtectedRoute><Layout><ManagersOverview /></Layout></ProtectedRoute>} />
                           <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />
