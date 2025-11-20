@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { pool } from '../db';
-import { v4 as uuidv4 } from 'uuid';
 
 const toSnake = (s: string) => s.replace(/[A-Z]/g, m => '_' + m.toLowerCase());
 const toCamel = (s: string) => s.replace(/_([a-z])/g, (_m, p1) => p1.toUpperCase());
@@ -153,86 +152,219 @@ export const getSingleEmployee= async (req: Request, res: Response) => {
 //   }
 // });
 
+// export const createEmployee = async (req: Request, res: Response) => {
+//   const client = await pool.connect();
+//   const data = req.body || {};
+//   const id = data.id;
+
+//   try {
+//     try { console.log('[createEmployee] start, incoming data=', data); } catch {}
+//     await client.query('BEGIN');
+
+//     // ✅ Construct full name
+//     if (data.firstName || data.surname) {
+//       data.name = [data.firstName, data.middleName, data.surname]
+//         .filter(Boolean)
+//         .join(' ');
+//     }
+
+//     // ✅ Clean up irrelevant fields
+//     delete (data as any).firstName;
+//     delete (data as any).middleName;
+//     delete (data as any).surname;
+//     delete (data as any).documents;
+//     delete (data as any).skills;
+
+//     // ✅ Map camelCase to snake_case, whitelist insertable columns
+//     const entries: Array<[string, any]> = [['id', id]];
+//     for (const k of Object.keys(data)) {
+//       const snake = toSnake(k);
+//       if (!allowedColumns.has(snake) || snake === 'id') continue;
+//       const v = (data as any)[k];
+//       entries.push([snake, v == null ? null : v]);
+//     }
+
+//     const cols = entries.map((e) => e[0]);
+//     const placeholders = entries.map((_, i) => `$${i + 1}`);
+//     const vals = entries.map((e) => e[1]);
+
+//     // ✅ Insert employee
+//     const q = `INSERT INTO employees(${cols.join(',')}) VALUES(${placeholders.join(',')}) RETURNING *`;
+//     try { console.log('[createEmployee] about to run employee INSERT', q); } catch {}
+//     try { console.log('[createEmployee] employee INSERT values=', vals); } catch {}
+//     const result = await client.query(q, vals);
+//     const employee = result.rows[0];
+
+//     // ✅ Create employee file
+//     // compute file_number in application code to avoid mixing parameter types
+//     const fileNumber = `FILE-${employee.id}`;
+//     try { console.log('[createEmployee] about to create employee_files with', employee.id, fileNumber); } catch {}
+//     let employeeFile: any;
+//     try {
+//         const fileResult = await client.query(
+//           `
+//           INSERT INTO employee_files (employee_id, file_number, current_location, status)
+//           VALUES ($1::varchar, $2::varchar, 'Registry', 'available')
+//           RETURNING *
+//           `,
+//           [employee.id, fileNumber]
+//         );
+//       employeeFile = fileResult.rows[0];
+//     } catch (e) {
+//       console.error('[createEmployee] error inserting employee_files', e);
+//       throw e;
+//     }
+
+//     // ✅ Log initial movement: system-created file entry
+//     try { console.log('[createEmployee] about to insert into file_movements', employee.id, employeeFile.id); } catch {}
+//     try {
+//       await client.query(
+//         `
+//         INSERT INTO file_movements
+//         (employee_id, file_id, by_user_id, by_user_name, from_location, to_location, action, remarks)
+//         VALUES ($1::varchar, $2::varchar, 'system', 'System', NULL, 'Registry Office', 'CREATE', 'Auto-created employee file')
+//         `,
+//         [employee.id, employeeFile.id]
+//       );
+//     } catch (e) {
+//       console.error('[createEmployee] error inserting file_movements', e);
+//       throw e;
+//     }
+
+//     // ✅ Attach all existing document types
+//     try { console.log('[createEmployee] about to insert employee_documents for', employee.id); } catch {}
+//     try {
+//       await client.query(
+//         `
+//         INSERT INTO employee_documents (employee_id, document_type_id, document_name, created_at)
+//         SELECT $1::varchar, dt.id, dt.name, NOW()
+//         FROM document_types dt
+//         WHERE NOT EXISTS (
+//           SELECT 1 FROM employee_documents ed
+//           WHERE ed.employee_id = $1::varchar AND ed.document_type_id = dt.id
+//         )
+//         `,
+//         [employee.id]
+//       );
+//     } catch (e) {
+//       console.error('[createEmployee] error inserting employee_documents', e);
+//       throw e;
+//     }
+
+//     // ✅ Update document type employee counts
+//     await client.query(`
+//       UPDATE document_types
+//       SET employee_count = (
+//         SELECT COUNT(*) FROM employee_documents ed WHERE ed.document_type_id = document_types.id
+//       ),
+//       updated_at = NOW()
+//     `);
+
+//     await client.query('COMMIT');
+
+//     res.status(201).json(rowToCamel(employee));
+//   } catch (err) {
+//     await client.query('ROLLBACK');
+//     console.error('[createEmployee]', err);
+//     res.status(500).json({ error: String(err) });
+//   } finally {
+//     client.release();
+//   }
+// };
 export const createEmployee = async (req: Request, res: Response) => {
   const client = await pool.connect();
   const data = req.body || {};
-  const id = data.id || uuidv4();
+  const id = data.id;
 
   try {
+    console.log('[createEmployee] incoming data=', data);
     await client.query('BEGIN');
 
-    // ✅ Construct full name
+    // Build full name
     if (data.firstName || data.surname) {
       data.name = [data.firstName, data.middleName, data.surname]
         .filter(Boolean)
         .join(' ');
     }
 
-    // ✅ Clean up irrelevant fields
+    // Cleanup unused fields
     delete (data as any).firstName;
     delete (data as any).middleName;
     delete (data as any).surname;
     delete (data as any).documents;
     delete (data as any).skills;
 
-    // ✅ Map camelCase to snake_case, whitelist insertable columns
+    // Prepare insertable fields
     const entries: Array<[string, any]> = [['id', id]];
     for (const k of Object.keys(data)) {
       const snake = toSnake(k);
       if (!allowedColumns.has(snake) || snake === 'id') continue;
-      const v = (data as any)[k];
-      entries.push([snake, v == null ? null : v]);
+      entries.push([snake, data[k] == null ? null : data[k]]);
     }
 
     const cols = entries.map((e) => e[0]);
     const placeholders = entries.map((_, i) => `$${i + 1}`);
-    const vals = entries.map((e) => e[1]);
+    const values = entries.map((e) => e[1]);
 
-    // ✅ Insert employee
-    const q = `INSERT INTO employees(${cols.join(',')}) VALUES(${placeholders.join(',')}) RETURNING *`;
-    const result = await client.query(q, vals);
+    // INSERT employees
+    const employeeInsertSQL = `
+      INSERT INTO employees (${cols.join(',')})
+      VALUES (${placeholders.join(',')})
+      RETURNING *
+    `;
+
+    console.log('[createEmployee] EMPLOYEE SQL →', employeeInsertSQL);
+    console.log('[createEmployee] VALUES →', values);
+
+    const result = await client.query(employeeInsertSQL, values);
     const employee = result.rows[0];
 
-    // ✅ Create employee file
+    // Prepare file_number
+    const fileNumber = `FILE-${employee.id}`;
+
+    // INSERT into employee_files
     const fileResult = await client.query(
       `
       INSERT INTO employee_files (employee_id, file_number, current_location, status)
-      VALUES ($1, CONCAT('FILE-', $1), 'Registry', 'available')
+      VALUES ($1::varchar, $2::varchar, 'Registry', 'available')
       RETURNING *
       `,
-      [employee.id]
+      [employee.id, fileNumber]
     );
+
     const employeeFile = fileResult.rows[0];
 
-    // ✅ Log initial movement: system-created file entry
+    // INSERT into file_movements
     await client.query(
       `
       INSERT INTO file_movements
       (employee_id, file_id, by_user_id, by_user_name, from_location, to_location, action, remarks)
-      VALUES ($1, $2, 'system', 'System', NULL, 'Registry Office', 'CREATE', 'Auto-created employee file')
+      VALUES ($1::varchar, $2::varchar, 'system', 'System', NULL, 'Registry Office', 'CREATE', 'Auto-created employee file')
       `,
       [employee.id, employeeFile.id]
     );
 
-    // ✅ Attach all existing document types
+    // INSERT default employee_documents
     await client.query(
       `
       INSERT INTO employee_documents (employee_id, document_type_id, document_name, created_at)
-      SELECT $1, dt.id, dt.name, NOW()
+      SELECT $1::varchar, dt.id, dt.name, NOW()
       FROM document_types dt
       WHERE NOT EXISTS (
         SELECT 1 FROM employee_documents ed
-        WHERE ed.employee_id = $1 AND ed.document_type_id = dt.id
+        WHERE ed.employee_id = $1::varchar AND ed.document_type_id = dt.id
       )
       `,
       [employee.id]
     );
 
-    // ✅ Update document type employee counts
+    // UPDATE document_type employee counts
     await client.query(`
       UPDATE document_types
       SET employee_count = (
-        SELECT COUNT(*) FROM employee_documents ed WHERE ed.document_type_id = document_types.id
+        SELECT COUNT(*)
+        FROM employee_documents ed
+        WHERE ed.document_type_id = document_types.id
       ),
       updated_at = NOW()
     `);
@@ -242,7 +374,7 @@ export const createEmployee = async (req: Request, res: Response) => {
     res.status(201).json(rowToCamel(employee));
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('[createEmployee]', err);
+    console.error('[createEmployee] ERROR →', err);
     res.status(500).json({ error: String(err) });
   } finally {
     client.release();

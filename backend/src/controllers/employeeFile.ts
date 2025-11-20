@@ -267,11 +267,12 @@ export const createEmployeeFile = async (req: Request, res: Response) => {
     await client.query("BEGIN");
 
     // 1️⃣ Create employee file
+    const fileNumber = file_number || `FILE-${employee_id}`;
     const fileResult = await client.query(
       `INSERT INTO employee_files (employee_id, file_number, current_location, status)
-       VALUES ($1, COALESCE($2, CONCAT('FILE-', $1)), 'Registry', 'available')
+       VALUES ($1, $2, 'Registry', 'available')
        RETURNING *`,
-      [employee_id, file_number]
+      [employee_id, fileNumber]
     );
     const employeeFile = fileResult.rows[0];
 
