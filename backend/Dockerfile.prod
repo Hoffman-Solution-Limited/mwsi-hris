@@ -1,61 +1,38 @@
-# # Backend Production Build
-# FROM node:20-alpine AS builder
-
-# WORKDIR /usr/src/app
-
-# COPY backend/package*.json ./
-# RUN npm ci
-
-# COPY . .
-# RUN npm run build
-
-# # Production Runtime
-# FROM node:20-alpine
-
-# WORKDIR /usr/src/app
-
-# COPY backend/package*.json ./
-# RUN npm ci --only=production
-
-# COPY --from=builder /usr/src/app/dist ./dist
-
-# EXPOSE 5000
-
-# CMD ["node", "dist/index.js"]
 # Stage 1: Build
 FROM node:20-alpine AS builder
 
-# Set working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy only package files first for caching
+# Copy package files first for caching
 COPY backend/package*.json ./
-
-# Install all dependencies (including dev)
 RUN npm ci
 
-# Copy the rest of the backend source code
+# Copy backend source
 COPY backend/ ./
 
-# Build the project (if using TypeScript or build scripts)
+# Copy database files
+COPY database/generated/ ./database/generated/
+
+# Build the project
 RUN npm run build
 
-# Stage 2: Production image
-FROM node:20-alpine AS production
+# Stage 2: Production
+FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
-# Copy only package.json & package-lock.json
+# Copy production dependencies
 COPY backend/package*.json ./
-
-# Install only production dependencies
 RUN npm ci --only=production
 
-# Copy built files from the builder stage
+# Copy built files
 COPY --from=builder /usr/src/app/dist ./dist
 
-# Expose your backend port (adjust if needed)
+# Copy database files for seeding
+COPY database/generated/ ./database/generated/
+
+# Expose your port
 EXPOSE 8000
 
-# Start the backend
+# Start backend
 CMD ["node", "dist/index.js"]
