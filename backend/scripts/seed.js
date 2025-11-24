@@ -11,8 +11,8 @@ async function main() {
     if (!(await tableExists('employees'))) { // pick a table guaranteed to exist after schema
       console.log("[seed] Running schema + seed...");
       const files = [
-        path.join(__dirname, 'schema.sql'),
-        path.join(__dirname, 'seed.sql')
+        path.join(__dirname, 'mock-schema.sql'),
+        path.join(__dirname, 'mock-seed.sql')
       ];
 
       for (const file of files) {
