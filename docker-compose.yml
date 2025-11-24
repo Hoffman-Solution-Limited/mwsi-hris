@@ -11,15 +11,15 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
-      - ./backend/database/generated/mock-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-      - ./backend/database/generated/02-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
-      - ./backend/database/generated/mock-seed.sql:/docker-entrypoint-initdb.d/03-mock-seed.sql:ro
-      - ./backend/database/generated/11-training-records-metadata.sql:/docker-entrypoint-initdb.d/11-training-records-metadata.sql:ro
-      - ./backend/database/generated/12-employees-status-retired.sql:/docker-entrypoint-initdb.d/12-employees-status-retired.sql:ro
-      - ./backend/database/generated/13-employees-kin-special-needs.sql:/docker-entrypoint-initdb.d/13-employees-kin-special-needs.sql:ro
-      - ./backend/database/generated/14-employees-home-subcounty.sql:/docker-entrypoint-initdb.d/14-employees-home-subcounty.sql:ro
-      - ./backend/database/init/99-apply-snapshots.sh:/docker-entrypoint-initdb.d/99-apply-snapshots.sh:ro
-      - ./backend/database/snapshots:/docker-entrypoint-initdb.d/snapshots:ro
+      - ./database/generated/mock-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/generated/02-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - ./database/generated/mock-seed.sql:/docker-entrypoint-initdb.d/03-mock-seed.sql:ro
+      - ./database/generated/11-training-records-metadata.sql:/docker-entrypoint-initdb.d/11-training-records-metadata.sql:ro
+      - ./database/generated/12-employees-status-retired.sql:/docker-entrypoint-initdb.d/12-employees-status-retired.sql:ro
+      - ./database/generated/13-employees-kin-special-needs.sql:/docker-entrypoint-initdb.d/13-employees-kin-special-needs.sql:ro
+      - ./database/generated/14-employees-home-subcounty.sql:/docker-entrypoint-initdb.d/14-employees-home-subcounty.sql:ro
+      - ./database/init/99-apply-snapshots.sh:/docker-entrypoint-initdb.d/99-apply-snapshots.sh:ro
+      - ./database/snapshots:/docker-entrypoint-initdb.d/snapshots:ro
     # Snapshots are applied by 99-apply-snapshots.sh from the mounted snapshots directory
 
   backend:

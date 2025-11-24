@@ -5,14 +5,15 @@ FROM node:20-alpine AS builder
 
 WORKDIR /usr/src/app
 
-# Copy backend package files
-COPY backend/package*.json ./
 
-# Install dev + prod dependencies
+# Copy backend package files (expect build context to be the `backend/` directory)
+COPY package*.json ./
+
+# Install dev + prod dependencies needed for build
 RUN npm install
 
-# Copy all backend source
-COPY backend/ ./
+# Copy all backend source (build context SHOULD be the backend directory)
+COPY . ./
 
 # Build the project (TS → JS)
 RUN npm run build
@@ -25,7 +26,7 @@ FROM node:20-alpine
 WORKDIR /usr/src/app
 
 # Copy only package.json & package-lock.json for production deps
-COPY backend/package*.json ./
+COPY package*.json ./
 
 # Install only production dependencies
 RUN npm install --omit=dev
