@@ -5,13 +5,14 @@ FROM node:20-alpine AS builder
 
 WORKDIR /usr/src/app
 
+# Copy package files and install dependencies
 COPY backend/package*.json ./
-RUN npm ci
+RUN npm install
 
 # Copy backend source
 COPY backend/ ./
-COPY . ./
 
+# Build backend (TS → JS or whatever your build step is)
 RUN npm run build
 
 # -------------------------
@@ -21,20 +22,22 @@ FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
-# Install only production dependencies
+# Copy package files and install only production dependencies
 COPY backend/package*.json ./
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
+# Copy built backend and scripts
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/scripts ./scripts
 
-ENV PORT=5000
-EXPOSE 5000
+# Set environment
+ENV PORT=8000
+EXPOSE 8000
 
-# Wait-for-db-and-seed + start app
+# Run DB wait + schema/seed + app in a single command
 CMD sh -c "\
   echo 'Waiting for DB...' && \
-  until node -e 'require(\"pg\").Pool({connectionString: process.env.DATABASE_URL}).connect().then(c=>c.release())'; do \
+  until node -e 'require(\"pg\").Pool({connectionString: process.env.DATABASE_URL}).connect().then(c=>c.release()).catch(()=>process.exit(1))'; do \
     echo 'DB not ready, retrying in 2s...' && sleep 2; \
   done && \
   echo 'DB ready! Running seed...' && \

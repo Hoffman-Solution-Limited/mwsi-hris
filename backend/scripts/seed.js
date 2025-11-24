@@ -1,38 +1,27 @@
-// backend/scripts/seed.js
-import pg from 'pg';
-import fs from 'fs';
-import path from 'path';
-
-const { Pool } = pg;
-
-const DATABASE_URL = process.env.DATABASE_URL;
-
-if (!DATABASE_URL) {
-  console.error("DATABASE_URL not set!");
-  process.exit(1);
-}
-
-const pool = new Pool({ connectionString: DATABASE_URL });
-
-async function runSQLFile(filePath) {
-  const sql = fs.readFileSync(filePath, 'utf8');
-  await pool.query(sql);
-  console.log(`[seed] Applied ${filePath}`);
+async function tableExists(tableName) {
+  const res = await pool.query(
+    `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = $1)`,
+    [tableName]
+  );
+  return res.rows[0].exists;
 }
 
 async function main() {
   try {
-    // List your schema + seed files in order
-    const files = [
-      path.join('scripts', 'schema.sql'),
-      path.join('scripts', 'seed.sql')
-    ];
+    if (!(await tableExists('employees'))) { // pick a table guaranteed to exist after schema
+      console.log("[seed] Running schema + seed...");
+      const files = [
+        path.join(__dirname, 'schema.sql'),
+        path.join(__dirname, 'seed.sql')
+      ];
 
-    for (const file of files) {
-      await runSQLFile(file);
+      for (const file of files) {
+        await runSQLFile(file);
+      }
+      console.log("[seed] Database setup complete");
+    } else {
+      console.log("[seed] Tables already exist, skipping seed.");
     }
-
-    console.log("[seed] Database setup complete");
   } catch (err) {
     console.error(err);
     process.exit(1);
@@ -40,5 +29,3 @@ async function main() {
     await pool.end();
   }
 }
-
-main();
