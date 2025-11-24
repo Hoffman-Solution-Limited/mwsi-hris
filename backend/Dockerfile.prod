@@ -1,18 +1,20 @@
 # -------------------------
-# Stage 1: Build
+# Stage 1: Builder
 # -------------------------
 FROM node:20-alpine AS builder
 
 WORKDIR /usr/src/app
 
-# Copy package files and install dependencies
+# Copy backend package files
 COPY backend/package*.json ./
+
+# Install dev + prod dependencies
 RUN npm install
 
-# Copy backend source
+# Copy all backend source
 COPY backend/ ./
 
-# Build backend (TS → JS or whatever your build step is)
+# Build the project (TS → JS)
 RUN npm run build
 
 # -------------------------
@@ -22,22 +24,23 @@ FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
-# Copy package files and install only production dependencies
+# Copy only package.json & package-lock.json for production deps
 COPY backend/package*.json ./
+
+# Install only production dependencies
 RUN npm install --omit=dev
 
-# Copy built backend and scripts
+# Copy built files from builder
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/scripts ./scripts
 
-# Set environment
-ENV PORT=8000
-EXPOSE 8000
+ENV PORT=5000
+EXPOSE 5000
 
-# Run DB wait + schema/seed + app in a single command
+# Run DB wait, seed, then start app
 CMD sh -c "\
   echo 'Waiting for DB...' && \
-  until node -e 'require(\"pg\").Pool({connectionString: process.env.DATABASE_URL}).connect().then(c=>c.release()).catch(()=>process.exit(1))'; do \
+  until node -e 'const { Pool } = require(\"pg\"); new Pool({ connectionString: process.env.DATABASE_URL }).connect().then(c => c.release())'; do \
     echo 'DB not ready, retrying in 2s...' && sleep 2; \
   done && \
   echo 'DB ready! Running seed...' && \
