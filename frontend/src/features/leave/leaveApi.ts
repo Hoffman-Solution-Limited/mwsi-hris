@@ -1,10 +1,11 @@
-import API_BASE_URL from '@/lib/apiConfig';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:5000/api';
 
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+console.log("API_BASE_URL in leaveApi:", API_BASE_URL);
 
 export const leaveApi = createApi({
   reducerPath: "leaveApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "https://tart-minette-izotech2-fcbe6611.koyeb.app/api" }),
+  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
   tagTypes: ["leaves", "leaveTypes"],
   endpoints: (builder) => ({
 

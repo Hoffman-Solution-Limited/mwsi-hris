@@ -49,8 +49,7 @@ services:
       dockerfile: Dockerfile.dev
     environment:
       # When running in Docker, proxy should target the backend service name
-      VITE_API_PROXY_TARGET: http://backend:5000
-      VITE_API_BASE: http://backend:5000
+      VITE_API_BASE: http://backend:5000/api
       HOST: 0.0.0.0
       PORT: 8080
       # Ensure file watching works through Docker on Windows/macOS
