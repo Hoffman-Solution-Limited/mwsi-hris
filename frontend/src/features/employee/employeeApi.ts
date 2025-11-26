@@ -42,7 +42,7 @@ export interface UpdateEmployeePayload extends Partial<Employee> {
 // Employee API
 export const employeeApi = createApi({
   reducerPath: 'employeeApi',
-  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/employees` }),
+  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/api/employees` }),
   tagTypes: ['Employees'],
 
   endpoints: (build) => ({

@@ -47,14 +47,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    environment:
-      # When running in Docker, proxy should target the backend service name
-      VITE_API_BASE: http://backend:5000/api
-      HOST: 0.0.0.0
-      PORT: 8080
-      # Ensure file watching works through Docker on Windows/macOS
-      CHOKIDAR_USEPOLLING: "true"
-      WATCHPACK_POLLING: "true"
+    # Load runtime envs from frontend/.env so you can toggle configs there
+    env_file:
+      - ./frontend/.env
     ports:
       - "8081:8080"
     depends_on:

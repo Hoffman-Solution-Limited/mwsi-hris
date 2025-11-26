@@ -13,7 +13,7 @@ export interface DocumentType {
 
 export const documentTypeApi = createApi({
   reducerPath: 'documentTypeApi',
-  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/document_types` }),
+  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/api/document_types` }),
   tagTypes: ['DocumentTypes'],
   endpoints: (build) => ({
     getAllDocumentTypes: build.query<DocumentType[], void>({

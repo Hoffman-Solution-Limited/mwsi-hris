@@ -31,7 +31,7 @@ export interface FileMovement {
 
 export const fileRequestApi = createApi({
   reducerPath: 'fileRequestApi',
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/api` }),
   tagTypes: ['FileRequests', 'FileMovements'],
   endpoints: (build) => ({
     // FILE REQUESTS

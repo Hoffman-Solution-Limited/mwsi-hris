@@ -5,6 +5,6 @@ const viteEnv = typeof import.meta !== 'undefined'
 export const API_BASE_URL =
   viteEnv?.VITE_API_BASE ||
   (typeof process !== 'undefined' ? process.env.API_BASE_URL : undefined) ||
-  'http://localhost:5000/api';
-
+  'http://localhost:5000';
+  
 export default API_BASE_URL;

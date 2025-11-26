@@ -30,7 +30,7 @@ export interface EmployeeFile {
 
 export const employeeFileApi = createApi({
   reducerPath: 'employeeFileApi',
-  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/employee_files` }),
+  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/api/employee_files` }),
   tagTypes: ['EmployeeFiles'],
   endpoints: (build) => ({
     getAllEmployeeFiles: build.query<EmployeeFile[], void>({

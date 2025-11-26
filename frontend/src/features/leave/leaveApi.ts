@@ -5,7 +5,7 @@ console.log("API_BASE_URL in leaveApi:", API_BASE_URL);
 
 export const leaveApi = createApi({
   reducerPath: "leaveApi",
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/api` }),
   tagTypes: ["leaves", "leaveTypes"],
   endpoints: (builder) => ({
 
