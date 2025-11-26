@@ -20,7 +20,11 @@ import stationsRouter from './routes/stations';
 import jobGroupsRouter from './routes/jobGroups';
 import engagementTypesRouter from './routes/engagementTypes';
 import ethnicitiesRouter from './routes/ethnicities';
-
+import documentTypesRouter from './routes/documentType';
+import employeeFilesRouter from './routes/employeeFile';
+import fileRequestsRouter from './routes/fileRequest';
+import fileMovementsRouter from './routes/fileMovements';
+import employeeDocumentsRouter from './routes/employeeDocument';
 const app = express();
 
 // Build allowed origins from env and sensible defaults
@@ -108,5 +112,10 @@ app.use('/api/stations', stationsRouter);
 app.use('/api/job-groups', jobGroupsRouter);
 app.use('/api/engagement-types', engagementTypesRouter);
 app.use('/api/ethnicities', ethnicitiesRouter);
+app.use('/api/document_types', documentTypesRouter);
+app.use('/api/employee_files', employeeFilesRouter);
+app.use('/api/file_movements', fileMovementsRouter);
+app.use('/api/file_requests', fileRequestsRouter);
+app.use('/api/employee_documents', employeeDocumentsRouter);
 
 export default app;

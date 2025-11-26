@@ -25,7 +25,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     restart: unless-stopped
     depends_on:
       - db
@@ -37,25 +37,26 @@ services:
       CORS_ORIGIN: http://localhost:8080
     ports:
       - "5000:5000"
+    volumes:
+      # Mount the backend source code for hot reload
+      - ./backend:/usr/src/app
+      # Preserve container's node_modules so host's doesn't shadow it
+      - /usr/src/app/node_modules
 
   frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
-    environment:
-      VITE_API_BASE: http://localhost:5000
-      HOST: 0.0.0.0
-      PORT: 8080
-      # Ensure file watching works through Docker on Windows/macOS
-      CHOKIDAR_USEPOLLING: "true"
-      WATCHPACK_POLLING: "true"
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    # Load runtime envs from frontend/.env so you can toggle configs there
+    env_file:
+      - ./frontend/.env
     ports:
       - "8081:8080"
     depends_on:
       - backend
     volumes:
       # Mount the project into the container for hot reload
-      - ./:/usr/src/app
+      - ./frontend:/usr/src/app
       # Preserve container's node_modules so host's doesn't shadow it
       - /usr/src/app/node_modules
 

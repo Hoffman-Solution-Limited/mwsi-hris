@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { pool } from '../db';
 
-// Helper: Calculate business days excluding weekends
 function calculateBusinessDays(startDate: Date, endDate: Date): number {
   let count = 0;
   const curDate = new Date(startDate);
@@ -15,7 +14,6 @@ function calculateBusinessDays(startDate: Date, endDate: Date): number {
   return count;
 }
 
-// export const applyForLeave = async (req: Request, res: Response) => {
 //   const { employee_id, leave_type_id, start_date, end_date, reason, number_of_days } = req.body;
 
 //   try {
@@ -86,7 +84,6 @@ export const applyForLeave = async (req: Request, res: Response) => {
   try {
     await client.query('BEGIN');
 
-    // 1️⃣ Get max days for this leave type
     const leaveTypeResult = await client.query(
       `SELECT max_days_per_year FROM leave_types WHERE id = $1`,
       [leave_type_id]
@@ -99,7 +96,6 @@ export const applyForLeave = async (req: Request, res: Response) => {
     const maxDays = leaveTypeResult.rows[0].max_days_per_year;
     const currentYear = new Date().getFullYear();
 
-    // 2️⃣ Ensure leave_balances row exists for this employee & leave type
     const balanceResult = await client.query(
       `
       SELECT *
@@ -129,7 +125,6 @@ export const applyForLeave = async (req: Request, res: Response) => {
 
     const { remaining_days, used_days, total_entitled } = balanceRow;
 
-    // 3️⃣ Check if applying days exceed remaining days
     if (number_of_days > remaining_days) {
       await client.query('ROLLBACK');
       return res.status(400).json({
@@ -137,7 +132,6 @@ export const applyForLeave = async (req: Request, res: Response) => {
       });
     }
 
-    // 4️⃣ Insert leave application
     await client.query(
       `
       INSERT INTO leave_requests (employee_id, employee_name, leave_type_id, start_date, end_date, number_of_days, status, reason, created_at)
@@ -146,7 +140,6 @@ export const applyForLeave = async (req: Request, res: Response) => {
       [employee_id, employee_name, leave_type_id, start_date, end_date, number_of_days, reason]
     );
 
-    // 5️⃣ Deduct from leave balance
     const newUsedDays = used_days + number_of_days;
     const newRemainingDays = total_entitled - newUsedDays;
 
@@ -174,9 +167,6 @@ export const applyForLeave = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * 📊 Get all leave requests
- */
 export const getLeaves = async (_req: Request, res: Response) => {
   try {
 
@@ -195,9 +185,7 @@ export const getLeaves = async (_req: Request, res: Response) => {
   }
 };
 
-/**
- * 🧍 Get single leave request by ID
- */
+
 export const getLeaveById = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
@@ -220,9 +208,6 @@ export const getLeaveById = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * ✍ Update leave request (before approval)
- */
 export const updateLeave = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { start_date, end_date, reason } = req.body;
@@ -255,9 +240,6 @@ export const updateLeave = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * 🗑 Delete leave request
- */
 export const deleteLeave = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
@@ -275,9 +257,6 @@ export const deleteLeave = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * 👨 Manager approves
- */
 export const managerApproveLeave = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { manager_id } = req.body;
@@ -305,9 +284,6 @@ export const managerApproveLeave = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * ❌ Manager rejects
- */
 export const managerRejectLeave = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { manager_id, manager_remarks } = req.body;
@@ -336,247 +312,6 @@ export const managerRejectLeave = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * 👩 HR approves + deduct leave balance
- */
-// export const hrApproveLeave = async (req: Request, res: Response) => {
-//   const { id } = req.params;
-//   const { hr_id } = req.body;
-
-//   const client = await pool.connect();
-//   try {
-//     await client.query('BEGIN');
-
-//     const leaveQuery = await client.query(
-//       `
-//       SELECT l.employee_id, l.leave_type_id, l.number_of_days, lb.remaining_days
-//       FROM leave_requests l
-//       JOIN leave_balances lb
-//       ON lb.employee_id = l.employee_id
-//       AND lb.leave_type_id = l.leave_type_id
-//       AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
-//       WHERE l.id = $1 FOR UPDATE;
-//       `,
-//       [id]
-//     );
-
-//     if (leaveQuery.rowCount === 0) {
-//       await client.query('ROLLBACK');
-//       return res.status(404).json({ message: 'Leave or balance not found' });
-//     }
-
-//     const { employee_id, leave_type_id, number_of_days, remaining_days } = leaveQuery.rows[0];
-//     console.log("Leave approved:", { number_of_days, remaining_days });
-    
-//     if (remaining_days < number_of_days) {
-//       await client.query('ROLLBACK');
-//       return res.status(400).json({ message: 'Insufficient leave balance' });
-//     }
-
-//     await client.query(
-//       `
-//       UPDATE leave_balances
-//       SET used_days = used_days + $1,
-//           remaining_days = remaining_days - $1,
-//           updated_at = NOW()
-//       WHERE employee_id = $2
-//       AND leave_type_id = $3
-//       AND year = EXTRACT(YEAR FROM CURRENT_DATE);
-//       `,
-//       [number_of_days, employee_id, leave_type_id]
-//     );
-
-//     const result = await client.query(
-//       `
-//       UPDATE leave_requests
-//       SET status = 'approved',
-//           hr_id = $1,
-//           hr_action_status = 'approved',
-//           hr_action_date = NOW()
-//       WHERE id = $2 AND status = 'pending_hr'
-//       RETURNING *;
-//       `,
-//       [hr_id, id]
-//     );
-
-//     await client.query('COMMIT');
-//     res.json({ message: 'HR approved and balance updated', leave: result.rows[0] });
-//   } catch (error) {
-//     await client.query('ROLLBACK');
-//     console.error('[hrApproveLeave]', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   } finally {
-//     client.release();
-//   }
-// };
-// export const hrApproveLeave = async (req: Request, res: Response) => {
-//   const { id } = req.params;
-//   const { hr_id } = req.body;
-
-//   const client = await pool.connect();
-//   try {
-//     await client.query('BEGIN');
-
-//     // Lock and fetch everything needed
-//     const leaveQuery = await client.query(
-//       `
-//       SELECT l.employee_id, l.leave_type_id, l.number_of_days,
-//              lb.used_days, lb.max_days_per_year, lb.remaining_days
-//       FROM leave_requests l
-//       JOIN leave_balances lb
-//       ON lb.employee_id = l.employee_id
-//       AND lb.leave_type_id = l.leave_type_id
-//       AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
-//       WHERE l.id = $1
-//       FOR UPDATE;
-//       `,
-//       [id]
-//     );
-
-//     if (leaveQuery.rowCount === 0) {
-//       await client.query('ROLLBACK');
-//       return res.status(404).json({ message: 'Leave or balance not found' });
-//     }
-
-//     const { employee_id, leave_type_id, number_of_days, used_days, max_days_per_year } = leaveQuery.rows[0];
-
-//     const newUsedDays = used_days + number_of_days;
-//     const newRemainingDays = max_days_per_year - newUsedDays;
-
-//     if (newRemainingDays < 0) {
-//       await client.query('ROLLBACK');
-//       return res.status(400).json({ message: 'Insufficient leave balance' });
-//     }
-
-//     // Update the leave balance correctly
-//     await client.query(
-//       `
-//       UPDATE leave_balances
-//       SET used_days = $1,
-//           remaining_days = $2,
-//           updated_at = NOW()
-//       WHERE employee_id = $3
-//       AND leave_type_id = $4
-//       AND year = EXTRACT(YEAR FROM CURRENT_DATE);
-//       `,
-//       [newUsedDays, newRemainingDays, employee_id, leave_type_id]
-//     );
-
-//     // Approve the leave
-//     const result = await client.query(
-//       `
-//       UPDATE leave_requests
-//       SET status = 'approved',
-//           hr_id = $1,
-//           hr_action_status = 'approved',
-//           hr_action_date = NOW()
-//       WHERE id = $2 AND status = 'pending_hr'
-//       RETURNING *;
-//       `,
-//       [hr_id, id]
-//     );
-
-//     await client.query('COMMIT');
-
-//     res.json({
-//       message: 'HR approved and balance updated successfully',
-//       leave: result.rows[0]
-//     });
-//   } catch (error) {
-//     await client.query('ROLLBACK');
-//     console.error('[hrApproveLeave]', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   } finally {
-//     client.release();
-//   }
-// };
-
-// export const hrApproveLeave = async (req: Request, res: Response) => {
-//   const { id } = req.params;
-//   const { hr_id, remarks } = req.body;
-
-//   const client = await pool.connect();
-//   try {
-//     await client.query('BEGIN');
-
-//     // 1️⃣ Lock & fetch leave + balance for update
-//     const leaveQuery = await client.query(
-//       `
-//       SELECT l.employee_id, l.leave_type_id, l.number_of_days,
-//              lb.used_days, lb.total_entitled, lb.remaining_days
-//       FROM leave_requests l
-//       JOIN leave_balances lb
-//         ON lb.employee_id = l.employee_id
-//        AND lb.leave_type_id = l.leave_type_id
-//        AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
-//       WHERE l.id = $1
-//       FOR UPDATE;
-//       `,
-//       [id]
-//     );
-
-//     if (leaveQuery.rowCount === 0) {
-//       await client.query('ROLLBACK');
-//       return res.status(404).json({ message: 'Leave or balance not found' });
-//     }
-
-//     const { employee_id, leave_type_id, number_of_days, used_days, total_entitled } = leaveQuery.rows[0];
-//     const newUsedDays = used_days + number_of_days;
-//     const newRemainingDays = total_entitled - newUsedDays;
-
-//     if (newRemainingDays < 0) {
-//       await client.query('ROLLBACK');
-//       return res.status(400).json({ message: 'Insufficient leave balance' });
-//     }
-
-//     // 2️⃣ Update leave balance
-//     await client.query(
-//       `
-//       UPDATE leave_balances
-//       SET used_days = $1,
-//           remaining_days = $2,
-//           updated_at = NOW()
-//       WHERE employee_id = $3
-//       AND leave_type_id = $4
-//       AND year = EXTRACT(YEAR FROM CURRENT_DATE);
-//       `,
-//       [newUsedDays, newRemainingDays, employee_id, leave_type_id]
-//     );
-
-//     // 3️⃣ Approve the leave by HR
-//     const result = await client.query(
-//       `
-//       UPDATE leave_requests
-//       SET status = 'approved',
-//           hr_id = $1,
-//           hr_action_status = 'approved',
-//           hr_action_date = NOW(),
-//           hr_remarks = $2,
-//           updated_at = NOW()
-//       WHERE id = $3 AND status = 'pending_hr'
-//       RETURNING *;
-//       `,
-//       [hr_id, remarks || null, id]
-//     );
-
-//     if (result.rowCount === 0) {
-//       await client.query('ROLLBACK');
-//       return res.status(400).json({ message: 'Leave not in pending_hr status' });
-//     }
-
-//     await client.query('COMMIT');
-//     res.json({
-//       message: 'HR approved and balance updated successfully',
-//       leave: result.rows[0]
-//     });
-//   } catch (error) {
-//     await client.query('ROLLBACK');
-//     console.error('[hrApproveLeave]', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   } finally {
-//     client.release();
-//   }
-// };
 export const hrApproveLeave = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { hr_id, remarks } = req.body;
@@ -611,38 +346,6 @@ export const hrApproveLeave = async (req: Request, res: Response) => {
   }
 };
 
-
-
-/**
- * ❌ HR rejects
- */
-// export const hrRejectLeave = async (req: Request, res: Response) => {
-//   const { id } = req.params;
-//   const { hr_id, hr_remarks } = req.body;
-
-//   try {
-//     const result = await pool.query(
-//       `
-//       UPDATE leave_requests
-//       SET status = 'hr_rejected',
-//           hr_id = $1,
-//           hr_action_status = 'rejected',
-//           hr_action_date = NOW(),
-//           hr_remarks = $2
-//       WHERE id = $3 AND status = 'pending_hr'
-//       RETURNING *;
-//       `,
-//       [hr_id, hr_remarks, id]
-//     );
-
-//     if (result.rowCount === 0) return res.status(400).json({ message: 'Invalid leave or already processed' });
-
-//     res.json({ message: 'HR rejected successfully', leave: result.rows[0] });
-//   } catch (error) {
-//     console.error('[hrRejectLeave]', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// };
 export const hrRejectLeave = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { hr_id, hr_remarks } = req.body;
@@ -651,7 +354,6 @@ export const hrRejectLeave = async (req: Request, res: Response) => {
   try {
     await client.query('BEGIN');
 
-    // 1️⃣ Fetch the leave request
     const leaveResult = await client.query(
       `
       SELECT employee_id, leave_type_id, number_of_days
@@ -670,7 +372,6 @@ export const hrRejectLeave = async (req: Request, res: Response) => {
     const { employee_id, leave_type_id, number_of_days } = leaveResult.rows[0];
     const year = new Date().getFullYear();
 
-    // 2️⃣ Reverse the balance
     await client.query(
       `
       UPDATE leave_balances
@@ -684,7 +385,6 @@ export const hrRejectLeave = async (req: Request, res: Response) => {
       [number_of_days, employee_id, leave_type_id, year]
     );
 
-    // 3️⃣ Update leave request status
     const updateLeave = await client.query(
       `
       UPDATE leave_requests
@@ -711,63 +411,6 @@ export const hrRejectLeave = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * 🧮 Get leave balance
- */
-// export const getLeaveBalance = async (req: Request, res: Response) => {
-//   const { employee_id, leave_type_id } = req.params;
-//   try {
-//     const result = await pool.query(
-//       `
-//       SELECT remaining_days
-//       FROM leave_balances
-//       WHERE employee_id = $1
-//       AND leave_type_id = $2
-//       AND year = EXTRACT(YEAR FROM CURRENT_DATE);
-//       `,
-//       [employee_id, leave_type_id]
-//     );
-
-//     if (result.rowCount === 0) return res.status(404).json({ message: 'Balance not found' });
-
-//     res.json({ remainingDays: result.rows[0].remaining_days });
-//   } catch (error) {
-//     console.error('[getLeaveBalance]', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// };
-// export const getLeaveBalance = async (req: Request, res: Response) => {
-//   const { employee_id } = req.params;
-
-//   try {
-//     const result = await pool.query(
-//       `
-//       SELECT 
-//         lt.id AS leave_type_id,
-//         lt.name AS leave_type_name,
-//         lt.max_days_per_year,
-//         COALESCE(lb.used_days, 0) AS used_days,
-//         COALESCE(lb.remaining_days, lt.max_days_per_year) AS remaining_days
-//       FROM leave_types lt
-//       LEFT JOIN leave_balances lb
-//         ON lb.leave_type_id = lt.id
-//         AND lb.employee_id = $1
-//         AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
-//       ORDER BY lt.name;
-//       `,
-//       [employee_id]
-//     );
-
-//     if (result.rowCount === 0) {
-//       return res.status(404).json({ message: 'No leave types or balances found for this employee' });
-//     }
-
-//     res.json(result.rows);
-//   } catch (error) {
-//     console.error('[getLeaveBalance]', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// };
 export const getLeaveBalance = async (req: Request, res: Response) => {
   const { employee_id } = req.params;
 
@@ -808,38 +451,6 @@ export const getLeaveBalance = async (req: Request, res: Response) => {
   }
 };
 
-// export const getAllLeaveBalance = async (req: Request, res: Response) => {
-//   try {
-//     const result = await pool.query(
-//       `
-//       SELECT 
-//         e.id AS employee_id,
-//         e.name AS employee_name,
-//         lt.id AS leave_type_id,
-//         lt.name AS leave_type_name,
-//         lt.max_days_per_year,
-//         COALESCE(lb.used_days, 0) AS used_days,
-//         COALESCE(lb.remaining_days, lt.max_days_per_year) AS remaining_days
-//       FROM employees e
-//       CROSS JOIN leave_types lt
-//       LEFT JOIN leave_balances lb
-//         ON lb.employee_id = e.id
-//         AND lb.leave_type_id = lt.id
-//         AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
-//       ORDER BY e.name, lt.name;
-//       `
-//     );
-
-//     if (result.rowCount === 0) {
-//       return res.status(404).json({ message: 'No leave balances found' });
-//     }
-
-//     res.json(result.rows);
-//   } catch (error) {
-//     console.error('[getAllLeaveBalance]', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// };
 export const getAllLeaveBalance = async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
@@ -898,9 +509,6 @@ export const getUsedLeaveDays = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * 🕒 Get pending approvals for a manager
- */
 export const getPendingApprovalsForManager = async (req: Request, res: Response) => {
   const { manager_id } = req.params;
   try {
@@ -920,9 +528,7 @@ export const getPendingApprovalsForManager = async (req: Request, res: Response)
   }
 };
 
-/**
- * 🕒 Get pending approvals for HR
- */
+
 export const getPendingApprovalsForHR = async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(
